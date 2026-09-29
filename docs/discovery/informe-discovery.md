@@ -2,7 +2,7 @@
 
 **Materia:** Metodología I
 **Proyecto:** Turnos-Odontologia
-**Integrantes:** A COMPLETAR
+**Integrantes:** Martin Escudero
 **Fecha:** 2026-09-29
 
 ---
