@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Entorno local
+.env
+.env.local
+
+# Build
+dist/
+build/
+
+# PDFs temporales (pero NO el informe final)
+*.tmp.pdf
+~*.pdf
+
+# OS / editores
+.DS_Store
+Thumbs.db
