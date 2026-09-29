@@ -1,3 +1,18 @@
+# Informe de Discovery — Sistema de gestión de turnos odontológicos
+
+**Materia:** Metodología I
+**Proyecto:** Turnos-Odontologia
+**Integrantes:** A COMPLETAR
+**Fecha:** 2026-09-29
+
+---
+
+## Resumen ejecutivo
+
+Se investigaron 18 sistemas con gestión de turnos/agenda (prioridad Argentina, luego Latam e internacionales) más 3 turneros argentinos complementarios, con búsquedas web en vivo el 2026-09-29 y criterio de solo afirmar lo verificado en fuente pública (distinguiendo funcionalidad comprobada de afirmación comercial; lo no demostrado se consigna como "No evidenciado"). Hallazgos: nadie une bien los tres mundos argentinos (clínica odontológica profunda + obras sociales/ARCA + WhatsApp/Mercado Pago); DentalSoft lidera el encaje operativo local, Dentalink es el techo funcional regional, DentalTec tiene el moat de validación de obras sociales, y FLAP el mejor flujo seña→reserva; seña vía Mercado Pago + bot de WhatsApp ya es estándar esperado, los precios locales son mayormente opacos y la trazabilidad/cumplimiento demostrable es un vacío general. El MVP sugerido incluye agenda multi-profesional/sillón con anti-solapamiento, reserva online 24/7, recordatorios por WhatsApp, ficha + odontograma FDI que deriva en presupuesto, caja multi-medio con señas de Mercado Pago, cobertura configurable de obras sociales, lista de espera, Google Calendar y base legal mínima; se postergan ARCA nativa, validación realtime de obras sociales, periodontograma completo e IA diagnóstica.
+
+---
+
 # Investigación de mercado — Sistemas odontológicos con gestión de turnos y agenda
 
 **Proyecto:** Turnos-Odontologia (sistema de gestión de turnos odontológicos)
@@ -395,3 +410,13 @@ Ordenada por **relevancia para Argentina** (combinación de: focos odontológico
 4. **Detalles técnicos de integraciones (WhatsApp Business API vs QR, Mercado Pago Checkout/API, Google Calendar OAuth, AFIP/ARCA WS, APIs abiertas):** los vendors hablan de "integración" genérica sin documentar endpoints ni alcances. Solo Fresha (precios WA/SMS), Dentalink-Titanium (API) y DentalTec (adaptadores SOAP) dan pista técnica. Requiere demo técnica + documentación para cerrar.
 5. **Videos oficiales y centros de ayuda:** se priorizaron sitios oficiales, documentación pública, precios y normativa; no se visionaron videos oficiales completos por límite de tiempo (se citan funcionalidades visibles en web/docs). Se recomienda revisarlos en fase demo.
 6. **Reseñas verificadas (Capterra/Trustpilot/Play Store):** solo se citó la calificación pública de Doctoralia AR (4.9★ App Store) y menciones de comparadores (mejorsoftware.org, comparasoftware.com). No se usaron testimonios sin fuente como evidencia funcional.
+
+---
+
+## Verificación de fuentes
+
+> PENDIENTE — tarea del estudiante: comprobar personalmente 5 fuentes y registrar hallazgo/corrección.
+
+## Referencias
+
+PENDIENTE — completar referencias en el formato exigido por la consigna.
