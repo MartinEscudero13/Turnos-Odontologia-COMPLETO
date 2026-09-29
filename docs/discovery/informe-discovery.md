@@ -17,7 +17,7 @@ Se investigaron 18 sistemas con gestión de turnos/agenda (prioridad Argentina, 
 
 **Proyecto:** Turnos-Odontologia (sistema de gestión de turnos odontológicos)
 **Etapa:** Discovery (previo a Knowledge Base)
-**Archivo:** `discovery/competidores.md`
+**Archivo:** `docs/discovery/informe-discovery.md`
 **Fecha de consulta de todas las fuentes:** 2026-09-29 (salvo indicación contraria)
 **Idioma:** español formal
 **Criterio metodológico:** solo se afirma lo verificado en fuente pública (sitio oficial, documentación, precios, ayuda, videos oficiales, normativa oficial). Lo no demostrado se consigna como **"No evidenciado"**. Se distingue entre *funcionalidad comprobada* (visible en producto/documentación) y *afirmación comercial* (marketing sin evidencia funcional pública).

@@ -1,7 +1,7 @@
 # Discovery — Turnos-Odontologia
 
 **Fecha**: 2026-09-29
-**Fuentes investigadas**: investigación de mercado propia, 18 sistemas + 3 turneros AR (ver `discovery/competidores.md`)
+**Fuentes investigadas**: investigación de mercado propia, 18 sistemas + 3 turneros AR (ver `docs/discovery/informe-discovery.md`)
 
 ## 1. Problema que resuelve
 
@@ -32,7 +32,7 @@ hueco a tiempo.
 
 ## 4. Competidores / soluciones existentes
 
-Relevamiento completo en `discovery/competidores.md`: 18 sistemas comparados
+Relevamiento completo en `docs/discovery/informe-discovery.md`: 18 sistemas comparados
 (ordenados por relevancia para Argentina) + 3 turneros argentinos
 complementarios, con matriz de puntuación ponderada y análisis de vacíos.
 
