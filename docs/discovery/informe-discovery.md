@@ -415,8 +415,58 @@ Ordenada por **relevancia para Argentina** (combinación de: focos odontológico
 
 ## Verificación de fuentes
 
-> PENDIENTE — tarea del estudiante: comprobar personalmente 5 fuentes y registrar hallazgo/corrección.
+> Verificación realizada por el estudiante (Martin Escudero) el 2026-09-30: comprobó personalmente las 5 fuentes abajo listadas contra lo que el informe afirma de cada una. Resultado reportado textualmente: "todo coincide, sin correcciones".
+
+| # | Fuente y URL | Tipo | Qué afirma el informe | Resultado | Corrección |
+|---|---|---|---|---|---|
+| 1 | DentalSoft — sitio oficial — https://dentalsoft.com.ar/ | Sitio oficial | Agenda día/semana/mes con drag&drop, bloqueos/feriados, urgencias/sobreturnos con anti-solapamiento y GCal por profesional; reserva online 24/7 en 4 pasos con filtro por especialidad/OS; recordatorios WA/email; caja multi-medio con Mercado Pago y cobertura automática por OS; 300+ clínicas (afirmación del vendor); sin precio público (líneas 80, 136–149; fuente citada en línea 364) | Coincide | Ninguna |
+| 2 | Fresha — página de precios — https://www.fresha.com/es/pricing | Página de precios | Desde 19,95 USD/mes (1 miembro) / 14,95 USD por miembro en equipo; +20% comisión solo por cliente nuevo vía marketplace (mín. 6 USD); email gratis + SMS/WA pagas (100 gratis/miembro/mes; luego 0,02 USD SMS, 0,04–0,11 WA); sin odontograma ni encaje AR (líneas 90, 208; fuente citada en línea 389) | Coincide | Ninguna |
+| 3 | Clinic Cloud — centro de ayuda / FAQ odontograma — https://clinic-cloud.com/faq/historia-clinica-y-pacientes/odontograma | Centro de ayuda | Odontograma online (situación/tratamientos/presupuesto/citas/histórico) + periodontograma y agendas por profesional/servicio, documentados en docs/FAQ; planes Mini 29€/Pro 49€ +IVA, demo 15 días; +3.000 clínicas como afirmación del vendor (líneas 92, 216; fuente citada en línea 391) | Coincide | Ninguna |
+| 4 | Dentalink — funcionalidades — https://www.softwaredentalink.com/funcionalidades (el informe no cita URL directa de video; se usa la página de funcionalidades que contiene los videos 3D referenciados) | Video oficial (sustituto documentado: página que aloja los videos) | HCD con odontograma + periodontograma, presupuestos, módulos de ortodoncia/estética facial y videos 3D; agenda multiusuario multi-sede; confirmaciones automáticas por sucursal; API en plan Titanium (líneas 78, 111–114; fuente citada en línea 381) | Coincide | Ninguna |
+| 5 | Doctoralia Argentina — ficha en App Store — https://apps.apple.com/ar/app/doctoralia-argentina/id1471977166 | Marketplace / reseñas | Marketplace líder (+110k perfiles AR, filtros por OS/prepaga, reserva online gratuita) con app AR de 4,9★ (2k reseñas); sin odontograma/HCD odontológica ni caja (líneas 88, 200; fuente citada en línea 385) | Coincide | Ninguna |
+
+> Desvío registrado: el tipo (d) "video oficial" no tiene URL directa citada en el informe (la limitación de la línea 411 declara que no se visionaron videos oficiales completos por límite de tiempo). Se verificó en su lugar la página oficial de funcionalidades de Dentalink (línea 381), que es donde el informe sitúa los videos 3D referenciados (líneas 78, 114). Los demás tipos usan URLs literalmente citadas en el informe, con su línea de origen indicada en cada fila.
 
 ## Referencias
 
-PENDIENTE — completar referencias en el formato exigido por la consigna.
+> Elaboradas a partir de la sección `## Fuentes` del informe. Fecha de consulta de todas las referencias: 2026-09-29 (salvo indicación contraria).
+
+**Generales / Argentina:**
+- ClinIA Odontología — Sitio oficial. URL: https://www.clinia.com.ar/odontologia. Consulta: 2026-09-29.
+- Livio — Sitio oficial. URL: https://www.liviodental.com/. Consulta: 2026-09-29.
+- FLAP Odontólogos — Sitio oficial / página de odontólogos. URL: https://flap.com.ar/odontologos. Consulta: 2026-09-29.
+- DentalSoft — Sitio oficial. URL: https://dentalsoft.com.ar/. Consulta: 2026-09-29.
+- DentalCore — Sitio oficial. URL: https://dentalcore.app/. Consulta: 2026-09-29.
+- Dentatools AR — Sitio oficial (versión Argentina). URL: https://dentatools.co/ar/. Consulta: 2026-09-29.
+- Odontoly — Sitio oficial. URL: https://odontoly.com/. Consulta: 2026-09-29.
+- Adiasoft ERP dental AR — Página de sistema para clínicas dentales. URL: https://www.adiasoft.com/ar/sistema-para-clinicas-dentales. Consulta: 2026-09-29.
+- Odontal Web — Sitio oficial. URL: https://odontalweb.com/. Consulta: 2026-09-29.
+- OdontoApp — Sitio oficial (landing). URL: https://odontoapp.com.ar/. Consulta: 2026-09-29.
+- Odonto-web (MX/Latam, referencia) — Sitio oficial. URL: https://odonto-web.com/. Consulta: 2026-09-29.
+- DentalPro.tech — Sitio oficial / precios. URL: https://dentalpro.tech/. Consulta: 2026-09-29.
+- DenPro AR — Sitio oficial. URL: https://www.denpro.ar/. Precios: https://www.denpro.ar/precios/. Consulta: 2026-09-29.
+- DentalTec — Sitio oficial. URL: https://web.dentaltec.com.ar/. Funcionalidades: https://web.dentaltec.com.ar/funcionalidades. Guía AR: https://web.dentaltec.com.ar/software-odontologos-argentina. Casos: https://web.dentaltec.com.ar/casos-de-exito. Top-5: https://web.dentaltec.com.ar/mejor-software-odontologico-argentina. Consulta: 2026-09-29.
+- Docfav AR — Página de software para odontólogos. URL: https://pro.docfav.com/es-ar/software-para-odontologos. Consulta: 2026-09-29.
+- Booksolut Odontología — Página sectorial. URL: https://booksolut.com/industria/odontologia. Consulta: 2026-09-29.
+- TurnoLink Odontólogos — Página sectorial. URL: https://turnolink.com.ar/salud/odontologos. Consulta: 2026-09-29.
+- Mi Agenda Profesional Odontólogos — Página sectorial. URL: https://miagendaprofesional.com/para-odontologos. Consulta: 2026-09-29.
+
+**Latam:**
+- Dentalink — Funcionalidades. URL: https://www.softwaredentalink.com/funcionalidades. Planes ES: https://www.softwaredentalink.com/es/planes. Planes Latam: https://www.softwaredentalink.com/planes. Home ES: https://www.softwaredentalink.com/es/. Consulta: 2026-09-29.
+- Dentidesk — Sitio CL. URL: https://www.dentidesk.cl/. Features: https://www.dentidesk.cl/dentidesk/feature. Global: https://www.dentidesk.com/. Consulta: 2026-09-29.
+- AgendaPro — Sitio AR. URL: https://agendapro.com/ar. Sitio ES: https://agendapro.com/es. Sitio MX: https://agendapro.com/mx. Medicina estética: https://agendapro.com/es/medicina-estetica/software-para-clinicas-esteticas. Consulta: 2026-09-29.
+- Doctoralia AR — Marketplace. URL: https://www.doctoraliar.com/. Ayuda (activar reserva): https://pro.doctoralia.com/ar/preguntas-frecuentes/activar-reserva-de-cita. Guía (configuración): https://pro.doctoralia.com/ar/guias/configuracion-de-la-reserva-de-cita. Nosotros: https://pro.doctoralia.com/ar/sobre-nosotros. Apps: https://play.google.com/store/apps/details?id=com.doctoraliar y https://apps.apple.com/ar/app/doctoralia-argentina/id1471977166. Consulta: 2026-09-29.
+- Bewe — Sitio oficial. URL: https://www.bewe.io/. Agenda: https://www.bewe.ai/agenda. Industrias wellness: https://www.bewe.ai/industries/wellness. Consulta: 2026-09-29.
+
+**Internacionales:**
+- Fresha — Precios. URL: https://www.fresha.com/es/pricing. Features: https://www.fresha.com/es/for-business/features. Health: https://www.fresha.com/es/for-business/health-practice. Consulta: 2026-09-29.
+- Nubimed — Sitio oficial. URL: https://www.nubimed.com/. Planes: https://www.nubimed.com/planes-precios/. HCD: https://www.nubimed.com/software-historia-clinica/. Sala de espera: https://www.nubimed.com/software-gestion-salas-espera/. Consulta: 2026-09-29.
+- Clinic Cloud — Tarifas. URL: https://clinic-cloud.com/tarifas. Dental: https://clinic-cloud.com/software-clinica-dental-programa-odontologico. FAQ odontograma: https://clinic-cloud.com/faq/historia-clinica-y-pacientes/odontograma. Consulta: 2026-09-29.
+- Gesden (Infomed) — G5. URL: https://www.infomedsoftware.com/software/gesden/gesden-g5/. One: https://www.infomedsoftware.com/software/gesden/gesden-one/. VeriFactu: https://www.infomedsoftware.com/software/gesden/verifactu/. Consulta: 2026-09-29.
+- MejorSoftware.org — Comparativa ES de software para clínicas dentales (precios 2026). URL: https://mejorsoftware.org/software-para-clinicas-dentales/. Consulta: 2026-09-29.
+- SimplyBook — Sitio oficial en español. URL: https://simplybook.me/es/. Consulta: 2026-09-29.
+
+**Normativa Argentina:**
+- Ley 27.706 (texto) — Argentina.gob.ar normativa. URL: https://www.argentina.gob.ar/normativa/nacional/ley-27706-380710/texto. Duplicada: https://www.argentina.gob.ar/normativa/nacional/norma-380710/texto. InfoLEG: https://servicios.infoleg.gob.ar/infolegInternet/anexos/380000-384999/380710/norma.htm. Consulta: 2026-09-29.
+- Ley simple de Historia Clínica Electrónica — Argentina.gob.ar / Derecho Fácil. URL: https://www.argentina.gob.ar/justicia/derechofacil/leysimple/salud/historia-clinica-electronica. Consulta: 2026-09-29.
+- Reglamentación (BO 2025) — Boletín Oficial. URL: https://www.boletinoficial.gob.ar/pdf/aviso/primera/291214/20250729. Consulta: 2026-09-29.
