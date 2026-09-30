@@ -1,0 +1,408 @@
+# CHANGES — Secuencia de Implementación
+
+> Índice canónico de todos los changes del proyecto **Turnos-Odontologia** (SaaS multi-tenant argentino: agenda odontológica + reserva online + WhatsApp + Mercado Pago + obras sociales).
+> Cada change es atómico: un agente puede implementarlo en una sesión (~4-6 horas).
+> **Leer este archivo antes de ejecutar cualquier `/opsx:propose`.**
+
+---
+
+## Cómo usar este documento
+
+1. Identificar el change a implementar (verificar que sus dependencias están en `openspec/changes/archive/`).
+2. Leer los docs de la knowledge-base indicados en "Leer antes".
+3. Ejecutar `/opsx:propose <nombre-del-change>`.
+4. Al terminar el change, archivarlo con `/opsx:archive <nombre-del-change>`.
+5. Marcar el checkbox `[x]` en este archivo.
+
+---
+
+## Árbol de dependencias
+
+```
+C-01 foundation-setup
+  └── C-02 core-models-multitenant
+        └── C-03 auth-rbac-auditoria               ← desbloquea TODO lo demás
+              └── C-04 catalogos-pacientes-base
+                    │
+                    ├── C-05 turnos-anti-solape    ← corazón del sistema
+                    │     ├── C-06 reserva-online-publica
+                    │     │     └── C-07 lista-espera-auto-oferta
+                    │     │           ├── C-11 senas-mercadopago   ← + C-10
+                    │     │           └── C-13 whatsapp-recordatorios
+                    │     │                 └── C-15 admin-plataforma-exportacion
+                    │     ├── C-10 caja-cierre-diario             ← paralelo con C-06
+                    │     ├── C-12 obras-sociales-liquidacion     ← paralelo con C-06
+                    │     └── C-14 google-calendar-sync           ← paralelo con C-06
+                    │
+                    └── C-08 ficha-clinica-consentimiento         ← paralelo con C-05
+                          └── C-09 odontograma-presupuesto
+```
+
+### Paralelismo por fase
+
+> Cada "gate" es un punto de sincronización. Los changes dentro de un grupo pueden ejecutarse en paralelo.
+
+```
+GATE 0: ninguna
+  → C-01 foundation-setup (solo)
+
+GATE 1: C-01 ✓
+  → C-02 core-models-multitenant (solo)
+
+GATE 2: C-02 ✓
+  → C-03 auth-rbac-auditoria (solo)
+
+GATE 3: C-03 ✓
+  → C-04 catalogos-pacientes-base (solo — todo lo demás referencia sus entidades)
+
+GATE 4: C-04 ✓                        ← PRIMER FORK (2 ramas)
+  → C-05 turnos-anti-solape           [Agente A — Backend Core]
+  → C-08 ficha-clinica-consentimiento [Agente B — Backend Aux/Clínica]
+
+GATE 5: C-05 ✓ (+ C-08 en curso)       ← SEGUNDO FORK (4 paralelos)
+  → C-06 reserva-online-publica       [Agente A — depende C-05]
+  → C-10 caja-cierre-diario           [Agente B — depende C-05]
+  → C-12 obras-sociales-liquidacion   [Agente C — depende C-04 + C-05]
+  → C-14 google-calendar-sync         [Agente C — si C-12 ✓, depende solo C-05]
+  → C-09 odontograma-presupuesto      [Agente B — si C-08 ✓, depende C-08]
+
+GATE 6: C-06 ✓
+  → C-07 lista-espera-auto-oferta     [Agente A — depende C-05 + C-06]
+
+GATE 7: C-07 + C-10 ✓                 ← TERCER FORK (2 paralelos)
+  → C-11 senas-mercadopago            [Agente A — depende C-05 + C-07 + C-10]
+  → C-13 whatsapp-recordatorios       [Agente B — depende C-05 + C-07]
+
+GATE 8: C-11 + C-12 + C-13 ✓
+  → C-15 admin-plataforma-exportacion (solo — cierra el sistema)
+```
+
+### Camino crítico (8 changes — mínimo irreducible)
+
+```
+C-01 → C-02 → C-03 → C-04 → C-05 → C-06 → C-10 → C-15
+```
+
+> `C-11` (señas Mercado Pago) es el último alternativo para producción con pagos online (*): `… → C-07 → C-11*`.
+> No incluye `C-13`/`C-14` (integraciones al final, regla 6) ni `C-09` (clínica profunda) ni refactors visuales.
+
+### Plan óptimo con 3 agentes
+
+```
+Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ Agente C (Frontend/Integraciones)
+─────┼──────────────────────────────┼───────────────────────────────────┼────────────────────────────────────
+  1  │ C-01 foundation-setup        │ —                                 │ —
+  2  │ C-02 core-models-multitenant │ —                                 │ —
+  3  │ C-03 auth-rbac-auditoria     │ —                                 │ —
+  4  │ C-04 catalogos-pacientes     │ —                                 │ —
+  5  │ C-05 turnos-anti-solape      │ C-08 ficha-clinica                │ —
+  6  │ C-06 reserva-online          │ C-10 caja-cierre                  │ C-12 obras-sociales
+  7  │ C-07 lista-espera            │ C-09 odontograma-presupuesto      │ C-14 google-calendar-sync
+  8  │ C-11 senas-mercadopago       │ C-13 whatsapp-recordatorios       │ —
+  9  │ C-15 admin-plataforma        │ —                                 │ —
+```
+
+---
+
+## FASE 0 — Cimientos
+
+### [C-01] `foundation-setup`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Scaffolding completo del monorepo Next.js + infraestructura base (US transversales, DD-01)
+  - Estructura `app/` (App Router + `/api/*`), `lib/domain|integraciones|auth|audit`, `prisma/`, `workers/`, `tests/`
+  - Next.js 14+ TypeScript + Node 20, Prisma 5+ inicializado, `GET /api/health`
+  - `.env.example` con `DATABASE_URL, AUTH_SECRET, MP_*, WA_*, GCAL_*, APP_URL, RESERVA_TTL_H, SENA_TTL_H, CANCEL_ANTICIPACION_H`
+  - Docker + Compose (app + PostgreSQL 15) y CI paralela (lint + typecheck + tests)
+  - `lib/` con settings, logger estructurado (sin PHI), db client, exceptions, schemas zod base
+- **Dependencias**: ninguna
+- **Governance**: BAJO
+- **Leer antes**:
+  - `knowledge-base/01_vision_y_objetivos.md` §Alcance v1.0
+  - `knowledge-base/02_descripcion_general.md` §Stack tecnológico
+  - `knowledge-base/08_arquitectura_propuesta.md` §Estructura de directorios
+  - `knowledge-base/09_decisiones_y_supuestos.md` §DD-01
+
+---
+
+### [C-02] `core-models-multitenant`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Núcleo multi-tenant + RLS + seed de tenant nuevo (base de RN-AG-05, RN-AU-02)
+  - Modelos: `Tenant(id, nombre, slug unique, plan, activo)`, `Usuario(tenant_id, email, password_hash, rol enum ADMIN/RECEPCION/ODONTOLOGO, two_factor, activo)` con `UNIQUE(tenant_id, email)`
+  - Tabla `auditoria` append-only `(tenant_id, actor_id, accion, entidad, entidad_id, antes/después jsonb, at)` + revoke UPDATE/DELETE
+  - Helper `tenant_id` NOT NULL + política RLS `tenant_id = current_setting('app.tenant_id')` reutilizable por todas las migraciones futuras
+  - Migración 001: tenants, usuarios, auditoria + RLS
+  - Seed por tenant: roles, estados de turno, medios de pago, 1 sillón ("Sillón 1"), prestaciones base (Consulta, Limpieza), plantillas WA, parámetros (anticipación 24 h, política de seña)
+  - Tests: fuga cross-tenant (query sin tenant no ve datos ajenos), seed idempotente
+- **Dependencias**: C-01
+- **Governance**: CRITICO
+- **Leer antes**:
+  - `knowledge-base/04_modelo_de_datos.md` §tenants, §usuarios, §mensajes_wa / recordatorios / auditoria
+  - `knowledge-base/04_modelo_de_datos.md` §Seed data inicial
+  - `knowledge-base/08_arquitectura_propuesta.md` §Patrones aplicados
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-AG-05, §RN-AU-02
+
+---
+
+## FASE 1 — Identidad y auditoría
+
+### [C-03] `auth-rbac-auditoria`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Autenticación + RBAC (tenant, rol) + auditoría enforced en API (US-051 parcial: CA-1, CA-2; RN-AU-01/02/05)
+  - `POST /api/auth/login` — Argon2/bcrypt, sesiones cortas + refresh, rate limiting 5/60s por IP+email
+  - `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`; 2FA exigible para roles internos
+  - Middleware API: exige `(tenant_id, rol)` según matriz `03_actores_y_roles.md` + RLS como segunda barrera
+  - `lib/audit`: helper append-only usado por agenda/caja/señas/presupuestos/accesos (quién/qué/cuándo/antes/después)
+  - Teléfono E.164, montos en centavos, validación zod en borde API
+  - Tests: login/refresh/logout, matriz RBAC por rol, fuga cross-tenant por rol, audit contiene antes/después
+- **Dependencias**: C-02
+- **Governance**: CRITICO
+- **Leer antes**:
+  - `knowledge-base/03_actores_y_roles.md` §RBAC — Matriz de permisos
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-AU-01, §RN-AU-02, §RN-AU-05
+  - `knowledge-base/08_arquitectura_propuesta.md` §Seguridad
+  - `knowledge-base/06_funcionalidades.md` §US-051
+
+---
+
+## FASE 2 — Catálogos y agenda
+
+> `C-05` y `C-08` pueden proponerse en paralelo tras `C-04`. `C-04` debe archivarse antes que cualquier otro change de esta fase.
+
+### [C-04] `catalogos-pacientes-base`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Catálogos del tenant + pacientes base que todo el dominio referencia (US-003; RN-AG-01/04/06, RN-RE-05)
+  - Modelos: `Profesional(usuario_id?, nombre, especialidad, matricula?, color_agenda, activo)`, `Sillon(nombre, activo)`, `Prestacion(nombre, duracion_min, precio_base, requiere_sena, monto_sena?, activa)`, `ProfesionalPrestacion` (N—N habilidad), `HorarioSemanal(dia, desde, hasta)`, `Bloqueo(desde, hasta, motivo)`
+  - Modelo `Paciente(nombre, dni_cifrado?, telefono E.164, email?, obra_social_id?, nro_afiliado?, consentimiento_ok)` con `UNIQUE(tenant_id, dni)` e índice `(tenant_id, telefono)`; vinculación por teléfono existente
+  - Endpoints CRUD: `/api/profesionales`, `/api/sillones`, `/api/prestaciones`, `/api/pacientes` (base, sin ficha clínica)
+  - Regla: duración variable por prestación; intersección horario profesional × consultorio; bloqueos restan disponibilidad
+  - Migración 002: todas las tablas del scope + RLS
+  - Tests: CRUD por rol, aislamiento multi-tenant, teléfono duplicado vincula ficha
+- **Dependencias**: C-03
+- **Governance**: MEDIO
+- **Leer antes**:
+  - `knowledge-base/04_modelo_de_datos.md` §profesionales, §sillones, §prestaciones, §pacientes
+  - `knowledge-base/06_funcionalidades.md` §US-003
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-AG-01, §RN-AG-04, §RN-AG-06, §RN-RE-05
+  - `knowledge-base/03_actores_y_roles.md` §RBAC — Matriz de permisos
+
+---
+
+### [C-05] `turnos-anti-solape`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Turnos con anti-solapamiento real en DB + agenda día/semana de recepción (US-001, US-002; RN-AG-02/03, RN-GL-01/02)
+  - Modelo `Turno(tenant, profesional, sillon, paciente, prestacion, inicio, fin calculado, estado PENDIENTE/CONFIRMADO/PRESENTE/AUSENTE/CANCELADO/REPROGRAMADO, sobreturno=false, origen RECEPCION/ONLINE/LISTA_ESPERA, token_publico?, sena_id?)`
+  - Constraints EXCLUDE anti-solape por `(tenant, profesional)` y `(tenant, sillon)` en `[inicio, fin)` con `estado NOT IN (CANCELADO, REPROGRAMADO)` y `sobreturno=false`
+  - Endpoints: `CRUD /api/turnos`, `POST /api/turnos/:id/sobreturno` (motivo obligatorio + auditoría), `POST /api/turnos/:id/cancelar|reprogramar`
+  - UI `(app)/agenda`: vista día/semana por profesional y sillón, colores por estado, drag&drop con confirmación que revalida solape en servidor, bloqueos ocultan slots; slot tomado → 409 + 3 alternativas
+  - Migración 003: turnos + EXCLUDE + índices `(tenant, profesional, inicio)`, `(tenant, sillon, inicio)`, `(tenant, estado)`
+  - Tests (rojos primero): solape profesional falla, solape sillón falla, sobreturno exige motivo y audita, concurrencia doble-reserva solo una confirma
+- **Dependencias**: C-03, C-04
+- **Governance**: CRITICO
+- **Leer antes**:
+  - `knowledge-base/04_modelo_de_datos.md` §turnos
+  - `knowledge-base/06_funcionalidades.md` §US-001, §US-002
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-AG-02, §RN-AG-03, §RN-GL-01, §RN-GL-02
+  - `knowledge-base/07_flujos_principales.md` §Flujo 4
+
+---
+
+## FASE 3 — Reserva online y lista de espera
+
+### [C-06] `reserva-online-publica`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Reserva por link sin login + cancelar/reprogramar con anticipación (US-010, US-011; RN-RE-01/02/03/05, RN-GL-02)
+  - `GET /api/disponibilidad?prestacion=&profesional=&desde=` — slots reales servidor-side (profesional × sillón × duración − bloqueos), scoped por token de tenant
+  - `POST /api/reservas/publicas` — crea turno PENDIENTE + token público; identificación liviana nombre + teléfono (DD-06), rate-limit + captcha/OTP liviano anti-spam
+  - Rutas públicas `/r/[tokenTenant]` (landing reserva, mobile-first) con confirmación inmediata; `cancelar|reprogramar` valida anticipación mínima configurable (default 24 h, `CANCEL_ANTICIPACION_H`); debajo del umbral deriva a recepción auditada
+  - Caso slot tomado entre pasos → 409 + 3 alternativas
+  - Tests: slots excluyen bloqueos/solapes, reserva vincula paciente por teléfono, anticipación enforced, rate-limit bloquea abuso
+- **Dependencias**: C-05
+- **Governance**: MEDIO
+- **Leer antes**:
+  - `knowledge-base/06_funcionalidades.md` §US-010, §US-011
+  - `knowledge-base/07_flujos_principales.md` §Flujo 1
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-RE-01, §RN-RE-02, §RN-RE-03, §RN-RE-05
+  - `knowledge-base/03_actores_y_roles.md` §Rutas públicas
+  - `knowledge-base/09_decisiones_y_supuestos.md` §DD-06
+
+---
+
+### [C-07] `lista-espera-auto-oferta`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Lista de espera con auto-oferta de huecos liberados y expiración (US-012; RN-RE-04)
+  - Modelos: `ListaEspera(tenant, paciente, prestacion, profesional_pref?, ventana_horaria?, estado PENDIENTE/OFRECIDO/CONVERTIDO/VENCIDO)` + `Ofertas(hueco_turno_id?, expira_at, estado)`
+  - Endpoints: `/api/lista-espera` (alta, baja, listar compatible) + worker auto-oferta: hueco liberado se ofrece a lista compatible ordenada (prioridad/fecha) ANTES de publicarse general
+  - Oferta con expiración (ej. 2 h): primer aceptante ocupa el hueco (revalida solape C-05); si vence pasa al siguiente; si nadie acepta → slot público
+  - Cancelación por cualquier canal (recepción, link, WA) dispara el worker
+  - Migración 004: lista_espera + ofertas + RLS
+  - Tests: orden de oferta, expiración rota al siguiente, aceptante ocupa hueco, sin lista → slot público
+- **Dependencias**: C-05, C-06
+- **Governance**: MEDIO
+- **Leer antes**:
+  - `knowledge-base/04_modelo_de_datos.md` §lista_espera (+ ofertas)
+  - `knowledge-base/06_funcionalidades.md` §US-012
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-RE-04
+  - `knowledge-base/07_flujos_principales.md` §Flujo 4
+
+---
+
+## FASE 4 — Clínica y presupuesto
+
+> `C-08` corre en paralelo con `C-05` tras `C-04`. `C-09` requiere `C-08` archivado.
+
+### [C-08] `ficha-clinica-consentimiento`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Ficha clínica mínima con consentimiento previo y evoluciones inmutables (US-030; RN-CL-03/04, RN-AU-03)
+  - Modelos: `Ficha(paciente 1—1)`, `Evolucion(tenant, paciente, profesional, fecha, texto, firma_hash?)` append-only (corrección = nueva evolución), `Adjunto(ficha, tipo Rx/foto, storage ref)`, `Consentimiento(paciente, timestamp, canal móvil)`
+  - Endpoints: `/api/pacientes/:id/ficha`, `/api/evoluciones`, `/api/adjuntos`, `/api/consentimientos` (firma en móvil)
+  - Regla: sin consentimiento firmado → bloquea clínica, permite solo agenda; nada de PHI en logs ni mensajes
+  - Migración 005: fichas, evoluciones, adjuntos, consentimientos + RLS
+  - Tests: evolución no editable (UPDATE rechazado), sin consentimiento bloquea POST clínico pero no agenda, adjunto scoped por tenant
+- **Dependencias**: C-04
+- **Governance**: ALTO
+- **Leer antes**:
+  - `knowledge-base/04_modelo_de_datos.md` §odontograma_hallazgos / evoluciones / presupuestos
+  - `knowledge-base/06_funcionalidades.md` §US-030
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-CL-03, §RN-CL-04, §RN-AU-03
+  - `knowledge-base/07_flujos_principales.md` §Flujo 3
+
+---
+
+### [C-09] `odontograma-presupuesto`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Odontograma FDI con historial → presupuesto por pieza con aceptación parcial e imputación (US-031, US-032; RN-CL-01/02, RN-OS-01)
+  - Modelo `OdontogramaHallazgo(tenant, paciente, pieza_fdi 11–48, superficie?, hallazgo, fecha, profesional, resuelto bool)` con historial por pieza
+  - Modelos: `Presupuesto(tenant, paciente, estado BORRADOR/VIGENTE/PARCIAL/ACEPTADO/VENCIDO)` + `PresupuestoLinea(pieza_fdi?, prestacion, monto, cobertura_os, a_cargo_paciente)` + `Aceptacion(linea, acepta, fecha, canal)`
+  - UI odontograma FDI + botón "derivar a presupuesto" (hallazgo → línea en 1 clic); sistema aplica cobertura OS si existe, si no 100% particular visible
+  - Endpoints: `/api/odontograma`, `/api/presupuestos`, `POST /api/presupuestos/:id/aceptar` (parcial/total); lo aceptado genera turnos (C-05) e imputación a caja (C-10); lo pendiente → recupero/recall
+  - Migración 006: odontograma_hallazgos, presupuestos, líneas, aceptaciones + RLS
+  - Tests: FDI fuera de 11–48 rechazado, aceptación parcial imputa solo líneas aceptadas, transacción hallazgo+presupuesto atómica
+- **Dependencias**: C-04, C-08
+- **Governance**: MEDIO
+- **Leer antes**:
+  - `knowledge-base/04_modelo_de_datos.md` §odontograma_hallazgos / evoluciones / presupuestos
+  - `knowledge-base/06_funcionalidades.md` §US-031, §US-032
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-CL-01, §RN-CL-02, §RN-OS-01
+  - `knowledge-base/07_flujos_principales.md` §Flujo 3
+
+---
+
+## FASE 5 — Caja, señas y obras sociales
+
+> `C-10`, `C-12` y `C-14` pueden proponerse en paralelo tras `C-05`. `C-11` requiere `C-07` + `C-10` archivados.
+
+### [C-10] `caja-cierre-diario`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Caja multi-medio con cierre diario obligatorio y reportes base (US-040; RN-CJ-01/02/03)
+  - Modelos: `MovimientoCaja(tenant, fecha, medio EFECTIVO/TRANSFERENCIA/MP/OS, monto centavos, tipo INGRESO/EGRESO, turno_id?, usuario_id, anulado + motivo)`, `CierreDiario UNIQUE(tenant, fecha)` con totales por medio, diferencia, responsable, cerrado_at
+  - Endpoints: `GET /api/caja/movimientos?fecha=`, `POST /api/caja/movimientos`, `POST /api/caja/cierre` (diferencia 0 o motivo con observación auditable), anulación con motivo + movimiento compensatorio (nunca borrado; post-cierre exige compensatorio)
+  - UI `(app)/caja`: movimientos por medio + señas aplicadas, carga de efectivo real vs sistema, reportes base (ocupación, ausentismo, facturación por profesional)
+  - Migración 007: movimientos_caja, cierres_diarios + RLS
+  - Tests: cierre con diferencia exige motivo, día sin responsable no cierra, anulación post-cierre crea compensatorio sin editar cierre
+- **Dependencias**: C-03, C-05
+- **Governance**: ALTO
+- **Leer antes**:
+  - `knowledge-base/04_modelo_de_datos.md` §senas / pagos_mp / movimientos / cierres
+  - `knowledge-base/06_funcionalidades.md` §US-040
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-CJ-01, §RN-CJ-02, §RN-CJ-03
+  - `knowledge-base/07_flujos_principales.md` §Flujo 5
+
+---
+
+### [C-11] `senas-mercadopago`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Seña online atada a reserva con liberación automática y webhook idempotente (US-041; RN-SE-01/02/03/04/05) — ⚠️ PO-01 abierta (alcance de seña configurable por tenant, default por prestación)
+  - Modelos: `Sena(tenant, turno unique?, monto, estado PENDIENTE/ACREDITADA/LIBERADA/APLICADA/DEVUELTA, mp_preference_id, expira_at SENA_TTL_H)` + `PagoMP(mp_payment_id unique, sena, monto, estado, raw_json, received_at)`
+  - Flujo: prestación con `requiere_sena` → seña PENDIENTE + preferencia MP → `/pagar/[tokenSena]` → webhook `POST /api/webhooks/mercadopago` idempotente (duplicado → 200 sin efecto) → ACREDITADA → turno CONFIRMADO; expira sin pago → turno liberado + dispara auto-oferta (C-07)
+  - Política de cancelación visible al reservar; seña visible en agenda con estado; MP caído → reserva PENDIENTE + reintento/backoff (RN-IN-03)
+  - Migración 008: senas, pagos_mp + RLS
+  - Tests: webhook duplicado no duplica, expiración libera turno y ofrece a lista, seña se aplica al cobro (C-10)
+- **Dependencias**: C-05, C-07, C-10
+- **Governance**: CRITICO
+- **Leer antes**:
+  - `knowledge-base/04_modelo_de_datos.md` §senas / pagos_mp / movimientos / cierres
+  - `knowledge-base/06_funcionalidades.md` §US-041
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-SE-01 → §RN-SE-05
+  - `knowledge-base/07_flujos_principales.md` §Flujo 1
+  - `knowledge-base/10_preguntas_abiertas.md` §PO-01 (IN-02)
+
+---
+
+### [C-12] `obras-sociales-liquidacion`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Cobertura OS configurable por tenant + liquidación presentable (US-042; RN-OS-01/02/03, DD-04)
+  - Modelos: `ObraSocial(tenant, nombre, activa)`, `Cobertura(tenant, obra_social, prestacion, porcentaje/monto, tope?)`, `Liquidacion(tenant, obra_social, periodo, estado, total)` + líneas por turno atendido con OS
+  - Endpoints: `/api/obras-sociales`, `/api/coberturas`, `/api/liquidaciones` (por período, exportable); UI etiquetada "configurada, no validada en vivo"
+  - Seed: 3–5 OS comunes por tenant (nombres, sin aranceles reales); validación realtime SOAP/WS explícitamente fuera (fase 2)
+  - Migración 009: obras_sociales, coberturas, liquidaciones + RLS
+  - Tests: cobertura OS × prestación calcula a-cargo-paciente, liquidación agrupa solo turnos atendidos del período
+- **Dependencias**: C-04, C-05
+- **Governance**: MEDIO
+- **Leer antes**:
+  - `knowledge-base/04_modelo_de_datos.md` §obras_sociales / coberturas / liquidaciones
+  - `knowledge-base/06_funcionalidades.md` §US-042
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-OS-01, §RN-OS-02, §RN-OS-03
+  - `knowledge-base/09_decisiones_y_supuestos.md` §DD-04
+
+---
+
+## FASE 6 — Integraciones
+
+### [C-13] `whatsapp-recordatorios`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Recordatorios y confirmación por WhatsApp API oficial + email fallback + recall sanitario (US-020, US-021, US-052; RN-IN-01/03) — ⚠️ PO-03 abierta (BSP/proveedor a definir en demos)
+  - Modelo `MensajeWA(tenant, paciente, turno?, plantilla, estado ENVIADO/ENTREGADO/LEIDO/FALLIDO, provider_message_id unique?)`
+  - `workers/`: cron recordatorios (ej. 24 h antes, anticipación/horario/mensaje configurables) con plantillas aprobadas; proveedor y número declarados por tenant
+  - Webhook `POST /api/webhooks/whatsapp`: actualiza estados visibles en agenda; respuesta "SI"/"NO" → CONFIRMADO/CANCELADO (cancelación dispara C-07); respuesta ambigua → link de confirmación
+  - Outbox / cola con backoff: WA caído → email fallback (SMTP) + reintento; agenda/caja intactas
+  - Recall sanitario (US-052): motivo clínico + fecha objetivo por WA, separado de marketing (fuera de alcance)
+  - Migración 010: mensajes_wa, recordatorios/config + RLS
+  - Tests: webhook entrante confirma/cancela, cancelación dispara auto-oferta, fallback email cuando WA falla, estados visibles por turno
+- **Dependencias**: C-05, C-07
+- **Governance**: ALTO
+- **Leer antes**:
+  - `knowledge-base/06_funcionalidades.md` §US-020, §US-021, §US-052
+  - `knowledge-base/07_flujos_principales.md` §Flujo 2
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-IN-01, §RN-IN-03
+  - `knowledge-base/11_integraciones.md` §WhatsApp
+  - `knowledge-base/10_preguntas_abiertas.md` §PO-03
+
+---
+
+### [C-14] `google-calendar-sync`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Sync bidireccional con Google Calendar por profesional, sistema como fuente de verdad (US-050; RN-IN-02/03)
+  - Modelo `CalendarLink(profesional, gcal_calendar_id, oauth_ref, ultima_sync, estado)`; OAuth2 por profesional (`GCAL_CLIENT_ID/SECRET`)
+  - Push: turno creado/modificado/cancelado → evento GCal; pull: webhook/polling → evento externo se refleja como bloqueo informativo no-reservable
+  - Conflicto: gana el sistema, se re-oferta el hueco (C-07) y se avisa al profesional; token revocado → aviso + agenda interna intacta; GCal caído → cola con reintento
+  - Endpoints: `/api/calendar/oauth`, `/api/calendar/webhook`
+  - Migración 011: calendar_links + RLS
+  - Tests: crear turno pushea evento, evento externo bloquea slot, conflicto lo gana el sistema, token revocado no rompe agenda
+- **Dependencias**: C-05
+- **Governance**: MEDIO
+- **Leer antes**:
+  - `knowledge-base/06_funcionalidades.md` §US-050
+  - `knowledge-base/07_flujos_principales.md` §Flujo 6
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-IN-02, §RN-IN-03
+  - `knowledge-base/11_integraciones.md` §Google Calendar
+
+---
+
+## FASE 7 — Administración y plataforma
+
+### [C-15] `admin-plataforma-exportacion`
+- **Estado**: `[ ]` pendiente
+- **Scope**: Cierre del sistema: usuarios/config del tenant, exportación 1-clic, respaldo y superadmin (US-051 parcial: CA-3 + resto; RN-AU-04)
+  - `/api/tenants/*`: alta/configuración del consultorio (admin tenant + superadmin plataforma sin acceso a PHI salvo intervención auditada)
+  - Usuarios del tenant CRUD + config tenant (seña, anticipación cancelación, recordatorios) — UI `(app)/config`
+  - `GET /api/exportacion`: CSV/Excel + JSON del tenant en 1 clic; respaldo diario declarado (job + documentación); sin lock-in
+  - Reportes/KPIs vara DentalSoft: ocupación, ausentismo, facturación por profesional, % reservas online, huecos reasignados < 2 h
+  - Tests: exportación contiene todo el tenant y nada ajeno, superadmin no lee clínica sin auditoría, config thématenant aísla parámetros
+- **Dependencias**: C-10, C-12, C-13
+- **Governance**: ALTO
+- **Leer antes**:
+  - `knowledge-base/03_actores_y_roles.md` §Actores del sistema
+  - `knowledge-base/06_funcionalidades.md` §US-051
+  - `knowledge-base/05_reglas_de_negocio.md` §RN-AU-04
+  - `knowledge-base/01_vision_y_objetivos.md` §Métricas de éxito
+  - `knowledge-base/10_preguntas_abiertas.md` §PO-10
