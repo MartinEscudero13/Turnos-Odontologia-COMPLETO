@@ -18,7 +18,7 @@ Si en esos puntos hubiera puesto Continuar automático, creo que habrían pasado
 
 ## Spec vs. prompt suelto
 
-La Etapa 6 (Apply) todavía no la ejecuté al momento de escribir esto, así que no puedo contar experiencia propia implementando. Lo que sí puedo decir es la expectativa concreta que me deja la fundación: cuando implemente el change crear-turno-sin-solapamientos voy a tener un contrato verificable con tres escenarios (solape de profesional, solape de sillón y sobreturno explícito auditado), en vez de un prompt suelto tipo "haceme la agenda". La diferencia es que con el contrato sé exactamente cuándo terminé y cómo comprobarlo; con el prompt suelto, termino cuando "parece que anda".
+La diferencia la viví en la Etapa 6. Implementé el change crear-turno-sin-solapamientos contra un contrato de 6 requisitos y 12 escenarios dado/cuando/entonces, en vez de un prompt suelto tipo "haceme la agenda". Con el contrato sabía exactamente cuándo terminé (79/79 tests en verde + `tsc` limpio) y cómo comprobarlo; con un prompt suelto, termino cuando "parece que anda". Dos detalles me lo confirmaron: primero, el ciclo TDD me obligó a escribir el test antes que el código en cada task, y cuando en 4 tasks los tests pasaron a la primera lo dejé documentado en vez de ocultarlo, más un spot-check de mutación que probó que los tests no eran triviales. Segundo, cuando el entorno no tenía PostgreSQL, el contrato me dijo qué parte quedaba sin verificar de verdad (el EXCLUDE en DB viva) en vez de fingir que estaba probado. Un prompt suelto jamás me habría dado ese límite con honestidad.
 
 ## Qué partes de la fundación valieron más (y cuál menos)
 
@@ -28,4 +28,4 @@ Lo que menos valor me dio fue el registry de skills. No es que esté mal, es que
 
 ## Cierre
 
-La fundación está completa: Discovery auditado, KB de doce archivos, roadmap de quince changes en ocho fases, ocho skills instaladas y las reglas del proyecto en AGENTS.md/CLAUDE.md. El siguiente paso es la Etapa 6, empezando por el change crear-turno-sin-solapamientos, que es el corazón del sistema.
+El trabajo está completo de punta a punta: Discovery auditado con informe y PDF, KB de doce archivos, roadmap de quince changes en ocho fases, ocho skills instaladas, reglas del proyecto en AGENTS.md/CLAUDE.md y el primer change (crear-turno-sin-solapamientos) especificado, implementado con TDD, verificado y archivado. Si tuviera que quedarme con una sola lección, es esta: corregir temprano es barato, corregir tarde es rehacer. Cada "Ajustar" me costó minutos; cada cosa que se me escapó me costó un commit entero.
