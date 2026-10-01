@@ -1,0 +1,32 @@
+// Prisma schema — C-05 turnos-anti-solape (standalone).
+// Solo el modelo Turno con FKs escalares: las tablas de C-04
+// (profesionales, sillones, pacientes, prestaciones) y sus relaciones
+// se agregan en sus propios changes (expand-contract). La DDL del
+// EXCLUDE vive en prisma/migrations/003_turnos_anti_solape/migration.sql.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Turno {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id")
+  profesionalId    String   @map("profesional_id") @db.Uuid
+  sillonId         String   @map("sillon_id") @db.Uuid
+  pacienteId       String   @map("paciente_id") @db.Uuid
+  prestacionId     String   @map("prestacion_id") @db.Uuid
+  inicio           DateTime @db.Timestamptz
+  fin              DateTime @db.Timestamptz
+  estado           String   @default("PENDIENTE")
+  sobreturno       Boolean  @default(false)
+  motivoSobreturno String?  @map("motivo_sobreturno")
+  origen           String   @default("RECEPCION")
+  tokenPublico     String?  @map("token_publico")
+
+  @@map("turnos")
+}

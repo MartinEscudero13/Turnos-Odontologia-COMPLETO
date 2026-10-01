@@ -1,0 +1,67 @@
+-- Migración 003 — C-05 turnos-anti-solape.
+-- Fuente de verdad del anti-solapamiento: 2 EXCLUDE parciales (D1/D2).
+-- Convenciones supabase-postgres-best-practices: timestamptz (nunca
+-- timestamp), PK uuid, NOT NULL + CHECK a nivel DB, RLS por tenant.
+-- Nota: CREATE INDEX (sin CONCURRENTLY) porque la migración corre en
+-- transacción; CONCURRENTLY queda reservado a evoluciones expand-contract.
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "btree_gist";
+
+CREATE TABLE turnos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL,
+  profesional_id UUID NOT NULL,
+  sillon_id UUID NOT NULL,
+  paciente_id UUID NOT NULL,
+  prestacion_id UUID NOT NULL,
+  inicio TIMESTAMPTZ NOT NULL,
+  fin TIMESTAMPTZ NOT NULL,
+  estado TEXT NOT NULL DEFAULT 'PENDIENTE'
+    CHECK (estado IN ('PENDIENTE','CONFIRMADO','PRESENTE','AUSENTE','CANCELADO','REPROGRAMADO')),
+  sobreturno BOOLEAN NOT NULL DEFAULT false,
+  motivo_sobreturno TEXT,
+  origen TEXT NOT NULL DEFAULT 'RECEPCION'
+    CHECK (origen IN ('RECEPCION','RESERVA_ONLINE','LISTA_ESPERA')),
+  token_publico TEXT,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT turnos_fin_posterior CHECK (fin > inicio),
+  -- FKs a C-04 (profesionales, sillones, pacientes, prestaciones) se agregan
+  -- en change posterior (expand-contract) cuando esas tablas existan.
+  CONSTRAINT turnos_sobreturno_motivo CHECK (sobreturno = false OR motivo_sobreturno IS NOT NULL)
+);
+
+-- D1: anti-solape real en DB, rango half-open [inicio, fin).
+-- Parcial: CANCELADO/REPROGRAMADO y sobreturnos no bloquean.
+ALTER TABLE turnos
+  ADD CONSTRAINT turnos_no_solape_profesional EXCLUDE USING gist (
+    tenant_id WITH =,
+    profesional_id WITH =,
+    tstzrange(inicio, fin) WITH &&
+  ) WHERE (estado NOT IN ('CANCELADO', 'REPROGRAMADO') AND sobreturno = false);
+
+ALTER TABLE turnos
+  ADD CONSTRAINT turnos_no_solape_sillon EXCLUDE USING gist (
+    tenant_id WITH =,
+    sillon_id WITH =,
+    tstzrange(inicio, fin) WITH &&
+  ) WHERE (estado NOT IN ('CANCELADO', 'REPROGRAMADO') AND sobreturno = false);
+
+-- D4: índices de búsqueda de hueco y agenda.
+CREATE INDEX turnos_tenant_profesional_inicio_idx
+  ON turnos (tenant_id, profesional_id, inicio);
+CREATE INDEX turnos_tenant_sillon_inicio_idx
+  ON turnos (tenant_id, sillon_id, inicio);
+CREATE INDEX turnos_tenant_estado_idx
+  ON turnos (tenant_id, estado);
+
+-- token público opcional: unicidad solo cuando existe.
+CREATE UNIQUE INDEX turnos_token_publico_uidx
+  ON turnos (token_publico) WHERE token_publico IS NOT NULL;
+
+-- D2: RLS + aislamiento por tenant (fail-closed: sin app.tenant_id no hay filas).
+ALTER TABLE turnos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY turnos_tenant_aislamiento ON turnos
+  USING (tenant_id = current_setting('app.tenant_id'))
+  WITH CHECK (tenant_id = current_setting('app.tenant_id'));
