@@ -188,7 +188,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ---
 
 ### [C-05] `turnos-anti-solape`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-09-30, apply `1193b77` — tests 79/79 en verde)
 - **Scope**: Turnos con anti-solapamiento real en DB + agenda día/semana de recepción (US-001, US-002; RN-AG-02/03, RN-GL-01/02)
   - Modelo `Turno(tenant, profesional, sillon, paciente, prestacion, inicio, fin calculado, estado PENDIENTE/CONFIRMADO/PRESENTE/AUSENTE/CANCELADO/REPROGRAMADO, sobreturno=false, origen RECEPCION/ONLINE/LISTA_ESPERA, token_publico?, sena_id?)`
   - Constraints EXCLUDE anti-solape por `(tenant, profesional)` y `(tenant, sillon)` en `[inicio, fin)` con `estado NOT IN (CANCELADO, REPROGRAMADO)` y `sobreturno=false`
