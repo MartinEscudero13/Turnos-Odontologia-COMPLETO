@@ -10,65 +10,64 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 
 | Requisito | Versión | Notas |
 |-----------|---------|-------|
-| Node.js | 20+ | `package.json` no declara campo `engines`; el stack del proyecto exige Node 20 LTS (`AGENTS.md`). Verificado con Node **v24.16.0**. |
-| npm | 10+ | Verificado con npm **11.13.0**. |
-| PostgreSQL | 15+ | Solo necesario desde la persistencia real (migraciones Prisma). El ciclo C-05 corre sin Postgres (ver Estado). |
+| Python | 3.12+ | Se usa el launcher `py` (verificado con Python **3.14.0**; `python` apunta al Store y no se usa). |
+| PostgreSQL | 15+ | Solo necesario desde la persistencia real (revisión Alembic 003). El ciclo C-05 corre sin Postgres (ver Estado). |
 
 Verificá tu entorno:
 
 ```bash
-node --version
-npm --version
+py --version
 ```
+
+Sin installs para C-05: el entorno ya trae pytest 9.1.1, FastAPI 0.115.0, SQLAlchemy 2.0.35, Pydantic 2.13.4, Alembic 1.19.1 y httpx 0.28.1 (ver `backend/requirements.txt`). `redis` no se necesita en este change (sin workers; eso es C-07/C-13).
 
 ## Instalación
 
 ```bash
 git clone <url-del-repo>
 cd Turnos-Odontologia
-npm install
+py -m pip install -r backend/requirements.txt
 ```
 
 ## Tests
 
 ```bash
-npx vitest run
+py -m pytest tests/ -q
 ```
 
-Salida esperada (verificada): **13 archivos, 79 tests, todos en verde** (`Test Files 13 passed`, `Tests 79 passed`).
+Salida esperada (verificada): **15 archivos, 104 tests, todos en verde** (`104 passed`).
 
-## Chequeo de tipos
+## Type hints
 
-```bash
-npx tsc --noEmit
-```
-
-Salida esperada (verificada): sin errores (exit 0). Tipado estricto (`strict`, sin `any`).
+Todo el código Python lleva type hints obligatorios (regla dura de `AGENTS.md`); el chequeo automático (mypy/pyright) queda anotado para C-01, que monta el CI.
 
 ## Estructura del repo
 
 | Directorio / archivo | Qué es |
 |----------------------|--------|
-| `src/turnos/` | Dominio C-05: `overlap()`, cálculo de `fin`, 3 alternativas ante 409, máquina de estados, servicio con zod + auditoría |
-| `tests/` | 13 suites vitest del ciclo C-05 (solape, fin, alternativas, estados, sobreturno, auditoría, concurrencia, 409, API, cancelar/reprogramar, migración, seed, regresión) |
-| `prisma/` | `schema.prisma`, `migrations/` (migración 003: tabla `turnos` + EXCLUDE anti-solape + RLS) y `seed-test.ts` |
+| `backend/app/turnos/` | Dominio C-05: `overlap()`, cálculo de `fin`, 3 alternativas ante 409, máquina de estados, servicio + auditoría |
+| `backend/app/schemas/` | Schemas Pydantic v2 del borde API (strict donde el contrato lo exige) |
+| `backend/app/models/` | Modelos SQLAlchemy (`tenant_id` everywhere, `timestamptz`, CHECKs) |
+| `backend/app/routers/` | Router FastAPI `/api/turnos` + `crear_app()` inyectable (actor por headers provisorio; JWT real en C-03) |
+| `backend/alembic/versions/` | Revisión 003: tabla `turnos` + EXCLUDE anti-solape + índices + RLS |
+| `backend/seed_test.py` | Seed ficticio idempotente (`aplicar_seed()` + `seed_sql()` para PG real) |
+| `backend/requirements.txt` | Pines verificados en el entorno |
+| `tests/` | 15 archivos pytest del ciclo C-05 (solape, fin, alternativas, estados, servicio CRUD, sobreturno, cancelar/reprogramar, 409, API, modelos, migración, seed, regresión, concurrencia, auditoría) |
 | `openspec/specs/turnos-anti-solape/` | Spec vigente de C-05 (requisitos y escenarios aprobados) |
-| `openspec/changes/archive/2026-10-01-c-05-turnos-anti-solape/` | Change C-05 archivado: `proposal.md`, `design.md`, `tasks.md`, delta de specs, `explore-notes.md` |
+| `openspec/changes/archive/2026-10-01-c-05-turnos-anti-solape/` | Change C-05 archivado: `proposal.md` (+addendum Python), `design.md` (Python), `tasks.md` (re-corrida), `reimplementacion-python.md`, delta de specs, `explore-notes.md` |
 | `docs/discovery/` | Informe y checklist de Discovery |
 | `knowledge-base/` | Dominio: visión, stack, actores/RBAC, modelo de datos, reglas de negocio, funcionalidades, flujos, arquitectura, decisiones, preguntas abiertas, integraciones |
 | `CHANGES.md` | Índice canónico de los 15 changes y su estado |
-| `package.json` / `tsconfig.json` / `package-lock.json` | Dependencias (`zod`, `vitest`, `typescript`, `prisma`), TS estricto |
-| `node_modules/` / `dist/` | Generados (no versionados) |
 
 ## Estado del ciclo C-05 (`turnos-anti-solape`)
 
-- **Estado: archivado** el 2026-10-01 (commits `1193b77` apply + `109c8a8` archive). En `CHANGES.md` figura `[x]` completado.
+- **Estado: archivado** el 2026-10-01 y **reimplementado en Python** el 2026-10-02 (spec intacto). En `CHANGES.md` figura `[x]` completado con nota de reimplementación.
 - **Spec aprobado**: [`openspec/specs/turnos-anti-solape/spec.md`](openspec/specs/turnos-anti-solape/spec.md) — 6 requisitos (anti-solape por profesional/sillón con 409 + 3 alternativas, adyacencia exacta, cancelados/reprogramados que liberan hueco, sobreturno explícito auditado, cancelar/reprogramar con anticipación).
-- **Tests**: [`tests/`](tests/) — 79/79 en verde con `npx vitest run`.
-- **Desvíos documentados del ciclo**: sin PostgreSQL en el entorno (migración 003 verificada por tests, no contra DB viva) y fase RED no observada en los tasks 3.2–4.3 (código y test escritos juntos en la sesión apply).
+- **Tests**: [`tests/`](tests/) — 104/104 en verde con `py -m pytest tests/ -q`.
+- **Desvíos documentados del ciclo**: sin PostgreSQL en el entorno (revisión 003 verificada por tests estructurales, no contra DB viva); tasks 4.1–4.3 green-first de aceptación (RED por módulo observado en 1.x–3.x, y 4.1 aportó un fallo real que se corrigió); sin chequeo automático de hints (para el CI de C-01). Detalle en `reimplementacion-python.md` del archive.
 - **Siguiente**: `C-06 reserva-online-publica` (depende de C-05 archivado).
 
 ## Datos y secretos
 
-- **Datos ficticios**: seed (`prisma/seed-test.ts`) y tests usan datos inventados (1 tenant, profesional/sillón/prestación de prueba). NUNCA usar datos reales de pacientes en desarrollo, tests ni demos; nada de PHI en logs.
-- **Secretos**: nada commiteado. No hay `.env` ni `.env.example` en el repo; `.gitignore` excluye `.env`, `.env.local`, `node_modules/` y `dist/`. Las variables reales (`DATABASE_URL`, `AUTH_SECRET`, `MP_*`, `WA_*`, etc.) se documentarán en el change que las necesite (C-01/C-10/C-11/C-13 según `CHANGES.md`).
+- **Datos ficticios**: seed (`backend/seed_test.py`) y tests usan datos inventados (1 tenant demo, profesional/sillón/prestación de prueba). NUNCA usar datos reales de pacientes en desarrollo, tests ni demos; nada de PHI en logs.
+- **Secretos**: nada commiteado. No hay `.env` ni `.env.example` en el repo; `.gitignore` excluye `.env`, `.env.local`, `__pycache__/` y `.pytest_cache/`. Las variables reales (`DATABASE_URL`, `JWT_SECRET`, `MP_*`, `WA_*`, etc.) se documentarán en el change que las necesite (C-01/C-10/C-11/C-13 según `CHANGES.md`).
