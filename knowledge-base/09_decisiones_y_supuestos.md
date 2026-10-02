@@ -2,12 +2,12 @@
 
 ## Decisiones documentadas
 
-### DD-01 — Stack: Next.js (TypeScript) + PostgreSQL multi-tenant
-**Decisión**: monorepo Next.js TS (UI + API) con PostgreSQL, aislamiento por `tenant_id` + RLS, Prisma, deploy en contenedores.
-**Contexto**: Q&A resolvió SaaS multi-tenant + prioridad escalabilidad/mantenibilidad + backend propio (WA/MP/GCal).
-**Alternativas consideradas**: (a) app instalable/local-first por consultorio estilo Odontoly; (b) backend schemaless/documental sin constraints transaccionales.
-**Justificación**: un solo deploy sirve N consultorios aislados; PG da constraints EXCLUDE (anti-solape real) y transacciones agenda↔caja; TS end-to-end reduce deuda. La (a) rompe reserva 24/7 central y multi-tenant; la (b) deja la regla crítica (solape/caja) en código aplicativo, frágil.
-**Trade-offs aceptados**: arranque más lento que un turnero simple; se requiere disciplina DevOps (migraciones, RLS, webhooks) desde el día 1.
+### DD-01 — Stack: FastAPI (Python) + React SPA + PostgreSQL multi-tenant
+**Decisión**: backend API FastAPI (Python, SQLAlchemy + Alembic) + frontend SPA React + TS + Vite, PostgreSQL con aislamiento por `tenant_id` + RLS, Redis para colas, deploy en Docker Compose (api/web/db/redis).
+**Contexto**: el dueño definió el stack el 2026-09-30 (resuelve PO-09); la prioridad sigue siendo escalabilidad/mantenibilidad + backend propio (WA/MP/GCal).
+**Alternativas consideradas**: (a) monorepo Next.js TS (UI + API) con Prisma; (b) app instalable/local-first por consultorio estilo Odontoly.
+**Justificación**: restricción del dueño + escalabilidad: la API desacoplada sirve N consultorios aislados y N clientes (SPA, links públicos, workers) sobre el mismo contrato `/api`; PG da constraints EXCLUDE (anti-solape real) y transacciones agenda↔caja. La (a) acopla UI y API en un solo framework; la (b) rompe reserva 24/7 central y multi-tenant.
+**Trade-offs aceptados**: dos codebases y contratos API versionados desde el día 1; se requiere disciplina DevOps (migraciones Alembic, RLS, webhooks, colas Redis).
 
 ### DD-02 — Descartada: local-first instalable (estilo Odontoly)
 **Decisión**: NO replicar el modelo PC-local + offline 30 días como base.
@@ -40,6 +40,20 @@
 **Contexto**: pregunta abierta del Discovery (login vs datos por turno).
 **Justificación**: fricción mínima en móvil (= canal principal); el teléfono ya es la identidad operativa del consultorio. Login/OTP queda como endurecimiento post-v1 si hay abuso.
 **Trade-offs aceptados**: riesgo de spam/duplicados; mitigación con rate-limit + captcha liviano + validación por WA.
+
+### DD-07 — Auth con JWT (access corto + refresh) + 2FA interna
+**Decisión**: JWT firmado (`JWT_SECRET`) con access corto y refresh rotado para roles internos; 2FA exigible; reserva pública por tokens únicos con rate-limit (sin JWT de paciente en v1).
+**Contexto**: API desacoplada de la SPA (DD-01); sin sesiones de servidor.
+**Alternativas consideradas**: sesiones stateful en servidor (descartada: acopla la API a storage de sesión y complica workers/escala horizontal).
+**Justificación**: stateless calza con FastAPI + SPA + workers; RLS sigue siendo la segunda barrera por tenant.
+**Trade-offs aceptados**: revocación exige lista de denegación/rotación corta; refresh theft se mitiga con rotación + expiración.
+
+### DD-08 — Redis para trabajo asincrónico (recordatorios, auto-oferta, reintentos)
+**Decisión**: colas Redis con workers (recordatorios WA, auto-oferta de lista de espera, reintentos MP/WA/GCal con backoff).
+**Contexto**: RN-IN-03 exige degradación con gracia; Flujos 2/4/6 dependen de tareas diferidas.
+**Alternativas consideradas**: cron in-process sin cola (descartado: pierde trabajos ante reinicios y no escala).
+**Justificación**: durabilidad + reintento + backoff sin acoplar la API al envío; agenda/caja intactas si una integración cae.
+**Trade-offs aceptados**: un servicio más en el compose (redis); idempotencia obligatoria en consumidores.
 
 ## Supuestos inferidos
 

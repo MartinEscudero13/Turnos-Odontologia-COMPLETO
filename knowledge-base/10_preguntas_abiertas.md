@@ -20,6 +20,6 @@
 | Media | PO-06 ¿Login de paciente o nombre + teléfono? (DD-06 asume sin login; confirmar con tasa de spam) | Sprint 2 | Dueño + datos piloto |
 | Media | PO-07 Alcance ARCA: ¿facturación nativa o integración con contador? ¿CUIT por tenant? | Post-v1 | Dueño + contador |
 | Media | PO-08 Validación OS con colegios/CORA: ¿aranceles por colegio o por OS directa? | Fase 2 OS | Dueño |
-| Baja | PO-09 Stack/presupuesto/plazo: ¿hay restricción del dueño além de lo propuesto en DD-01? | Planificación | Dueño |
+| Baja ✅ resuelta 2026-09-30 | PO-09 Stack definido por el dueño: Backend Python + FastAPI (JWT, SQLAlchemy, Redis, Docker/Compose) + Frontend React + TS + Vite (ver DD-01). Sin restricción adicional de presupuesto/plazo declarada | — | Dueño |
 | Baja | PO-10 Cumplimiento Ley 27.706/25.326: alcance exacto exigible (firma digital, niveles de acceso, ReNaPDiS) — validar con asesor legal, no con vendors | Lanzamiento | Asesor legal |
 | Baja | PO-11 Videos oficiales y centros de ayuda de competidores (limitación §5 del informe) + reseñas verificadas | Refinamiento | Equipo |

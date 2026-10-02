@@ -2,18 +2,19 @@
 
 ## Stack tecnológico
 
-Stack **propuesto por esta KB** (decisión documentada en `09_decisiones_y_supuestos.md` DD-01; prioriza escalabilidad/mantenibilidad multi-tenant):
+Stack **definido por el dueño el 2026-09-30** (decisión documentada en `09_decisiones_y_supuestos.md` DD-01; prioriza escalabilidad/mantenibilidad multi-tenant):
 
 | Capa | Tecnologías | Versión mínima |
 |---|---|---|
-| Frontend + Backend web | Next.js (TypeScript, App Router, API Routes / Route Handlers) | Next.js 14+, Node 20 LTS |
+| Backend API | FastAPI (Python), SQLAlchemy ORM, migraciones Alembic | Python 3.12+, FastAPI vigente |
+| Frontend SPA | React + TypeScript + Vite | React 18+, Vite 5+ |
 | Base de datos | PostgreSQL con aislamiento por tenant (`tenant_id` + Row-Level Security) | PostgreSQL 15+ |
-| ORM / migraciones | Prisma (o Drizzle) con migraciones versionadas | Prisma 5+ |
-| Auth / sesión | Auth.js (NextAuth) o equivalente, JWT + refresh, 2FA para roles internos | — |
+| Colas / async | Redis (workers de recordatorios, auto-oferta, reintentos) | Redis 7+ |
+| Auth / sesión | JWT (access corto + refresh) + 2FA para roles internos | — |
 | Pagos | SDK/API Mercado Pago (Checkout Pro / link de pago + webhooks) | API v1 vigente |
 | Mensajería | WhatsApp Business API oficial (proveedor/BSP a definir) + email fallback (SMTP) | Cloud API vigente |
 | Calendario | Google Calendar API v3 (OAuth2 por profesional, sync bidireccional) | v3 |
-| Deploy | Contenedores (Docker) + PostgreSQL gestionado con backup diario | — |
+| Deploy | Contenedores Docker + Compose (api/web/db/redis) + PostgreSQL gestionado con backup diario | — |
 | Observabilidad | Logs estructurados + auditoría en DB + alertas de webhooks caídos | — |
 
 > Alternativa descartada y por qué: ver DD-01 (monolito instalable/local-first) y DD-02 (documental/schemaless sin integridad transaccional).
@@ -24,13 +25,14 @@ SaaS multi-tenant con **un solo deploy y aislamiento lógico por `tenant_id`** e
 
 ```
 Paciente (móvil) ── link público ──┐
-Recepción/Odontólogo (web) ────────┼──► Next.js (UI + API) ──► PostgreSQL (RLS por tenant_id)
-                                   │         ├──► WhatsApp Cloud API (recordatorios)
-                                   │         ├──► Mercado Pago (señas + webhooks)
-                                   │         └──► Google Calendar (OAuth por profesional)
+Recepción/Odontólogo (web SPA) ───┼──► React SPA ──► API FastAPI (/api) ──► PostgreSQL (RLS por tenant_id)
+                                   │                        ├──► Redis (colas: recordatorios, auto-oferta, reintentos)
+                                   │                        ├──► WhatsApp Cloud API (recordatorios)
+                                   │                        ├──► Mercado Pago (señas + webhooks)
+                                   │                        └──► Google Calendar (OAuth por profesional)
 ```
 
-Decisiones de alto nivel: (1) monorepo Next.js para arrancar con un solo deploy y partir a servicios solo si el volumen lo exige (prioridad: mantenibilidad); (2) toda escritura de negocio (turno/cobro/seña) en transacción con constraint anti-solapamiento en DB, no solo en UI; (3) webhooks idempotentes para MP y WA; (4) nada de PHI en logs ni en mensajes.
+Decisiones de alto nivel: (1) backend API y frontend SPA desacoplados en un solo compose para arrancar (un deploy simple) y partir a servicios solo si el volumen lo exige (prioridad: mantenibilidad); (2) toda escritura de negocio (turno/cobro/seña) en transacción con constraint anti-solapamiento en DB, no solo en UI; (3) webhooks idempotentes para MP y WA; (4) nada de PHI en logs ni en mensajes.
 
 ## Integraciones externas
 

@@ -3,11 +3,11 @@
 Cada flujo extremo a extremo, con actores, pasos y errores. Reglas en `05_reglas_de_negocio.md`.
 
 ## Flujo 1: Reserva online con seña
-**Disparador**: paciente abre `/r/[tokenTenant]`. **Actor**: Paciente.
+**Disparador**: paciente abre `/r/:tokenTenant` (ruta pública de la SPA). **Actor**: Paciente.
 **Pasos**:
 1. Frontend pide `GET /api/disponibilidad?prestacion=&desde=` → API calcula slots (profesional × sillón × duración, menos bloqueos) del tenant.
 2. Paciente elige slot → ingresa nombre + teléfono → `POST /api/reservas/publicas` crea turno PENDIENTE + token.
-3. Si la prestación exige seña: API crea seña PENDIENTE + preferencia MP → paciente paga en `/pagar/[token]`.
+3. Si la prestación exige seña: API crea seña PENDIENTE + preferencia MP → paciente paga en `/pagar/:token`.
 4. Webhook MP (`mp_payment_id` idempotente) → seña ACREDITADA → turno CONFIRMADO → WA de confirmación.
 5. Si expira sin pago: turno liberado → auto-oferta a lista de espera → slot público.
 **Casos de error**: slot tomado entre pasos → 409 + 3 alternativas (RN-GL-02); webhook duplicado → 200 sin efecto (RN-SE-03); MP caído → reserva PENDIENTE + reintento/backoff (RN-IN-03).
