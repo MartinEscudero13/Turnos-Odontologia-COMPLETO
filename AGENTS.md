@@ -9,14 +9,15 @@
 
 | Capa | Tecnología | Versión |
 |------|------------|---------|
-| Frontend + Backend web | Next.js (TypeScript, App Router, API Routes / Route Handlers) | Next.js 14+, Node 20 LTS |
+| Backend API | FastAPI (Python), SQLAlchemy ORM, migraciones Alembic | Python 3.12+, FastAPI vigente |
+| Frontend SPA | React + TypeScript + Vite | React 18+, Vite 5+ |
 | Base de datos | PostgreSQL con aislamiento por tenant (`tenant_id` + Row-Level Security) | PostgreSQL 15+ |
-| ORM / migraciones | Prisma con migraciones versionadas | Prisma 5+ |
-| Auth / sesión | Auth.js (NextAuth), JWT + refresh, 2FA para roles internos | — |
+| Colas / async | Redis (workers: recordatorios, auto-oferta, reintentos) | Redis 7+ |
+| Auth / sesión | JWT (access corto + refresh rotado), 2FA para roles internos | — |
 | Pagos | Mercado Pago (Checkout Pro / link de pago + webhooks) | API v1 vigente |
 | Mensajería | WhatsApp Business Cloud API oficial (proveedor/BSP a definir) + email fallback (SMTP) | Cloud API vigente |
 | Calendario | Google Calendar API v3 (OAuth2 por profesional, sync bidireccional) | v3 |
-| Deploy | Contenedores (Docker) + PostgreSQL gestionado con backup diario | — |
+| Deploy | Contenedores Docker + Compose (api/web/db/redis) + PostgreSQL gestionado con backup diario | — |
 | Observabilidad | Logs estructurados + auditoría en DB + alertas de webhooks caídos | — |
 
 Detalle completo: [knowledge-base/02_descripcion_general.md](knowledge-base/02_descripcion_general.md)
@@ -50,9 +51,9 @@ La fuente de verdad del dominio vive en `knowledge-base/`. **Leé el archivo rel
 
 | Agente | Rol | Skills que carga |
 |--------|-----|------------------|
-| **Backend Core** | Postgres multi-tenant / Prisma / RLS / anti-solape + debugging root-cause | `supabase-postgres-best-practices`, `prisma-postgres`, `systematic-debugging` |
+| **Backend Core** | Postgres multi-tenant / SQLAlchemy / RLS / anti-solape + debugging root-cause | `supabase-postgres-best-practices`, `prisma-postgres` (NO APLICABLE con el stack actual — no usar), `systematic-debugging` |
 | **Backend Aux** | Regresiones duras (cancelación, reprogramación, lista de espera) | `diagnosing-bugs` |
-| **Frontend** | Reserva 24/7 y agenda (Next.js, diseño mobile-first, a11y/UX, shadcn/ui) | `vercel-react-best-practices`, `frontend-design`, `web-design-guidelines`, `shadcn` |
+| **Frontend** | Reserva 24/7 y agenda (React + Vite, diseño mobile-first, a11y/UX, shadcn/ui) | `vercel-react-best-practices`, `frontend-design`, `web-design-guidelines`, `shadcn` |
 | **Orquestación** | SDD / OPSX / docs (fases de fundación) | `discovery-research`, `kb-creator`, `roadmap-generator`, `skill-registry`, `agent-instruction` |
 
 Cargá la skill correspondiente al contexto ANTES de escribir código.
@@ -67,7 +68,7 @@ El plan de implementación completo está en [CHANGES.md](CHANGES.md). Resumen:
 
 - **Total**: 15 changes en 8 fases (FASE 0 — Cimientos … FASE 7 — Administración y plataforma).
 - **Camino crítico** (8): `C-01 → C-02 → C-03 → C-04 → C-05 → C-06 → C-10 → C-15`.
-- **Primer change**: `C-01` (foundation-setup: scaffolding Next.js + infra base).
+- **Primer change**: `C-01` (foundation-setup: scaffolding FastAPI + Vite + docker-compose + Alembic).
 
 **Antes de cualquier `/opsx:propose`**: leé [CHANGES.md](CHANGES.md), identificá las dependencias del change y los archivos de "Leer antes".
 
@@ -77,9 +78,10 @@ El plan de implementación completo está en [CHANGES.md](CHANGES.md). Resumen:
 
 > Reglas **globales** ya definidas en `~/.claude/CLAUDE.md` (orquestador, governance, TDD, engram): el proyecto las **hereda**, no se repiten acá.
 
-Acá van las reglas específicas de este proyecto, derivadas de su stack (Next.js 14+ TS + PostgreSQL 15+ RLS por tenant + Prisma 5+ + Auth.js + Mercado Pago + WhatsApp Cloud API + GCal API v3 + Docker) y **confirmadas con el usuario**. Son contrato; romperlas es un defecto. Formato `NUNCA X → hacer Y`:
+Acá van las reglas específicas de este proyecto, derivadas de su stack (FastAPI + SQLAlchemy/Alembic + PostgreSQL 15+ RLS por tenant + Redis + React 18+ TS + Vite + JWT + Mercado Pago + WhatsApp Cloud API + GCal API v3 + Docker Compose) y **confirmadas con el usuario**. Son contrato; romperlas es un defecto. Formato `NUNCA X → hacer Y`:
 
-- NUNCA usar `any` → tipado estricto TypeScript en todo el código (borde API validado con zod).
+- NUNCA usar `any` en el frontend → tipado estricto TypeScript en todo el código TS (borde API validado con schemas compartidos/Pydantic en backend).
+- NUNCA código Python sin type hints ni queries crudas → todo type-hinteado y acceso a datos solo vía SQLAlchemy (SQL crudo únicamente dentro de migraciones Alembic).
 - NUNCA hacer una query sin tenant → toda tabla de negocio filtra por `tenant_id` y tiene RLS (`tenant_id = current_setting('app.tenant_id')`).
 - NUNCA violar RN-AG-02/RN-AU-02 por conveniencia → anti-solape y aislamiento por tenant se cumplen siempre, sin atajos.
 - NUNCA usar datos reales de pacientes → solo datos ficticios en desarrollo, tests y demos.

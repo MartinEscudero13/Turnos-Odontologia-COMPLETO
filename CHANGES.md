@@ -108,12 +108,12 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 
 ### [C-01] `foundation-setup`
 - **Estado**: `[ ]` pendiente
-- **Scope**: Scaffolding completo del monorepo Next.js + infraestructura base (US transversales, DD-01)
-  - Estructura `app/` (App Router + `/api/*`), `lib/domain|integraciones|auth|audit`, `prisma/`, `workers/`, `tests/`
-  - Next.js 14+ TypeScript + Node 20, Prisma 5+ inicializado, `GET /api/health`
-  - `.env.example` con `DATABASE_URL, AUTH_SECRET, MP_*, WA_*, GCAL_*, APP_URL, RESERVA_TTL_H, SENA_TTL_H, CANCEL_ANTICIPACION_H`
-  - Docker + Compose (app + PostgreSQL 15) y CI paralela (lint + typecheck + tests)
-  - `lib/` con settings, logger estructurado (sin PHI), db client, exceptions, schemas zod base
+- **Scope**: Scaffolding desacoplado backend + frontend + infraestructura base (US transversales, DD-01)
+  - `backend/` FastAPI: `app/routers|models|schemas|core|workers`, SQLAlchemy + Alembic inicializados, `GET /api/health`
+  - `frontend/` React + TS + Vite (`src/`), `docker-compose.yml` (api + web + db PostgreSQL 15 + redis)
+  - Python 3.12+, React 18+, `.env.example` con `DATABASE_URL, REDIS_URL, JWT_SECRET, MP_*, WA_*, GCAL_*, APP_URL, RESERVA_TTL_H, SENA_TTL_H, CANCEL_ANTICIPACION_H`
+  - Docker Compose + CI paralela (lint + typecheck + tests)
+  - `backend/app/core` con settings, logger estructurado (sin PHI), db client, exceptions, schemas Pydantic base
 - **Dependencias**: ninguna
 - **Governance**: BAJO
 - **Leer antes**:
@@ -148,11 +148,11 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ### [C-03] `auth-rbac-auditoria`
 - **Estado**: `[ ]` pendiente
 - **Scope**: Autenticación + RBAC (tenant, rol) + auditoría enforced en API (US-051 parcial: CA-1, CA-2; RN-AU-01/02/05)
-  - `POST /api/auth/login` — Argon2/bcrypt, sesiones cortas + refresh, rate limiting 5/60s por IP+email
+  - `POST /api/auth/login` — Argon2/bcrypt, JWT access corto + refresh rotado, rate limiting 5/60s por IP+email
   - `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`; 2FA exigible para roles internos
-  - Middleware API: exige `(tenant_id, rol)` según matriz `03_actores_y_roles.md` + RLS como segunda barrera
-  - `lib/audit`: helper append-only usado por agenda/caja/señas/presupuestos/accesos (quién/qué/cuándo/antes/después)
-  - Teléfono E.164, montos en centavos, validación zod en borde API
+  - Dependencia FastAPI: exige `(tenant_id, rol)` según matriz `03_actores_y_roles.md` + RLS como segunda barrera
+  - `backend/app/core/audit`: helper append-only usado por agenda/caja/señas/presupuestos/accesos (quién/qué/cuándo/antes/después)
+  - Teléfono E.164, montos en centavos, validación Pydantic en borde API
   - Tests: login/refresh/logout, matriz RBAC por rol, fuga cross-tenant por rol, audit contiene antes/después
 - **Dependencias**: C-02
 - **Governance**: CRITICO
@@ -193,7 +193,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - Modelo `Turno(tenant, profesional, sillon, paciente, prestacion, inicio, fin calculado, estado PENDIENTE/CONFIRMADO/PRESENTE/AUSENTE/CANCELADO/REPROGRAMADO, sobreturno=false, origen RECEPCION/ONLINE/LISTA_ESPERA, token_publico?, sena_id?)`
   - Constraints EXCLUDE anti-solape por `(tenant, profesional)` y `(tenant, sillon)` en `[inicio, fin)` con `estado NOT IN (CANCELADO, REPROGRAMADO)` y `sobreturno=false`
   - Endpoints: `CRUD /api/turnos`, `POST /api/turnos/:id/sobreturno` (motivo obligatorio + auditoría), `POST /api/turnos/:id/cancelar|reprogramar`
-  - UI `(app)/agenda`: vista día/semana por profesional y sillón, colores por estado, drag&drop con confirmación que revalida solape en servidor, bloqueos ocultan slots; slot tomado → 409 + 3 alternativas
+  - UI SPA `/agenda`: vista día/semana por profesional y sillón, colores por estado, drag&drop con confirmación que revalida solape en servidor, bloqueos ocultan slots; slot tomado → 409 + 3 alternativas
   - Migración 003: turnos + EXCLUDE + índices `(tenant, profesional, inicio)`, `(tenant, sillon, inicio)`, `(tenant, estado)`
   - Tests (rojos primero): solape profesional falla, solape sillón falla, sobreturno exige motivo y audita, concurrencia doble-reserva solo una confirma
 - **Dependencias**: C-03, C-04
@@ -213,7 +213,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Scope**: Reserva por link sin login + cancelar/reprogramar con anticipación (US-010, US-011; RN-RE-01/02/03/05, RN-GL-02)
   - `GET /api/disponibilidad?prestacion=&profesional=&desde=` — slots reales servidor-side (profesional × sillón × duración − bloqueos), scoped por token de tenant
   - `POST /api/reservas/publicas` — crea turno PENDIENTE + token público; identificación liviana nombre + teléfono (DD-06), rate-limit + captcha/OTP liviano anti-spam
-  - Rutas públicas `/r/[tokenTenant]` (landing reserva, mobile-first) con confirmación inmediata; `cancelar|reprogramar` valida anticipación mínima configurable (default 24 h, `CANCEL_ANTICIPACION_H`); debajo del umbral deriva a recepción auditada
+  - Rutas públicas `/r/:tokenTenant` (landing reserva, mobile-first) con confirmación inmediata; `cancelar|reprogramar` valida anticipación mínima configurable (default 24 h, `CANCEL_ANTICIPACION_H`); debajo del umbral deriva a recepción auditada
   - Caso slot tomado entre pasos → 409 + 3 alternativas
   - Tests: slots excluyen bloqueos/solapes, reserva vincula paciente por teléfono, anticipación enforced, rate-limit bloquea abuso
 - **Dependencias**: C-05
@@ -296,7 +296,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Scope**: Caja multi-medio con cierre diario obligatorio y reportes base (US-040; RN-CJ-01/02/03)
   - Modelos: `MovimientoCaja(tenant, fecha, medio EFECTIVO/TRANSFERENCIA/MP/OS, monto centavos, tipo INGRESO/EGRESO, turno_id?, usuario_id, anulado + motivo)`, `CierreDiario UNIQUE(tenant, fecha)` con totales por medio, diferencia, responsable, cerrado_at
   - Endpoints: `GET /api/caja/movimientos?fecha=`, `POST /api/caja/movimientos`, `POST /api/caja/cierre` (diferencia 0 o motivo con observación auditable), anulación con motivo + movimiento compensatorio (nunca borrado; post-cierre exige compensatorio)
-  - UI `(app)/caja`: movimientos por medio + señas aplicadas, carga de efectivo real vs sistema, reportes base (ocupación, ausentismo, facturación por profesional)
+  - UI SPA `/caja`: movimientos por medio + señas aplicadas, carga de efectivo real vs sistema, reportes base (ocupación, ausentismo, facturación por profesional)
   - Migración 007: movimientos_caja, cierres_diarios + RLS
   - Tests: cierre con diferencia exige motivo, día sin responsable no cierra, anulación post-cierre crea compensatorio sin editar cierre
 - **Dependencias**: C-03, C-05
@@ -313,7 +313,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Estado**: `[ ]` pendiente
 - **Scope**: Seña online atada a reserva con liberación automática y webhook idempotente (US-041; RN-SE-01/02/03/04/05) — ⚠️ PO-01 abierta (alcance de seña configurable por tenant, default por prestación)
   - Modelos: `Sena(tenant, turno unique?, monto, estado PENDIENTE/ACREDITADA/LIBERADA/APLICADA/DEVUELTA, mp_preference_id, expira_at SENA_TTL_H)` + `PagoMP(mp_payment_id unique, sena, monto, estado, raw_json, received_at)`
-  - Flujo: prestación con `requiere_sena` → seña PENDIENTE + preferencia MP → `/pagar/[tokenSena]` → webhook `POST /api/webhooks/mercadopago` idempotente (duplicado → 200 sin efecto) → ACREDITADA → turno CONFIRMADO; expira sin pago → turno liberado + dispara auto-oferta (C-07)
+  - Flujo: prestación con `requiere_sena` → seña PENDIENTE + preferencia MP → `/pagar/:tokenSena` → webhook `POST /api/webhooks/mercadopago` idempotente (duplicado → 200 sin efecto) → ACREDITADA → turno CONFIRMADO; expira sin pago → turno liberado + dispara auto-oferta (C-07)
   - Política de cancelación visible al reservar; seña visible en agenda con estado; MP caído → reserva PENDIENTE + reintento/backoff (RN-IN-03)
   - Migración 008: senas, pagos_mp + RLS
   - Tests: webhook duplicado no duplica, expiración libera turno y ofrece a lista, seña se aplica al cobro (C-10)
@@ -394,7 +394,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Estado**: `[ ]` pendiente
 - **Scope**: Cierre del sistema: usuarios/config del tenant, exportación 1-clic, respaldo y superadmin (US-051 parcial: CA-3 + resto; RN-AU-04)
   - `/api/tenants/*`: alta/configuración del consultorio (admin tenant + superadmin plataforma sin acceso a PHI salvo intervención auditada)
-  - Usuarios del tenant CRUD + config tenant (seña, anticipación cancelación, recordatorios) — UI `(app)/config`
+  - Usuarios del tenant CRUD + config tenant (seña, anticipación cancelación, recordatorios) — UI SPA `/config`
   - `GET /api/exportacion`: CSV/Excel + JSON del tenant en 1 clic; respaldo diario declarado (job + documentación); sin lock-in
   - Reportes/KPIs vara DentalSoft: ocupación, ausentismo, facturación por profesional, % reservas online, huecos reasignados < 2 h
   - Tests: exportación contiene todo el tenant y nada ajeno, superadmin no lee clínica sin auditoría, config thématenant aísla parámetros
