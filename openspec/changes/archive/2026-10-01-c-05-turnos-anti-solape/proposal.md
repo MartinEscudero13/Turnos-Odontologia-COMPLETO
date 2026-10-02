@@ -48,3 +48,11 @@ sus reglas son verificables directamente en base de datos.
 - Governance: **CRÍTICO** (RN-GL-01: anti-solape y auditoría no se negocian).
 - Follow-up explícito (fuera de alcance): UI `(app)/agenda` día/semana por
   profesional y sillón con drag&drop.
+
+## Addendum — reimplementación Python (2026-10-02, no reescribe historia)
+
+Lo arriba dicho vale igual salvo el stack: donde dice "testeable con Node 24",
+"tipado estricto TS (zod en borde API)" y "Migración 003 Prisma/SQL", léase
+Python 3.14 + FastAPI + SQLAlchemy + Pydantic + revisión Alembic 003
+(`backend/`, `tests/`, `py -m pytest`). El QUÉ (modelo, EXCLUDE, endpoints,
+409+3, sobreturno auditado) no cambió; ver `reimplementacion-python.md`.

@@ -1,0 +1,8 @@
+# C-05 turnos-anti-solape (stack obligatorio del proyecto).
+# Pines verificados en el entorno (py launcher, Python 3.14.0).
+fastapi==0.115.0
+sqlalchemy==2.0.35
+pydantic==2.13.4
+alembic==1.19.1
+httpx==0.28.1
+pytest==9.1.1
