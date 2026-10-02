@@ -30,8 +30,8 @@
 
 ## Rutas públicas (sin autenticación)
 
-- `/r/[tokenTenant]` — landing de reserva del consultorio (slots, reservar, cancelar/reprogramar con token de turno).
-- `/pagar/[tokenSena]` — pago de seña vía Mercado Pago.
+- `/r/:tokenTenant` — landing de reserva del consultorio (slots, reservar, cancelar/reprogramar con token de turno).
+- `/pagar/:tokenSena` — pago de seña vía Mercado Pago.
 - `/api/disponibilidad`, `/api/reservas/publicas` (rate-limited + captcha/OTP liviano anti-spam).
 - `/api/webhooks/*` (firmados: MP, WhatsApp, Google).
 - Login (`/login`) y recupero de acceso.

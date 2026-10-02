@@ -7,7 +7,7 @@ SaaS multi-tenant argentino que une clínica odontológica profunda + obras soci
 | Archivo | Contenido |
 |---------|-----------|
 | [01_vision_y_objetivos.md](01_vision_y_objetivos.md) | Propósito, objetivos por actor, alcance v1.0, fuera de alcance, métricas |
-| [02_descripcion_general.md](02_descripcion_general.md) | Stack (Next.js TS + PostgreSQL multi-tenant), arquitectura, integraciones, API |
+| [02_descripcion_general.md](02_descripcion_general.md) | Stack (FastAPI + React + PostgreSQL multi-tenant), arquitectura, integraciones, API |
 | [03_actores_y_roles.md](03_actores_y_roles.md) | Paciente/Odontólogo/Recepción/Admin + RBAC por (tenant, rol) + rutas públicas |
 | [04_modelo_de_datos.md](04_modelo_de_datos.md) | Dominios, ERD, entidades (`tenant_id` raíz + EXCLUDE anti-solape), seed |
 | [05_reglas_de_negocio.md](05_reglas_de_negocio.md) | RN-AG/RE/SE/CL/OS/CJ/AU/IN/GL (agenda, seña, OS, caja, auditoría) |
