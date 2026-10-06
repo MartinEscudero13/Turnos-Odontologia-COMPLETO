@@ -14,7 +14,7 @@ Y lo tercero: en el gate final del checklist se corrigió una contradicción que
 
 Usé Ajustar (revisar y corregir en vez de aceptar automático) en varios puntos: el gate de Discovery (dije que sí, pero con brief ampliado), las rondas de Q&A, el gate final del checklist, el pre-gate del roadmap (cuando dije "seguí"), el install gate (cuando dije "todas") y la auditoría contra el PDF que terminó reordenando archivos.
 
-Si en esos puntos hubiera puesto Continuar automático, creo que habrían pasado dos cosas feas: la knowledge base se habría generado sobre insumos guardados en la ubicación equivocada, y el informe habría quedado sin el formato del PDF. O sea, documentos "verdes" pero apoyados en algo roto. Ajustar me costó unos minutos cada vez y me ahorró rehacer etapas enteras.
+Si en esos puntos hubiera puesto Continuar automático, creo que habrían pasado dos cosas: la knowledge base se habría generado sobre insumos guardados en la ubicación equivocada, y el informe habría quedado sin el formato del PDF. O sea, documentos "verdes" pero apoyados en algo roto. Ajustar me costó unos minutos cada vez y me ahorró rehacer etapas enteras.
 
 ## Spec vs. prompt suelto
 
