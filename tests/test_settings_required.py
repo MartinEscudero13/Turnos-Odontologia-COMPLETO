@@ -7,9 +7,11 @@ from pydantic import ValidationError
 from app.core.settings import Settings
 
 
-def test_settings_require_database_url() -> None:
+def test_settings_require_database_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("DATABASE_URL", "REDIS_URL", "JWT_SECRET", "APP_URL"):
+        monkeypatch.delenv(name, raising=False)
     with pytest.raises(ValidationError) as exc:
-        Settings()
+        Settings(_env_file=None)
     assert "database_url" in str(exc.value).lower()
 
 
