@@ -1,7 +1,8 @@
 # Guía de continuación — Lautaro Naranjo
 
-> Estado del repo al escribir esta guía: rama `master`, HEAD `48e1ec6`, working tree limpio.
+> Estado del repo al escribir esta guía: rama `master`, working tree limpio.
 > La historia fue reescrita: si ya tenías un clone, **no hagas `git pull` directo**; seguí el paso 1.
+> Verificá el HEAD actual con `git log -1 --oneline`.
 
 ## 1. Tu alcance
 
