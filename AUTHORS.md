@@ -18,6 +18,7 @@ fueron entregados. No deben reescribirse para reflejar el trabajo grupal posteri
 - **Martin Escudero**: implementación de los changes C-01 a C-04 y mantenimiento de C-05.
 - **Lautaro Naranjo**: C-06 y la pieza de skill propia + MCP del TP2.
 - **C-01 `foundation-setup`**: implementado, verificado y archivado el 2026-11-03.
+- **Guía de continuación para Lautaro**: [`docs/equipo/guia-lautaro.md`](docs/equipo/guia-lautaro.md).
 
 ## Autoría de commits
 
