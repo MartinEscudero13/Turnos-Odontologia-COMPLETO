@@ -28,6 +28,7 @@ class Usuario(Base):
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     rol: Mapped[str] = mapped_column(Text, nullable=False)
     two_factor: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    two_factor_secret: Mapped[str] = mapped_column(Text, nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     creado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

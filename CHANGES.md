@@ -150,7 +150,8 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ## FASE 1 — Identidad y auditoría
 
 ### [C-03] `auth-rbac-auditoria`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-03; 152 tests, login/refresh/logout/me, 2FA, RBAC y RLS de refresh tokens verificados) + archivado en `openspec/changes/archive/2026-11-03-c-03-auth-rbac-auditoria/`
+- **Verificación**: [`docs/foundation/verification-c03.md`](docs/foundation/verification-c03.md)
 - **Scope**: Autenticación + RBAC (tenant, rol) + auditoría enforced en API (US-051 parcial: CA-1, CA-2; RN-AU-01/02/05)
   - `POST /api/auth/login` — Argon2/bcrypt, JWT access corto + refresh rotado, rate limiting 5/60s por IP+email
   - `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`; 2FA exigible para roles internos
@@ -410,3 +411,4 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - `knowledge-base/05_reglas_de_negocio.md` §RN-AU-04
   - `knowledge-base/01_vision_y_objetivos.md` §Métricas de éxito
   - `knowledge-base/10_preguntas_abiertas.md` §PO-10
+

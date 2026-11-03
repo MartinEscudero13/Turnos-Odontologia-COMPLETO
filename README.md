@@ -160,8 +160,10 @@ ni de tests.
 | `backend/app/turnos/` | Dominio C-05: `overlap()`, cálculo de `fin`, 3 alternativas ante 409, máquina de estados, servicio + auditoría |
 | `backend/app/schemas/` | Schemas Pydantic v2 del borde API (strict donde el contrato lo exige) |
 | `backend/app/models/` | Modelos SQLAlchemy (`tenant_id` everywhere, `timestamptz`, CHECKs) |
-| `backend/app/routers/` | Router FastAPI `/api/turnos` + `crear_app()` inyectable (actor por headers provisorio; JWT real en C-03) |
-| `backend/alembic/versions/` | Migraciones Alembic: 001/002 puertas de ordenamiento, 003 turnos + EXCLUDE anti-solape + índices + RLS |
+| `backend/app/auth/` | Autenticación C-03: Argon2, JWT, refresh tokens, TOTP, rate-limit |
+| `backend/app/routers/auth.py` | Endpoints `/api/auth/login`, `refresh`, `logout`, `me`, `admin-check` |
+| `backend/app/routers/` | Router FastAPI `/api/turnos` + `/api/auth`; C-05 mantiene actor por headers provisorio |
+| `backend/alembic/versions/` | Migraciones: 001 núcleo tenant + RLS, 002 placeholder C-04, 003 turnos, 004 auth |
 | `backend/seed_test.py` | Seed ficticio idempotente (`aplicar_seed()` + `seed_sql()` para PG real) |
 | `backend/requirements.txt` | Pines de runtime verificados |
 | `requirements-dev.txt` | Pines de desarrollo y CI |
@@ -185,8 +187,16 @@ ni de tests.
 - **C-01** aporta la base reproducible: FastAPI con `/api/health`, SPA React + TypeScript + Vite, PostgreSQL/Redis en Compose, CI paralela, Alembic inicializado y `mypy`/`ruff`.
 - **Verificación ejecutable**: [`docs/foundation/verification-report.md`](docs/foundation/verification-report.md).
 - **Archivo archivado**: `openspec/changes/archive/2026-11-03-c-01-foundation-setup/`; spec principal en `openspec/specs/foundation-setup/spec.md`; 8 requisitos aprobados.
-- **Desvío documentado**: las migraciones 001/002 son puntos de ordenamiento mínimos; sus tablas/DDL se implementan en C-02/C-04.
+- **Desvío documentado**: 001 quedó implementada en C-02; 002 sigue reservada a C-04.
 - **Siguiente**: C-03 `auth-rbac-auditoria`.
+
+## Estado del ciclo C-03 (`auth-rbac-auditoria`)
+
+- **Estado**: implementado, verificado y archivado el 2026-11-03; login Argon2, access JWT, refresh rotado, logout, `/me`, 2FA TOTP, RBAC y auditoría de accesos.
+- **Archivo**: `openspec/changes/archive/2026-11-03-c-03-auth-rbac-auditoria/`.
+- **Migración 004**: `refresh_tokens` con RLS y `two_factor_secret` cifrado.
+- **Verificación ejecutable**: [`docs/foundation/verification-c03.md`](docs/foundation/verification-c03.md) — 152 tests, RLS real, migración upgrade/downgrade y rate-limit.
+- **Deuda declarada**: rate-limit en proceso; C-05 conserva headers provisorios hasta el change que migre esas rutas.
 
 ## Estado del ciclo C-02 (`core-models-multitenant`)
 
@@ -208,3 +218,4 @@ ni de tests.
 
 - **Datos ficticios**: seed (`backend/seed_test.py`) y tests usan datos inventados (1 tenant demo, profesional/sillón/prestación de prueba). NUNCA usar datos reales de pacientes en desarrollo, tests ni demos; nada de PHI en logs.
 - **Secretos**: nada commiteado. No hay `.env`; el repo versiona únicamente [`.env.example`](.env.example) con placeholders de desarrollo sin valores productivos. `.gitignore` excluye `.env`, `.env.local`, `__pycache__/` y `.pytest_cache/`. Las variables reales (`MP_*`, `WA_*`, `GCAL_*`, etc.) se documentan cuando esos changes las necesitan. CI ejecuta `tools/secret_scan.py` para no incorporar patrones comunes de claves.
+

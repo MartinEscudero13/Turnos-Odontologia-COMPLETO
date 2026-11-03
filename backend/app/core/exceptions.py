@@ -30,7 +30,8 @@ def http_exception_response(exc: HTTPException, request: Request) -> JSONRespons
     message = str(exc.detail)
     code = code_from_status(exc.status_code)
     logger.warning("http_error", extra={"status_code": exc.status_code, "correlation_id": cid, "code": code})
-    return JSONResponse(status_code=exc.status_code, content=error_body(code, message, cid))
+    headers = dict(exc.headers) if exc.headers else None
+    return JSONResponse(status_code=exc.status_code, content=error_body(code, message, cid), headers=headers)
 
 
 def code_from_status(status_code: int) -> str:
@@ -54,3 +55,4 @@ def unexpected_response(exc: Exception, request: Request) -> JSONResponse:
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=error_body("INTERNAL_ERROR", "Ocurrió un error inesperado. Intentá nuevamente.", cid),
     )
+
