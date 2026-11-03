@@ -20,6 +20,7 @@ from app.db import create_db_engine
 from app.db import session_factory as create_session_factory
 from app.middleware import RequestIdMiddleware
 from app.routers.auth import router as auth_router
+from app.routers.catalogos import router as catalogos_router
 from app.routers.health import router as health_router
 
 logger = get_logger("app.startup")
@@ -40,6 +41,7 @@ def create_app(
     app.add_middleware(RequestIdMiddleware)
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(catalogos_router)
 
     @app.exception_handler(HTTPException)
     async def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:

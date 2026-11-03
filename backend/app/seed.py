@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.catalogos import Prestacion, Sillon
 from app.models.tenant import ParametroTenant, Tenant
 
 DEMO_TENANT_ID = "a0000000-0000-4000-8000-000000000001"
@@ -65,3 +66,28 @@ def seed_tenant(
             inserted += 1
     session.commit()
     return SeedResult(tenant_id=tenant.id, tenant_created=created, parametros_insertados=inserted)
+
+
+def seed_catalogo(session: Session, tenant_id: str) -> dict[str, int]:
+    """Materialize the demo sillón and base prestaciones from C-02 seed defaults.
+
+    Durations are provisional demo values until the owner defines the real catalog
+    (open question in `10_preguntas_abiertas.md`).
+    """
+    tenant_uuid = uuid.UUID(tenant_id)
+    created = {"sillones": 0, "prestaciones": 0}
+    if session.scalar(select(Sillon).where(Sillon.tenant_id == tenant_uuid, Sillon.nombre == "Sillón 1")) is None:
+        session.add(Sillon(tenant_id=tenant_uuid, nombre="Sillón 1"))
+        created["sillones"] += 1
+    for nombre in SEED_DEFAULTS["prestaciones_base"]:
+        exists = session.scalar(
+            select(Prestacion).where(
+                Prestacion.tenant_id == tenant_uuid,
+                Prestacion.nombre == nombre,
+            )
+        )
+        if exists is None:
+            session.add(Prestacion(tenant_id=tenant_uuid, nombre=nombre, duracion_min=30, precio_base=0))
+            created["prestaciones"] += 1
+    session.commit()
+    return created

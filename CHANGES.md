@@ -174,7 +174,8 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 > `C-05` y `C-08` pueden proponerse en paralelo tras `C-04`. `C-04` debe archivarse antes que cualquier otro change de esta fase.
 
 ### [C-04] `catalogos-pacientes-base`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-03; 159 tests, RLS real de catálogo, migración 002 reversible, seed idempotente) + archivado en `openspec/changes/archive/2026-11-03-c-04-catalogos-pacientes-base/`
+- **Verificación**: [`docs/foundation/verification-c04.md`](docs/foundation/verification-c04.md)
 - **Scope**: Catálogos del tenant + pacientes base que todo el dominio referencia (US-003; RN-AG-01/04/06, RN-RE-05)
   - Modelos: `Profesional(usuario_id?, nombre, especialidad, matricula?, color_agenda, activo)`, `Sillon(nombre, activo)`, `Prestacion(nombre, duracion_min, precio_base, requiere_sena, monto_sena?, activa)`, `ProfesionalPrestacion` (N—N habilidad), `HorarioSemanal(dia, desde, hasta)`, `Bloqueo(desde, hasta, motivo)`
   - Modelo `Paciente(nombre, dni_cifrado?, telefono E.164, email?, obra_social_id?, nro_afiliado?, consentimiento_ok)` con `UNIQUE(tenant_id, dni)` e índice `(tenant_id, telefono)`; vinculación por teléfono existente
@@ -411,4 +412,5 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - `knowledge-base/05_reglas_de_negocio.md` §RN-AU-04
   - `knowledge-base/01_vision_y_objetivos.md` §Métricas de éxito
   - `knowledge-base/10_preguntas_abiertas.md` §PO-10
+
 
