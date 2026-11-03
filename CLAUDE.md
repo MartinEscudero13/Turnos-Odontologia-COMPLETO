@@ -55,10 +55,38 @@ La fuente de verdad del dominio vive en `knowledge-base/`. **Leé el archivo rel
 | **Backend Aux** | Regresiones duras (cancelación, reprogramación, lista de espera) | `diagnosing-bugs` |
 | **Frontend** | Reserva 24/7 y agenda (React + Vite, diseño mobile-first, a11y/UX, shadcn/ui) | `vercel-react-best-practices`, `frontend-design`, `web-design-guidelines`, `shadcn` |
 | **Orquestación** | SDD / OPSX / docs (fases de fundación) | `discovery-research`, `kb-creator`, `roadmap-generator`, `skill-registry`, `agent-instruction` |
+| **Proyecto** | Auditar specs de turnos antes de implementar | `revisor-escenarios-turnos` (propia, versionada en el repo) |
 
 Cargá la skill correspondiente al contexto ANTES de escribir código.
 
-> Los compact rules de cada skill los resuelve el orquestador desde `.atl/skill-registry.md` (generado por `skill-registry`; no versionado — no está en el repo). Esta tabla solo mapea skill→rol.
+> Los compact rules de cada skill los resuelve el orquestador desde `.atl/skill-registry.md` (generado por `skill-registry`; **versionado en el repo** — sección `## Project Skills` para las skills propias). Esta tabla solo mapea skill→rol.
+
+### Skill propia: `revisor-escenarios-turnos`
+
+Vive en `.opencode/skills/revisor-escenarios-turnos/SKILL.md` y está versionada en el repo.
+
+- **Cuándo usarla**: al preparar o revisar un change de turnos (`/opsx:propose`, `/opsx:verify`), antes de
+  escribirlo. Es obligatoria antes de `/opsx:apply` en cualquier change que toque agenda, turnos, anticipación,
+  pagos, caja, obras sociales o lista de espera.
+- **Qué necesita**: la ruta del change, la capability afectada y la lista de RN del scope (sale de
+  "Leer antes" en `CHANGES.md`). Si falta alguno, lo pide; no completa el scope solo.
+- **Qué devuelve**: tabla de cobertura RN × escenario, hallazgos con severidad (`BLOQUEANTE` / `MAYOR` /
+  `MENOR`) y cita `archivo:línea`, preguntas abiertas detectadas y una sección "no verificado".
+- **Cómo revisar su salida**: todo hallazgo tiene que citar una RN o un archivo de la KB; ningún valor
+  numérico puede aparecer sin respaldo en la KB; los `BLOQUEANTE` se corrigen antes de implementar.
+  La skill **solo reporta**, no reescribe la spec: el fix lo hacemos nosotros.
+
+---
+
+## MCP: Context7
+
+> Es una **integración externa, NO una skill**: no se registra en `.atl/skill-registry.md` ni se delega como
+> compact rule.
+
+Expone `resolve-library-id` y `query-docs` para traer documentación vigente de librerías y APIs al contexto del
+agente (útil al preparar `design.md` o al dudar del comportamiento real de FastAPI, SQLAlchemy, Alembic,
+React, Vite, Mercado Pago, WhatsApp Cloud API o Google Calendar API). Configuración, límites y verificación:
+[README.md](README.md) §MCP y `docs/skills-mcp/`.
 
 ---
 
@@ -97,8 +125,9 @@ Acá van las reglas específicas de este proyecto, derivadas de su stack (FastAP
 1. Leer la KB relevante (knowledge-base/)        → entender el dominio
 2. Identificar el change en CHANGES.md           → respetar dependencias
 3. /opsx:propose C-NN-nombre                     → proposal + design + specs + tasks
-4. Implementar las tasks (cargando skills)       → respetando las reglas duras
-5. /opsx:archive C-NN-nombre + marcar [x]        → cerrar el change
+4. Revisar la spec con revisor-escenarios-turnos → cerrar huecos y valores inventados
+5. Implementar las tasks (cargando skills)       → respetando las reglas duras
+6. /opsx:archive C-NN-nombre + marcar [x]        → cerrar el change
 ```
 
 Aplicar TODAS las reglas duras en cada paso. Ante conflicto entre la KB y este archivo, las reglas duras prevalecen.

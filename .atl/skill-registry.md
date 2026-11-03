@@ -17,6 +17,14 @@ See `_shared/skill-resolver.md` for the full resolution protocol.
 | Encountering any bug, test failure, or unexpected behavior — before proposing fixes | systematic-debugging | C:\Users\tinch\.agents\skills\systematic-debugging\SKILL.md |
 | User says "diagnose"/"debug this", or reports something broken/throwing/failing/slow; hard bugs and performance regressions | diagnosing-bugs | C:\Users\tinch\.agents\skills\diagnosing-bugs\SKILL.md |
 
+## Project Skills
+
+Versioned in this repo (not in the user skills folder).
+
+| Trigger | Skill | Path |
+|---------|-------|------|
+| Preparing or reviewing an OpenSpec change of turnos (propose/verify); "revisá los escenarios", "¿falta algún caso borde?", "¿esta spec es verificable?", "auditá el spec antes de implementar"; any `specs/<capability>/spec.md` of turnos about to be implemented | revisor-escenarios-turnos | .opencode/skills/revisor-escenarios-turnos/SKILL.md |
+
 ## Compact Rules
 
 Pre-digested rules per skill. Delegators copy matching blocks into sub-agent prompts as `## Project Standards (auto-resolved)`.
@@ -82,10 +90,19 @@ Pre-digested rules per skill. Delegators copy matching blocks into sub-agent pro
 - Phase 5-6: regression test only at a seam that exercises the real bug pattern (no seam = architectural finding, flag it); test-fails → fix → test-passes → re-run original loop; cleanup before done (repro green, tagged logs grepped out, throwaways deleted, winning hypothesis in commit message)
 - Redact every secret as <REDACTED>; loops read credentials from env, artifacts quote only signal lines; if redacted output is insufficient, stop and ask
 
+### revisor-escenarios-turnos
+- Read-only audit of a delta spec (`openspec/changes/<name>/specs/<capability>/spec.md` and/or `openspec/specs/<capability>/spec.md`); never rewrite the spec, tasks or code — report only, the team applies the fix
+- Inputs required: change path, capability, and the RN list from "Leer antes" in CHANGES.md; if one is missing ask for it, never invent scope
+- Scope RNs by real prefix: RN-AG agenda/anti-solape, RN-RE reserva/anticipación/lista de espera, RN-SE señas/MP, RN-CL clínica/PHI, RN-OS obras sociales, RN-CJ caja, RN-AU RBAC/auditoría/consentimiento, RN-IN integraciones, RN-GL globales
+- Coverage matrix per RN × feliz / error de negocio / borde / concurrencia-idempotencia; mark `HUECO`; any error scenario that mutates state is BLOQUEANTE
+- Open values that must never be fixed by a spec: PO-01 (seña y anticipación exacta), PO-03 (profundidad WA/MP/GCal), PO-05 (cantidad de profesionales), PO-06 (login de paciente vs nombre+teléfono), PO-02/PO-04/PO-07/PO-08/PO-10/PO-11
+- Domain edges to demand: tenant_id + RLS on every query and token of tenant A never touching tenant B, PHI out of logs/messages, exact anticipación threshold, auto-oferta expiration + single claim, idempotent MP webhooks and WA reminders, caja/OS/consentimiento rules
+- Output: coverage table, findings table (`BLOQUEANTE`/`MAYOR`/`MENOR` + `archivo:línea` + RN), open questions the spec resolved on its own, and "no verificado"; no finding without a KB citation
+
 ## Project Conventions
 
 | File | Path | Notes |
 |------|------|-------|
-| (none — first foundation pass) | — | CLAUDE.md/AGENTS.md don't exist yet (agent-instruction generates them next); re-run `/active-orchestrator:registry` afterwards to index conventions |
-
-Project references for delegators (not convention files, but canonical context): `CHANGES.md` (change index + dependency gates), `knowledge-base/` (12 files: vision, actores, datos, reglas, funcionalidades, flujos, arquitectura, integraciones), `openspec/` (specs source of truth).
+| AGENTS.md / CLAUDE.md | `AGENTS.md`, `CLAUDE.md` | Identical byte-for-byte; stack, KB index, skills per role, CHANGES summary and hard rules |
+| Knowledge base | `knowledge-base/` | 12 files: vision, stack, actores, datos, reglas RN-XX, funcionalidades US-NNN, flujos, arquitectura, decisiones, preguntas abiertas, integraciones |
+| Change index | `CHANGES.md` | Dependency tree, gates, critical path, per-change scope and "Leer antes" |
