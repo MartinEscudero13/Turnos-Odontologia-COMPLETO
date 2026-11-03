@@ -1,5 +1,10 @@
 # Guía de continuación — Lautaro Naranjo
 
+> **Instrucción para OpenCode:** leé este archivo completo antes de actuar.
+> **No implementes C-06 hasta que C-02, C-03 y C-04 estén implementados y archivados.**
+> Antes de modificar archivos, resumí el plan y esperá confirmación.
+> Tu alcance es C-06 y la pieza skill+MCP del TP2; no toques C-01 a C-04.
+
 > Estado del repo al escribir esta guía: rama `master`, working tree limpio.
 > La historia fue reescrita: si ya tenías un clone, **no hagas `git pull` directo**; seguí el paso 1.
 > Verificá el HEAD actual con `git log -1 --oneline`.

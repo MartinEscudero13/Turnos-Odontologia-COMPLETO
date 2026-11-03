@@ -5,6 +5,15 @@
 
 ---
 
+## Continuidad del equipo
+
+- Alcance y autoría: [`AUTHORS.md`](AUTHORS.md).
+- Guía de continuación para Lautaro Naranjo: [`docs/equipo/guia-lautaro.md`](docs/equipo/guia-lautaro.md).
+- **Antes de implementar C-06 `reserva-online-publica`**: verificar que C-02, C-03 y C-04 estén implementados y archivados. C-06 no debe volver a quedar colgado de stubs.
+- Los changes **C-01 a C-04** corresponden a Martin Escudero; **C-06** y la pieza skill+MCP del TP2 corresponden a Lautaro Naranjo.
+
+---
+
 ## Stack Tecnológico
 
 | Capa | Tecnología | Versión |
