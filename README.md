@@ -2,6 +2,10 @@
 
 SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real, reserva online, WhatsApp, Mercado Pago y obras sociales.
 
+## Equipo
+
+Trabajo grupal de **Martin Escudero** y **Lautaro Naranjo**. Alcance, roles y aclaración sobre entregas anteriores: [`AUTHORS.md`](AUTHORS.md).
+
 - Descubrimiento del problema y alcance: [`docs/discovery/`](docs/discovery/) (informe + checklist).
 - Fuente de verdad del dominio (actores, datos, reglas RN-XX, historias US-XXX, arquitectura): [`knowledge-base/`](knowledge-base/README.md).
 - Plan de implementación por changes: [`CHANGES.md`](CHANGES.md). Reglas para agentes: [`AGENTS.md`](AGENTS.md).
