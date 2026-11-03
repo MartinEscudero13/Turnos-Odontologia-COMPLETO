@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
 from app.turnos.alternativas import Alternativa, HuecoOcupado, buscar_alternativas
@@ -210,7 +210,7 @@ class ServicioTurnos:
 
     # ---- 3.2 sobreturno sobre turno existente ----
 
-    def sobreturno(self, actor: Actor, turno_id: str, *, motivo: str) -> Turno:
+    def sobreturno(self, actor: Actor, turno_id: str, *, motivo: str | None) -> Turno:
         """Marca sobreturno explícito: motivo no vacío obligatorio + audita."""
         if motivo is None or not motivo.strip():
             raise Invalido("sobreturno exige motivo no vacío")
@@ -363,9 +363,8 @@ class ServicioTurnos:
 
     def _bajo_anticipacion(self, turno: Turno, ahora: datetime | None) -> bool:
         if ahora is None:
-            from datetime import timezone as _tz
 
-            ahora = datetime.now(_tz.utc)
+            ahora = datetime.now(UTC)
             if turno.inicio.tzinfo is None:
                 return False
         delta_horas = (turno.inicio - ahora).total_seconds() / 3600
@@ -438,7 +437,6 @@ class ServicioTurnos:
         antes: EstadoTurno | None,
         despues: EstadoTurno,
     ) -> None:
-        from datetime import timezone as _tz
 
         entrada = AuditoriaEntrada(
             turno_id=turno.id,
@@ -447,7 +445,7 @@ class ServicioTurnos:
             actor=actor_id,
             antes=antes,
             despues=despues,
-            registrado_en=datetime.now(_tz.utc).isoformat(),
+            registrado_en=datetime.now(UTC).isoformat(),
             motivo=motivo,
         )
         self._auditoria.append(entrada)

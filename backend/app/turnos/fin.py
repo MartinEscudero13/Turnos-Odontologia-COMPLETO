@@ -8,13 +8,18 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 
-def calcular_fin(inicio: datetime, duracion_min: int) -> datetime:
+def _positive_int(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise ValueError(f"duracion_min inválida: {value!r}")
+    return value
+
+
+def calcular_fin(inicio: datetime, duracion_min: object) -> datetime:
     """Calcula fin servidor-side. Falla con ValueError si duración inválida."""
-    if not isinstance(duracion_min, int) or isinstance(duracion_min, bool) or duracion_min <= 0:
-        raise ValueError(f"duracion_min inválida: {duracion_min!r}")
-    return inicio + timedelta(minutes=duracion_min)
+    minutes = _positive_int(duracion_min)
+    return inicio + timedelta(minutes=minutes)
 
 
-def fin_cliente_valido(inicio: datetime, duracion_min: int, fin_cliente: datetime) -> bool:
+def fin_cliente_valido(inicio: datetime, duracion_min: object, fin_cliente: datetime) -> bool:
     """True solo si el fin provisto coincide EXACTO con el cálculo servidor-side."""
     return calcular_fin(inicio, duracion_min) == fin_cliente

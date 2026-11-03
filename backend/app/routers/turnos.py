@@ -49,7 +49,7 @@ def actor_desde_headers(
     )
 
 
-def _error_body(exc: TurnoError) -> dict:
+def _error_body(exc: TurnoError) -> dict[str, object]:
     alts = exc.alternativas if isinstance(exc, ConflictoSolape) else []
     return ErrorOut(
         detalle=exc.mensaje,
@@ -104,7 +104,7 @@ def crear_router(svc: ServicioTurnos) -> APIRouter:
     @r.post("/api/turnos/{turno_id}/reprogramar")
     def reprogramar(
         turno_id: str, body: ReprogramarIn, actor: Actor = Depends(actor_desde_headers)
-    ) -> dict:
+    ) -> dict[str, object]:
         res = svc.reprogramar(
             actor, turno_id, nuevo_inicio=body.nuevo_inicio, duracion_min=body.duracion_min
         )
@@ -124,7 +124,7 @@ def crear_app(svc: ServicioTurnos | None = None) -> FastAPI:
     servicio = svc if svc is not None else ServicioTurnos()
 
     @app.exception_handler(TurnoError)
-    async def _turno_error(request: Request, exc: TurnoError) -> JSONResponse:
+    async def _turno_error(_request: Request, exc: TurnoError) -> JSONResponse:
         return JSONResponse(status_code=exc.codigo, content=_error_body(exc))
 
     app.include_router(crear_router(servicio))

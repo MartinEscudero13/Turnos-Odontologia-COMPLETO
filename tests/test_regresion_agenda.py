@@ -6,9 +6,9 @@ los RED por módulo ya se observaron en los ciclos 1–8).
 from __future__ import annotations
 
 import pytest
+from conftest import P1, PAC1, PREST30, S1, S2, T1, T2, dt
 
 from app.turnos.servicio import Actor, ConflictoSolape, Invalido, ServicioTurnos
-from conftest import PAC1, P1, PREST30, S1, S2, T1, T2, dt
 
 
 def recep(tenant=T1):

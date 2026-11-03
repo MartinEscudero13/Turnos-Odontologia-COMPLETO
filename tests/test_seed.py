@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from app.turnos.servicio import Actor, ServicioTurnos
 from seed_test import SEED_TEST, aplicar_seed, seed_sql
+
+from app.turnos.servicio import Actor, ServicioTurnos
 
 
 def test_seed_idempotente_y_reutilizable():

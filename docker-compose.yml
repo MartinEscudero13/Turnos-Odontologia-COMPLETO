@@ -1,0 +1,84 @@
+name: turnos-odontologia
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: turnos
+      POSTGRES_PASSWORD: dev-only-db-password
+      POSTGRES_DB: turnos
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U turnos -d turnos"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - turnos
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - turnos
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      APP_ENV: development
+      APP_NAME: turnos-api
+      APP_VERSION: 0.1.0
+      APP_URL: http://localhost:5173
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql+psycopg://turnos:dev-only-db-password@db:5432/turnos
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: dev-only-jwt-not-for-production-change-this-1234567890
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    networks:
+      - turnos
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - turnos
+
+networks:
+  turnos:
+    driver: bridge
+
+volumes:
+  postgres-data:

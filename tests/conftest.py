@@ -6,7 +6,7 @@ Todos los datos son ficticios (regla dura: NUNCA datos reales de pacientes).
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC
 from pathlib import Path
 
 BACKEND = Path(__file__).resolve().parent.parent / "backend"
@@ -19,7 +19,7 @@ def dt(dia: str = "2026-10-06", hora: int = 10, minuto: int = 0):
     from datetime import datetime as _dt
 
     y, m, d = (int(x) for x in dia.split("-"))
-    return _dt(y, m, d, hora, minuto, tzinfo=timezone.utc)
+    return _dt(y, m, d, hora, minuto, tzinfo=UTC)
 
 
 T1 = "tenant-demo-c05"

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pytest
+from conftest import P1, P2, PAC1, PREST30, S1, T1, dt
 
 from app.turnos.servicio import (
     Actor,
@@ -9,7 +10,6 @@ from app.turnos.servicio import (
     Prohibido,
     ServicioTurnos,
 )
-from conftest import PAC1, P1, P2, PREST30, S1, T1, dt
 
 
 def recep():

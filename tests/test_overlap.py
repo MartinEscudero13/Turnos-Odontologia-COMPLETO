@@ -1,9 +1,9 @@
 """Task 1.1 — overlap() half-open [inicio, fin): RED primero."""
 from __future__ import annotations
 
-from app.turnos.overlap import intervalos_solapan
-
 from conftest import dt
+
+from app.turnos.overlap import intervalos_solapan
 
 
 def test_solape_parcial():

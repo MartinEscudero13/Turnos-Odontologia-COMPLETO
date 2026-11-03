@@ -50,9 +50,7 @@ def es_bloqueante(
         return False
     if o.estado in ESTADOS_NO_BLOQUEANTES:
         return False
-    if o.sobreturno:
-        return False
-    return True
+    return not o.sobreturno
 
 
 def buscar_alternativas(

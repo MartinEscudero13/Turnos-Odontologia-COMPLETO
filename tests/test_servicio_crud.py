@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
+from conftest import P1, P2, PAC1, PREST30, S1, S2, T1, T2, dt
 
 from app.turnos.servicio import (
     Actor,
@@ -13,7 +14,6 @@ from app.turnos.servicio import (
     Prohibido,
     ServicioTurnos,
 )
-from conftest import PAC1, P1, P2, PREST30, S1, S2, T1, T2, dt
 
 
 def recep(tenant=T1):

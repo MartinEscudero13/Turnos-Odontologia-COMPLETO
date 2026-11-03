@@ -6,7 +6,7 @@ idempotente para PostgreSQL real (`ON CONFLICT DO NOTHING` + RLS tenant).
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.turnos.servicio import Actor, ServicioTurnos
 
@@ -17,7 +17,7 @@ SEED_TEST: dict[str, object] = {
     "paciente_id": "33333333-3333-4333-8333-333333333333",
     "prestacion_id": "44444444-4444-4444-8444-444444444444",
     "duracion_min": 30,
-    "inicio": datetime(2026, 10, 6, 13, 0, tzinfo=timezone.utc),
+    "inicio": datetime(2026, 10, 6, 13, 0, tzinfo=UTC),
 }
 
 

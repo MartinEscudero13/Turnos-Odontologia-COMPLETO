@@ -1,8 +1,6 @@
 """Task 1.4 — máquina de estados: RED primero."""
 from __future__ import annotations
 
-import pytest
-
 from app.turnos.estados import libera_hueco, transicion_valida
 
 

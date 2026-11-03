@@ -1,8 +1,9 @@
 """Task 1.3 — selector de 3 alternativas ante 409: RED primero."""
 from __future__ import annotations
 
-from app.turnos.alternativas import HuecoOcupado, buscar_alternativas
 from conftest import P1, P2, S1, S2, T1, T2, dt
+
+from app.turnos.alternativas import HuecoOcupado, buscar_alternativas
 
 
 def ocupado(inicio, fin, tenant=T1, prof=P1, sillon=S1, estado="PENDIENTE", sobre=False):

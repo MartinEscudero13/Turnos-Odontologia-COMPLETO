@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import pytest
+from conftest import dt
 
 from app.turnos.fin import calcular_fin, fin_cliente_valido
-
-from conftest import dt
 
 
 def test_fin_30_min():

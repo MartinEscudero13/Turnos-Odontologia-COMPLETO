@@ -107,7 +107,9 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ## FASE 0 — Cimientos
 
 ### [C-01] `foundation-setup`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-03; verificable y testeable; 114 tests, ruff/mypy verdes, Compose y DB smoke, `openspec validate c-01-foundation-setup --strict` en verde) + archivado en `openspec/changes/archive/2026-11-03-c-01-foundation-setup/`
+- **Verificación**: [`docs/foundation/verification-report.md`](docs/foundation/verification-report.md) — frontend, backend, migraciones Alembic, Compose, secretos y smoke test.
+- **Nota**: migraciones 001/002 son placeholders de ordenamiento; su DDL corresponde a C-02/C-04.
 - **Scope**: Scaffolding desacoplado backend + frontend + infraestructura base (US transversales, DD-01)
   - `backend/` FastAPI: `app/routers|models|schemas|core|workers`, SQLAlchemy + Alembic inicializados, `GET /api/health`
   - `frontend/` React + TS + Vite (`src/`), `docker-compose.yml` (api + web + db PostgreSQL 15 + redis)
@@ -209,7 +211,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ## FASE 3 — Reserva online y lista de espera
 
 ### [C-06] `reserva-online-publica`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[ ]` **preparado** (proposal, design, spec y tasks listos; NO implementado)
 - **Scope**: Reserva por link sin login + cancelar/reprogramar con anticipación (US-010, US-011; RN-RE-01/02/03/05, RN-GL-02)
   - `GET /api/disponibilidad?prestacion=&profesional=&desde=` — slots reales servidor-side (profesional × sillón × duración − bloqueos), scoped por token de tenant
   - `POST /api/reservas/publicas` — crea turno PENDIENTE + token público; identificación liviana nombre + teléfono (DD-06), rate-limit + captcha/OTP liviano anti-spam
@@ -397,7 +399,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - Usuarios del tenant CRUD + config tenant (seña, anticipación cancelación, recordatorios) — UI SPA `/config`
   - `GET /api/exportacion`: CSV/Excel + JSON del tenant en 1 clic; respaldo diario declarado (job + documentación); sin lock-in
   - Reportes/KPIs vara DentalSoft: ocupación, ausentismo, facturación por profesional, % reservas online, huecos reasignados < 2 h
-  - Tests: exportación contiene todo el tenant y nada ajeno, superadmin no lee clínica sin auditoría, config thématenant aísla parámetros
+  - Tests: exportación contiene todo el tenant y nada ajeno, superadmin no lee clínica sin auditoría, config del tenant aísla parámetros
 - **Dependencias**: C-10, C-12, C-13
 - **Governance**: ALTO
 - **Leer antes**:

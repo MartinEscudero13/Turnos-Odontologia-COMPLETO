@@ -1,0 +1,20 @@
+# Local development bastions. Examples go in .env.example; never commit real .env.
+.git
+.github
+node_modules
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Logs and transient files
+*.log
+*.tmp
+*.tmp.pdf
+~*
+
+# Tests and docs stay out of runtime images unless intentionally copied.
+frontend/node_modules
+frontend/dist
+backend/.pytest_cache

@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import threading
 
+from conftest import P1, PAC1, PREST30, S1, T1, dt
+
 from app.turnos.servicio import Actor, ConflictoSolape, ServicioTurnos
-from conftest import PAC1, P1, PREST30, S1, T1, dt
 
 
 def intentar(svc, resultados, i):

@@ -1,10 +1,12 @@
 """Tasks 3.1–3.4 — borde API FastAPI (contrato HTTP): RED primero."""
 from __future__ import annotations
 
+from datetime import UTC
+
+from conftest import P1, PAC1, PREST30, S1, T1, T2
 from fastapi.testclient import TestClient
 
 from app.turnos.servicio import ServicioTurnos
-from conftest import PAC1, P1, PREST30, S1, T1, T2
 
 BASE = {"X-Tenant-Id": T1, "X-User-Id": "recep-1", "X-Rol": "RECEPCION"}
 PAYLOAD = {
@@ -61,10 +63,10 @@ def test_sobreturno_sin_motivo_422_y_con_motivo_200():
 
 
 def test_cancelar_bajo_anticipacion_no_recepcion_403():
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     c = cliente()
-    inicio = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
+    inicio = (datetime.now(UTC) + timedelta(hours=2)).isoformat()
     payload = dict(PAYLOAD, inicio=inicio)
     turno_id = c.post("/api/turnos", json=payload, headers=BASE).json()["id"]
     odo = {"X-Tenant-Id": T1, "X-User-Id": "odo-1", "X-Rol": "ODONTOLOGO",
