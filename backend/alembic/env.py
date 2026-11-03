@@ -28,7 +28,7 @@ from app.models.turno import Base  # noqa: E402
 
 target_metadata = Base.metadata
 fallback_url = config.get_main_option("sqlalchemy.url")
-url = os.environ.get("DATABASE_URL") or fallback_url
+url = os.environ.get("DATABASE_OWNER_URL") or os.environ.get("DATABASE_URL") or fallback_url
 
 
 def run_migrations_offline() -> None:

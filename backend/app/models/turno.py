@@ -1,25 +1,20 @@
-"""Modelos SQLAlchemy — C-05 (tasks 2.1–2.3).
+"""Modelos SQLAlchemy — Turno y compatibilidad de auditoría.
 
-`tenant_id` NOT NULL everywhere + RLS en la migración 003 (regla dura:
-toda query filtra por tenant). `timestamptz` vía DateTime(timezone=True).
-FKs a C-04 (profesionales/sillones/pacientes/prestaciones) llegan en su
-change (expand-contract); acá van IDs escalares como en el contrato TS.
-Sin queries crudas: el SQL vive solo en `backend/alembic/versions/`.
-
-Nota: sin `from __future__ import annotations` a propósito — SQLAlchemy
-2.0.35 resuelve anotaciones string con `typing.Union` de un modo
-incompatible con Python 3.14; con anotaciones reales el mapeo funciona.
+`tenant_id` es UUID en todas las tablas de negocio (C-02). La fuente de
+anti-solapamiento sigue siendo la migración 003 (`EXCLUDE` en PostgreSQL),
+no el código de aplicación.
 """
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Text, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Text, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
+from app.models.auditoria import Auditoria
+from app.models.base import Base
 
-class Base(DeclarativeBase):
-    """Base declarativa del bounded context (C-01 la unifica)."""
+__all__ = ["Auditoria", "Base", "Turno"]
 
 
 class Turno(Base):
@@ -35,7 +30,12 @@ class Turno(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str] = mapped_column(Text, nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     profesional_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     sillon_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     paciente_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
@@ -48,24 +48,6 @@ class Turno(Base):
     origen: Mapped[str] = mapped_column(Text, nullable=False, default="RECEPCION")
     token_publico: Mapped[str] = mapped_column(Text, nullable=True)
     creado_en: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-
-
-class Auditoria(Base):
-    """Log append-only (UPDATE/DELETE revocados en la migración de C-02)."""
-
-    __tablename__ = "auditoria"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str] = mapped_column(Text, nullable=False)
-    turno_id: Mapped[str] = mapped_column(Text, nullable=False)
-    actor: Mapped[str] = mapped_column(Text, nullable=False)
-    accion: Mapped[str] = mapped_column(Text, nullable=False)
-    motivo: Mapped[str] = mapped_column(Text, nullable=True)
-    antes: Mapped[str] = mapped_column(Text, nullable=True)
-    despues: Mapped[str] = mapped_column(Text, nullable=False)
-    registrado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 

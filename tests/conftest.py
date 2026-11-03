@@ -22,8 +22,8 @@ def dt(dia: str = "2026-10-06", hora: int = 10, minuto: int = 0):
     return _dt(y, m, d, hora, minuto, tzinfo=UTC)
 
 
-T1 = "tenant-demo-c05"
-T2 = "tenant-otro-c05"
+T1 = "a0000000-0000-4000-8000-000000000001"
+T2 = "a0000000-0000-4000-8000-000000000002"
 P1 = "profesional-1"
 P2 = "profesional-2"
 S1 = "sillon-1"

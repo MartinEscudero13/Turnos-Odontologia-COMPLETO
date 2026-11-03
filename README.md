@@ -186,7 +186,15 @@ ni de tests.
 - **Verificación ejecutable**: [`docs/foundation/verification-report.md`](docs/foundation/verification-report.md).
 - **Archivo archivado**: `openspec/changes/archive/2026-11-03-c-01-foundation-setup/`; spec principal en `openspec/specs/foundation-setup/spec.md`; 8 requisitos aprobados.
 - **Desvío documentado**: las migraciones 001/002 son puntos de ordenamiento mínimos; sus tablas/DDL se implementan en C-02/C-04.
-- **Siguiente**: C-02 `core-models-multitenant`.
+- **Siguiente**: C-03 `auth-rbac-auditoria`.
+
+## Estado del ciclo C-02 (`core-models-multitenant`)
+
+- **Estado**: implementado, verificado y archivado el 2026-11-03; modelos `Tenant`, `Usuario`, `Auditoria` y `ParametroTenant`, migración 001 y RLS forzada.
+- **Archivo**: `openspec/changes/archive/2026-11-03-c-02-core-models-multitenant/`.
+- **Roles**: `turnos_owner` para migraciones/seed; `turnos_app` para la API, sin UPDATE/DELETE sobre auditoría.
+- **Verificación ejecutable**: [`docs/foundation/verification-c02.md`](docs/foundation/verification-c02.md) — 130 tests, RLS contra PostgreSQL real, upgrade/downgrade/re-upgrade y seed idempotente.
+- **Deuda declarada**: C-04 materializa el catálogo (sillón/prestaciones) a partir de los parámetros sembrados; 002 sigue siendo placeholder.
 
 ## Estado del ciclo C-05 (`turnos-anti-solape`)
 

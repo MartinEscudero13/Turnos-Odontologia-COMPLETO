@@ -51,14 +51,13 @@ Con Docker disponible, crear una base efímera y aplicar/eliminar el esquema:
 
 ```bash
 docker compose up -d db
-DATABASE_URL=postgresql+psycopg://turnos:dev-only-db-password@localhost:5433/turnos \
+DATABASE_OWNER_URL=postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos \
   py -m alembic -c backend/alembic.ini upgrade head
-DATABASE_URL=postgresql+psycopg://turnos:dev-only-db-password@localhost:5433/turnos \
+DATABASE_OWNER_URL=postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos \
   py -m alembic -c backend/alembic.ini downgrade base
 ```
 
-Debe mostrar `003_turnos_anti_solape` como head. Las migraciones 001/002 son
-orquestadoras mínimas de la base y se completan en C-02/C-04.
+Debe mostrar `003_turnos_anti_solape` como head. La migración 001 crea el núcleo multi-tenant con RLS; 002 sigue reservada para C-04.
 
 ## 4. Frontend
 
@@ -74,7 +73,13 @@ npm run build
 Salida esperada: lint y typecheck sin errores, 2 tests aprobados, build en
 `frontend/dist/`.
 
-## 5. Docker Compose
+## 5. Roles de base de datos
+
+- `turnos_owner`: owner de las tablas, solo para migraciones/seed.
+- `turnos_app`: rol de runtime, sin UPDATE/DELETE sobre auditoría y sujeto a RLS.
+- La API usa `DATABASE_URL` (app); Alembic usa `DATABASE_OWNER_URL`.
+
+## 6. Docker Compose
 
 ```bash
 docker compose config --quiet
@@ -94,7 +99,7 @@ docker compose down -v
 `.env` o environment de compose no imprimen secretos en logs; `tools/secret_scan.py`
 falla el build si detecta patrones de secreto o claves demasiado laxas.
 
-## 6. Escaneo de secretos e higiene de repo
+## 7. Escaneo de secretos e higiene de repo
 
 ```bash
 py tools/secret_scan.py

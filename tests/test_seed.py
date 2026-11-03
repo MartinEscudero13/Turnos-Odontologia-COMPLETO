@@ -19,7 +19,7 @@ def test_seed_idempotente_y_reutilizable():
 
 
 def test_seed_solo_datos_ficticios_y_sql_con_conflict_nothing():
-    assert SEED_TEST["tenant_id"] == "tenant-demo-c05"
+    assert SEED_TEST["tenant_id"] == "a0000000-0000-4000-8000-000000000003"
     sql = seed_sql()
     assert "ON CONFLICT (id) DO NOTHING" in sql
     assert "set_config('app.tenant_id'" in sql

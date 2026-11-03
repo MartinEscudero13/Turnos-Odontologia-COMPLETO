@@ -4,15 +4,16 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: turnos
-      POSTGRES_PASSWORD: dev-only-db-password
+      POSTGRES_USER: turnos_owner
+      POSTGRES_PASSWORD: dev-only-owner-password
       POSTGRES_DB: turnos
     ports:
       - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U turnos -d turnos"]
+      test: ["CMD-SHELL", "pg_isready -U turnos_owner -d turnos"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -41,7 +42,7 @@ services:
       APP_VERSION: 0.1.0
       APP_URL: http://localhost:5173
       LOG_LEVEL: INFO
-      DATABASE_URL: postgresql+psycopg://turnos:dev-only-db-password@db:5432/turnos
+      DATABASE_URL: postgresql+psycopg://turnos_app:dev-only-app-password@db:5432/turnos
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: dev-only-jwt-not-for-production-change-this-1234567890
     depends_on:

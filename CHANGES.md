@@ -127,7 +127,9 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ---
 
 ### [C-02] `core-models-multitenant`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-03; 130 tests, RLS real con rol no-owner, migración 001 upgrade/downgrade/re-upgrade, seed idempotente, ruff/mypy verdes) + archivado en `openspec/changes/archive/2026-11-03-c-02-core-models-multitenant/`
+- **Verificación**: [`docs/foundation/verification-c02.md`](docs/foundation/verification-c02.md)
+- **Nota**: 002 sigue como placeholder para C-04; el catálogo de sillón/prestaciones se materializa allí desde los parámetros del seed.
 - **Scope**: Núcleo multi-tenant + RLS + seed de tenant nuevo (base de RN-AG-05, RN-AU-02)
   - Modelos: `Tenant(id, nombre, slug unique, plan, activo)`, `Usuario(tenant_id, email, password_hash, rol enum ADMIN/RECEPCION/ODONTOLOGO, two_factor, activo)` con `UNIQUE(tenant_id, email)`
   - Tabla `auditoria` append-only `(tenant_id, actor_id, accion, entidad, entidad_id, antes/después jsonb, at)` + revoke UPDATE/DELETE

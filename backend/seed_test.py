@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from app.turnos.servicio import Actor, ServicioTurnos
 
 SEED_TEST: dict[str, object] = {
-    "tenant_id": "tenant-demo-c05",
+    "tenant_id": "a0000000-0000-4000-8000-000000000003",
     "profesional_id": "11111111-1111-4111-8111-111111111111",
     "sillon_id": "22222222-2222-4222-8222-222222222222",
     "paciente_id": "33333333-3333-4333-8333-333333333333",

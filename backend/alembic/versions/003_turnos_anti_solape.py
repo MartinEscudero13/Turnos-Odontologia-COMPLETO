@@ -25,7 +25,7 @@ def upgrade() -> None:
         """
         CREATE TABLE turnos (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          tenant_id TEXT NOT NULL,
+          tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
           profesional_id UUID NOT NULL,
           sillon_id UUID NOT NULL,
           paciente_id UUID NOT NULL,
@@ -86,8 +86,8 @@ def upgrade() -> None:
     op.execute(
         """
         CREATE POLICY turnos_tenant_aislamiento ON turnos
-          USING (tenant_id = current_setting('app.tenant_id'))
-          WITH CHECK (tenant_id = current_setting('app.tenant_id'))
+          USING (tenant_id = current_setting('app.tenant_id')::uuid)
+          WITH CHECK (tenant_id = current_setting('app.tenant_id')::uuid)
         """
     )
 

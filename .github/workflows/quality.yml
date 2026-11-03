@@ -2,7 +2,7 @@ name: Quality
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 concurrency:
@@ -17,6 +17,7 @@ env:
   APP_URL: http://localhost:5173
   APP_NAME: turnos-api
   APP_VERSION: 0.1.0
+  C02_DATABASE_URL: postgresql+psycopg://turnos:test-password@localhost:5432/turnos
 
 jobs:
   backend:
@@ -59,14 +60,14 @@ jobs:
         run: python -m ruff check .
       - name: Type-check
         run: python -m mypy --config-file pyproject.toml
-      - name: Tests
-        run: python -m pytest tests/ -q
       - name: Migration graph
         run: python -m alembic -c backend/alembic.ini heads
       - name: Apply migrations to ephemeral database
         env:
           DATABASE_URL: postgresql+psycopg://turnos:test-password@localhost:5432/turnos
         run: python -m alembic -c backend/alembic.ini upgrade head
+      - name: Tests
+        run: python -m pytest tests/ -q
       - name: Roll back migrations
         env:
           DATABASE_URL: postgresql+psycopg://turnos:test-password@localhost:5432/turnos
