@@ -412,5 +412,11 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - `knowledge-base/05_reglas_de_negocio.md` §RN-AU-04
   - `knowledge-base/01_vision_y_objetivos.md` §Métricas de éxito
   - `knowledge-base/10_preguntas_abiertas.md` §PO-10
+---
 
+## Cambios transversales (fuera del roadmap C-01…C-15)
 
+### [F-01] `frontend-visual-foundation`
+- **Estado**: `[x]` completado (2026-11-03; sistema visual, router, home, login, shell protegido, 404, skill `visual-turnos`, MCP Figma/Stitch documentado y screenshots 375/768/1440) + archivado en `openspec/changes/archive/2026-11-03-frontend-visual-foundation/`
+- **Verificación**: [`docs/design/screenshots/README.md`](docs/design/screenshots/README.md) y [`docs/design/README.md`](docs/design/README.md)
+- **Alcance**: fundación visual; las páginas de negocio (agenda, pacientes, reserva, caja, reportes) quedan como changes por página.

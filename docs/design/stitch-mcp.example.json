@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "stitch": {
+      "type": "remote",
+      "url": "REPLACE_WITH_STITCH_MCP_URL",
+      "enabled": true
+    }
+  }
+}

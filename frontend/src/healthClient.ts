@@ -8,6 +8,7 @@ export interface ApiResult<T> {
   ok: boolean;
   data?: T;
   error?: string;
+  status?: number;
 }
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api';
@@ -20,7 +21,7 @@ export async function fetchHealth(
       headers: { Accept: 'application/json' },
     });
     if (!response.ok) {
-      return { ok: false, error: `HTTP ${response.status}` };
+      return { ok: false, error: `HTTP ${response.status}`, status: response.status };
     }
     const body: unknown = await response.json();
     if (!isRecord(body) || body.status !== 'UP') {
@@ -40,6 +41,6 @@ export async function fetchHealth(
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }

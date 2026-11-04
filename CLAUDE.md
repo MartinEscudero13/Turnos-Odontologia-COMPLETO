@@ -65,6 +65,7 @@ La fuente de verdad del dominio vive en `knowledge-base/`. **Leé el archivo rel
 | **Frontend** | Reserva 24/7 y agenda (React + Vite, diseño mobile-first, a11y/UX, shadcn/ui) | `vercel-react-best-practices`, `frontend-design`, `web-design-guidelines`, `shadcn` |
 | **Orquestación** | SDD / OPSX / docs (fases de fundación) | `discovery-research`, `kb-creator`, `roadmap-generator`, `skill-registry`, `agent-instruction` |
 | **Proyecto** | Auditar specs de turnos antes de implementar | `revisor-escenarios-turnos` (propia, versionada en el repo) |
+| **Proyecto visual** | Diseñar/rediseñar/auditar páginas y sistema visual | `visual-turnos` (propia, versionada en el repo; opcionalmente Figma/Stitch MCP) |
 
 Cargá la skill correspondiente al contexto ANTES de escribir código.
 
@@ -84,6 +85,21 @@ Vive en `.opencode/skills/revisor-escenarios-turnos/SKILL.md` y está versionada
 - **Cómo revisar su salida**: todo hallazgo tiene que citar una RN o un archivo de la KB; ningún valor
   numérico puede aparecer sin respaldo en la KB; los `BLOQUEANTE` se corrigen antes de implementar.
   La skill **solo reporta**, no reescribe la spec: el fix lo hacemos nosotros.
+
+### Skill propia: `visual-turnos`
+
+Vive en `.opencode/skills/visual-turnos/SKILL.md`, y su contexto de producto/diseño en
+`PRODUCT.md` y `DESIGN.md`.
+
+- **Cuándo usarla**: antes de crear o rediseñar cualquier página visual, componente de layout o
+  auditoría de UI. Es obligatoria para pages de reserva pública, login, agenda, pacientes, caja y
+  reportes.
+- **Qué necesita**: ruta, modo (Persuade/Operate/Read), audiencia, job, estados, fuente de diseño
+  (Figma/Stitch/code-first) y contenido real.
+- **Qué devuelve**: page brief, archivos/tokens usados, evidencia visual, hallazgos de a11y/responsive
+  y `MCP usado`.
+- **MCP**: Figma es opcional (`https://mcp.figma.com/mcp`, OAuth); Stitch es opcional y su URL sale
+  del setup. Sin MCP, la skill trabaja code-first y lo declara.
 
 ---
 

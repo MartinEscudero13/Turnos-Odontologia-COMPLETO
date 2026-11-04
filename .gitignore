@@ -23,3 +23,6 @@ build/
 # OS / editores
 .DS_Store
 Thumbs.db
+
+# TypeScript incremental build
+*.tsbuildinfo

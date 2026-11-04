@@ -11,6 +11,7 @@ Trabajo grupal de **Martin Escudero** y **Lautaro Naranjo**. Alcance, roles y ac
 - Plan de implementación por changes: [`CHANGES.md`](CHANGES.md). Reglas para agentes: [`AGENTS.md`](AGENTS.md).
 - Integración MCP (Context7) y documentación del TP «skill propia + MCP»: [`docs/skills-mcp/`](docs/skills-mcp/README.md).
 - Fundación C-01: prerequisitos, arquitectura, setup, `docker-compose` y comandos de verificación: [`docs/foundation/bootstrap.md`](docs/foundation/bootstrap.md).
+- Sistema visual, skill `visual-turnos` y MCP de diseño (Figma/Stitch): [`docs/design/README.md`](docs/design/README.md) · [`PRODUCT.md`](PRODUCT.md) · [`DESIGN.md`](DESIGN.md).
 
 ## Prerrequisitos
 
@@ -217,6 +218,14 @@ ni de tests.
 - **Verificación ejecutable**: [`docs/foundation/verification-c02.md`](docs/foundation/verification-c02.md) — 130 tests, RLS contra PostgreSQL real, upgrade/downgrade/re-upgrade y seed idempotente.
 - **Deuda declarada**: C-04 materializó el catálogo; la duración demo de 30 min es provisional hasta que el dueño defina el catálogo real.
 
+## Estado de la fundación visual (F-01)
+
+- **Estado**: implementado, verificado y archivado el 2026-11-03; design system, router, home, login, shell interno protegido, 404 y skill `visual-turnos`.
+- **Archivo**: `openspec/changes/archive/2026-11-03-frontend-visual-foundation/`.
+- **Evidencia**: [`docs/design/screenshots/`](docs/design/screenshots/) (375/768/1440) · auditoría Figma/Stitch/code-first en [`docs/design/README.md`](docs/design/README.md).
+- **MCP de diseño**: Figma documentado como primario opcional (`https://mcp.figma.com/mcp`), Stitch como opcional; esta pasada fue code-first porque no había MCP autenticado.
+- **Alcance**: sólo fundación + login/404; agenda, pacientes, reserva, caja y reportes se construyen como pages por change.
+
 ## Estado del ciclo C-05 (`turnos-anti-solape`)
 
 - **Estado: archivado** el 2026-10-01 y **reimplementado en Python** el 2026-10-02 (spec intacto). En `CHANGES.md` figura `[x]` completado con nota de reimplementación.
@@ -229,7 +238,3 @@ ni de tests.
 
 - **Datos ficticios**: seed (`backend/seed_test.py`) y tests usan datos inventados (1 tenant demo, profesional/sillón/prestación de prueba). NUNCA usar datos reales de pacientes en desarrollo, tests ni demos; nada de PHI en logs.
 - **Secretos**: nada commiteado. No hay `.env`; el repo versiona únicamente [`.env.example`](.env.example) con placeholders de desarrollo sin valores productivos. `.gitignore` excluye `.env`, `.env.local`, `__pycache__/` y `.pytest_cache/`. Las variables reales (`MP_*`, `WA_*`, `GCAL_*`, etc.) se documentan cuando esos changes las necesitan. CI ejecuta `tools/secret_scan.py` para no incorporar patrones comunes de claves.
-
-
-
-

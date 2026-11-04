@@ -11,6 +11,17 @@ const config = [
       eqeqeq: ['error', 'always'],
     },
   },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        document: 'readonly',
+        process: 'readonly',
+        window: 'readonly',
+      },
+    },
+  },
 ];
 
 export default config;

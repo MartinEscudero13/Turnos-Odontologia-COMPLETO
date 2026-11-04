@@ -24,6 +24,7 @@ Versioned in this repo (not in the user skills folder).
 | Trigger | Skill | Path |
 |---------|-------|------|
 | Preparing or reviewing an OpenSpec change of turnos (propose/verify); "revisá los escenarios", "¿falta algún caso borde?", "¿esta spec es verificable?", "auditá el spec antes de implementar"; any `specs/<capability>/spec.md` of turnos about to be implemented | revisor-escenarios-turnos | .opencode/skills/revisor-escenarios-turnos/SKILL.md |
+| Designing, redesigning or auditing a Turnos UI page; "rediseñá esta página", "sistema visual", "revisá el diseño", "que no parezca plantilla", "adaptá a mobile"; Figma/Stitch visual work | visual-turnos | .opencode/skills/visual-turnos/SKILL.md |
 
 ## Compact Rules
 
@@ -98,6 +99,15 @@ Pre-digested rules per skill. Delegators copy matching blocks into sub-agent pro
 - Open values that must never be fixed by a spec: PO-01 (seña y anticipación exacta), PO-03 (profundidad WA/MP/GCal), PO-05 (cantidad de profesionales), PO-06 (login de paciente vs nombre+teléfono), PO-02/PO-04/PO-07/PO-08/PO-10/PO-11
 - Domain edges to demand: tenant_id + RLS on every query and token of tenant A never touching tenant B, PHI out of logs/messages, exact anticipación threshold, auto-oferta expiration + single claim, idempotent MP webhooks and WA reminders, caja/OS/consentimiento rules
 - Output: coverage table, findings table (`BLOQUEANTE`/`MAYOR`/`MENOR` + `archivo:línea` + RN), open questions the spec resolved on its own, and "no verificado"; no finding without a KB citation
+
+### visual-turnos
+- Read PRODUCT.md + DESIGN.md + AGENTS.md before UI work; never invent product/domain values or pages the backend does not expose
+- Inputs: route, mode (Persuade/Operate/Read), audience, primary job, states, real content, design source (figma/stitch/code-first); ask once if a missing input changes the result
+- Figma MCP is optional at `https://mcp.figma.com/mcp` (OAuth); Stitch MCP URL/credentials come from Stitch setup; without either, code-first is valid and must be declared
+- Reuse tokens/primitives; mobile-first public surfaces, dense keyboard-friendly internal surfaces; no generic SaaS cards, gradient heroes, all-caps eyebrows or icon-only critical actions
+- Every page must design loading, empty, error, permission, success and long-content states; never use placeholder as the only label
+- Gate: lint + typecheck + tests + build, 375/768/1440 no horizontal overflow, visible focus, AA contrast, reduced motion, no PHI/secrets in screenshots
+- Output: page brief, files/tokens used, MCP used, visual evidence paths, a11y/responsive findings, what was not implemented
 
 ## Project Conventions
 
