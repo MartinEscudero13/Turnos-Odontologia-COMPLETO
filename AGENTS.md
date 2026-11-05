@@ -7,10 +7,11 @@
 
 ## Continuidad del equipo
 
+- Entrada corta para Lautaro: [`CONTINUAR.md`](CONTINUAR.md).
+- Contexto extendido de entorno: [`docs/equipo/guia-lautaro.md`](docs/equipo/guia-lautaro.md).
 - Alcance y autoría: [`AUTHORS.md`](AUTHORS.md).
-- Guía de continuación para Lautaro Naranjo: [`docs/equipo/guia-lautaro.md`](docs/equipo/guia-lautaro.md).
-- **Antes de implementar C-06 `reserva-online-publica`**: verificar que C-02, C-03 y C-04 estén implementados y archivados. C-06 no debe volver a quedar colgado de stubs.
-- Los changes **C-01 a C-04** corresponden a Martin Escudero; **C-06** y la pieza skill+MCP del TP2 corresponden a Lautaro Naranjo.
+- **C-02, C-03 y C-04 ya están archivados; C-06 `reserva-online-publica` está desbloqueado.**
+- Los changes **C-01 a C-04** y **F-01** corresponden a Martin Escudero; **C-06** y la pieza skill+MCP del TP2 corresponden a Lautaro Naranjo.
 
 ---
 
