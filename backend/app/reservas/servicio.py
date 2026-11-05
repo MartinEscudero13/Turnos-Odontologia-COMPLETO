@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from app.core.logging import get_logger
+from app.lista_espera.puertos import HuecoLiberadoPort, OfertaPort
 from app.reservas.disponibilidad import DisponibilidadSlot, calcular_disponibilidad
 from app.reservas.puertos import (
     AccionAuditada,
@@ -95,6 +96,8 @@ class ServicioReservasPublicas:
         verificador: VerificadorPort,
         auditoria: AuditoriaPort,
         notificador: NotificadorPort | None = None,
+        hueco_port: HuecoLiberadoPort | None = None,
+        oferta_port: OfertaPort | None = None,
         *,
         rate_limit_max: int,
         rate_limit_ventana_s: int,
@@ -110,6 +113,8 @@ class ServicioReservasPublicas:
         self._verificador = verificador
         self._auditoria = auditoria
         self._notificador = notificador
+        self._hueco_port = hueco_port
+        self._oferta_port = oferta_port
         self._rate_limit_max = rate_limit_max
         self._rate_limit_ventana_s = rate_limit_ventana_s
         self._horizonte_dias = horizonte_dias
@@ -284,6 +289,19 @@ class ServicioReservasPublicas:
                 )
             )
         resultado.sort(key=lambda s: (s.inicio, s.profesional_id, s.sillon_id))
+        # D4: restar los huecos retenidos por una oferta de lista de espera vigente (C-07).
+        if self._oferta_port is not None:
+            retenidos = self._oferta_port.huecos_retenidos(
+                tenant_id=tenant_id,
+                desde=desde,
+                hasta=desde + timedelta(days=self._horizonte_dias),
+            )
+            retenidos_set = {(r.profesional_id, r.sillon_id, r.inicio) for r in retenidos}
+            resultado = [
+                s
+                for s in resultado
+                if (s.profesional_id, s.sillon_id, s.inicio) not in retenidos_set
+            ]
         return resultado
 
     # ---- verificación ----
@@ -435,6 +453,8 @@ class ServicioReservasPublicas:
             )
             raise
         self._auditar(tenant_id, turno.id, "CANCELADO", turno.estado, "CANCELADO")
+        if self._hueco_port is not None:
+            self._hueco_port.emitir(tenant_id=tenant_id, turno_id=turno.id)
         return cancelado
 
     def reprogramar(
@@ -471,6 +491,8 @@ class ServicioReservasPublicas:
         self._tokens.transferir(token, res.nuevo.id)
         self._auditar(tenant_id, turno.id, "REPROGRAMADO", turno.estado, "REPROGRAMADO")
         self._auditar(tenant_id, res.nuevo.id, "CREADO", None, "PENDIENTE")
+        if self._hueco_port is not None:
+            self._hueco_port.emitir(tenant_id=tenant_id, turno_id=turno.id)
         return res
 
     # ---- auditoría ----

@@ -10,6 +10,7 @@ from app.models.catalogos import (
     ProfesionalPrestacion,
     Sillon,
 )
+from app.models.lista_espera import ListaEspera, Oferta
 from app.models.refresh_token import RefreshToken
 from app.models.tenant import ParametroTenant, Tenant
 from app.models.turno import Turno
@@ -20,6 +21,8 @@ __all__ = [
     "Base",
     "Bloqueo",
     "HorarioSemanal",
+    "ListaEspera",
+    "Oferta",
     "Paciente",
     "ParametroTenant",
     "Prestacion",

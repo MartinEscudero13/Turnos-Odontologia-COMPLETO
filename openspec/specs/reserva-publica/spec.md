@@ -12,12 +12,11 @@ agenda interna.
 
 El sistema SHALL exponer en
 `GET /api/publico/{tokenTenant}/disponibilidad?prestacion=&profesional=&desde=`
-sólo huecos reales del tenant resuelto, calculados servidor-side como
-intersección de horario del profesional y del consultorio, menos bloqueos
-vigentes, con la `duracion_min` de la prestación. `desde` abre una ventana de
-`PUBLIC_DISPONIBILIDAD_HORIZONTE_D` días (valor en `OQ-5`) y la respuesta es una
-lista cronológica. Ningún `inicio` fuera de ese cálculo SHALL aceptarse al
-reservar.
+sólo huecos reales del tenant resuelto, calculados como la intersección del
+horario del profesional y del consultorio, menos bloqueos, turnos activos y
+huecos retenidos por una oferta de lista de espera vigente (C-07), con la
+`duracion_min` de la prestación. `desde` abre una ventana de
+`PUBLIC_DISPONIBILIDAD_HORIZONTE_D` días y la respuesta es una lista cronológica.
 
 #### Scenario: Huecos reales con turnos ya reservados
 
@@ -67,6 +66,17 @@ reservar.
   con `inicio=2026-10-06T13:00:00-03:00` (fuera de horario)
 - **THEN** ambas respuestas son `409` con alternativas reales, ningún turno
   queda persistido y el `200` de disponibilidad nunca había ofrecido esos inicios
+
+#### Scenario: Un hueco retenido por una oferta vigente no se ofrece
+
+- **GIVEN** el reloj del servidor fijado en `2026-10-13T09:00:00-03:00`, el
+  profesional P1 libre de 2026-10-14T10:00:00-03:00 a 10:30 y una oferta de
+  lista de espera vigente (C-07) reteniendo ese hueco
+- **WHEN** el paciente pide `GET /api/publico/T1/disponibilidad` con
+  `desde=2026-10-14T00:00:00-03:00`
+- **THEN** la respuesta `200` no ofrece el hueco de 2026-10-14T10:00:00-03:00
+  mientras la oferta siga vigente, y vuelve a ofrecerlo cuando la oferta vence,
+  se cancela o se acepta
 
 ### Requirement: Identificación liviana con vinculación por teléfono
 

@@ -13,6 +13,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from app.lista_espera.puertos import HuecoLiberadoPort
 from app.schemas.turno import (
     ActualizarTurnoIn,
     AlternativaOut,
@@ -57,7 +58,7 @@ def _error_body(exc: TurnoError) -> dict[str, object]:
     ).model_dump(mode="json")
 
 
-def crear_router(svc: ServicioTurnos) -> APIRouter:
+def crear_router(svc: ServicioTurnos, hueco_port: HuecoLiberadoPort | None = None) -> APIRouter:
     """Router de turnos inyectando el servicio (testeable sin DB)."""
     r = APIRouter()
 
@@ -99,7 +100,10 @@ def crear_router(svc: ServicioTurnos) -> APIRouter:
 
     @r.post("/api/turnos/{turno_id}/cancelar", response_model=TurnoOut)
     def cancelar(turno_id: str, actor: Actor = Depends(actor_desde_headers)) -> Turno:
-        return svc.cancelar(actor, turno_id)
+        turno = svc.cancelar(actor, turno_id)
+        if hueco_port is not None:
+            hueco_port.emitir(tenant_id=actor.tenant_id, turno_id=turno_id)
+        return turno
 
     @r.post("/api/turnos/{turno_id}/reprogramar")
     def reprogramar(
@@ -108,6 +112,8 @@ def crear_router(svc: ServicioTurnos) -> APIRouter:
         res = svc.reprogramar(
             actor, turno_id, nuevo_inicio=body.nuevo_inicio, duracion_min=body.duracion_min
         )
+        if hueco_port is not None:
+            hueco_port.emitir(tenant_id=actor.tenant_id, turno_id=turno_id)
         return {
             "original": TurnoOut.model_validate(res.original, from_attributes=True).model_dump(
                 mode="json"
@@ -118,7 +124,9 @@ def crear_router(svc: ServicioTurnos) -> APIRouter:
     return r
 
 
-def crear_app(svc: ServicioTurnos | None = None) -> FastAPI:
+def crear_app(
+    svc: ServicioTurnos | None = None, hueco_port: HuecoLiberadoPort | None = None
+) -> FastAPI:
     """App mínima del change (adelanto parcial de C-01, no entrega C-01)."""
     app = FastAPI(title="Turnos-Odontologia C-05")
     servicio = svc if svc is not None else ServicioTurnos()
@@ -127,5 +135,5 @@ def crear_app(svc: ServicioTurnos | None = None) -> FastAPI:
     async def _turno_error(_request: Request, exc: TurnoError) -> JSONResponse:
         return JSONResponse(status_code=exc.codigo, content=_error_body(exc))
 
-    app.include_router(crear_router(servicio))
+    app.include_router(crear_router(servicio, hueco_port))
     return app

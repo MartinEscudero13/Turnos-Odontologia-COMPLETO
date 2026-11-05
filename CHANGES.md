@@ -234,13 +234,13 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ---
 
 ### [C-07] `lista-espera-auto-oferta`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-05; 42 tests nuevos, suite 250 passed + 4 skipped, ruff/mypy verdes, `openspec validate --strict` en verde) + archivado en `openspec/changes/archive/2026-11-05-c-07-lista-espera-auto-oferta/`
 - **Scope**: Lista de espera con auto-oferta de huecos liberados y expiración (US-012; RN-RE-04)
   - Modelos: `ListaEspera(tenant, paciente, prestacion, profesional_pref?, ventana_horaria?, estado PENDIENTE/OFRECIDO/CONVERTIDO/VENCIDO)` + `Ofertas(hueco_turno_id?, expira_at, estado)`
   - Endpoints: `/api/lista-espera` (alta, baja, listar compatible) + worker auto-oferta: hueco liberado se ofrece a lista compatible ordenada (prioridad/fecha) ANTES de publicarse general
   - Oferta con expiración (ej. 2 h): primer aceptante ocupa el hueco (revalida solape C-05); si vence pasa al siguiente; si nadie acepta → slot público
   - Cancelación por cualquier canal (recepción, link, WA) dispara el worker
-  - Migración 004: lista_espera + ofertas + RLS
+  - Migración 005: lista_espera + ofertas + RLS
   - Tests: orden de oferta, expiración rota al siguiente, aceptante ocupa hueco, sin lista → slot público
 - **Dependencias**: C-05, C-06
 - **Governance**: MEDIO

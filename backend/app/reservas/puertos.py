@@ -145,6 +145,7 @@ class CatalogoPort(Protocol):
 class PacientePort(Protocol):
     def buscar_por_telefono(self, tenant_id: str, telefono_e164: str) -> Paciente | None: ...
     def crear_minimo(self, tenant_id: str, nombre: str, telefono_e164: str) -> Paciente: ...
+    def paciente(self, tenant_id: str, paciente_id: str) -> Paciente | None: ...
 
 
 class TenantPort(Protocol):
@@ -316,6 +317,12 @@ class PacienteMemoria:
             )
             self._pacientes.append(nuevo)
             return nuevo
+
+    def paciente(self, tenant_id: str, paciente_id: str) -> Paciente | None:
+        for p in self._pacientes:
+            if p.tenant_id == tenant_id and p.id == paciente_id:
+                return p
+        return None
 
     def agregar(self, p: Paciente) -> None:
         self._pacientes.append(p)
