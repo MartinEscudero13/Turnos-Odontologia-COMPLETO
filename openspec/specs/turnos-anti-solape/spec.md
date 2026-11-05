@@ -16,17 +16,17 @@ profesional ni por sillón en `[inicio, fin)` dentro del mismo tenant), con
 
 #### Scenario: Turno válido se crea
 
-- **DADO** un profesional y un sillón libres el 2026-10-06 de 10:00 a 10:30
+- **GIVEN** un profesional y un sillón libres el 2026-10-06 de 10:00 a 10:30
   (prestación de 30 min) en el tenant T1
-- **CUANDO** recepción crea el turno para ese hueco
-- **ENTONCES** el turno queda persistido en estado `PENDIENTE` con `fin`
+- **WHEN** recepción crea el turno para ese hueco
+- **THEN** el turno queda persistido en estado `PENDIENTE` con `fin`
   = 10:30 calculado por el sistema, no ingresado
 
 #### Scenario: Fin derivado de la prestación, no ingresado
 
-- **DADO** una prestación con `duracion_min = 45`
-- **CUANDO** se crea un turno con `inicio` = 09:00
-- **ENTONCES** el sistema fija `fin` = 09:45 y rechaza cualquier `fin`
+- **GIVEN** una prestación con `duracion_min = 45`
+- **WHEN** se crea un turno con `inicio` = 09:00
+- **THEN** el sistema fija `fin` = 09:45 y rechaza cualquier `fin`
   provisto por el cliente que difiera del cálculo
 
 ### Requirement: Rechazo de solape por profesional o sillón
@@ -38,26 +38,26 @@ reprogramación que solape `[inicio, fin)` con otro turno activo del mismo
 
 #### Scenario: Solape por profesional → rechazo 409
 
-- **DADO** un turno activo del profesional P1 en T1 de 10:00 a 10:30
-- **CUANDO** se intenta crear otro turno con P1 (distinto sillón) de 10:15
+- **GIVEN** un turno activo del profesional P1 en T1 de 10:00 a 10:30
+- **WHEN** se intenta crear otro turno con P1 (distinto sillón) de 10:15
   a 10:45
-- **ENTONCES** el sistema responde `409` con 3 huecos alternativos y no
+- **THEN** el sistema responde `409` con 3 huecos alternativos y no
   persiste el turno
 
 #### Scenario: Solape por sillón → rechazo 409
 
-- **DADO** un turno activo en el sillón S1 en T1 de 11:00 a 11:30
-- **CUANDO** se intenta crear otro turno en S1 (distinto profesional) de
+- **GIVEN** un turno activo en el sillón S1 en T1 de 11:00 a 11:30
+- **WHEN** se intenta crear otro turno en S1 (distinto profesional) de
   11:15 a 11:45
-- **ENTONCES** el sistema responde `409` con 3 huecos alternativos y no
+- **THEN** el sistema responde `409` con 3 huecos alternativos y no
   persiste el turno
 
 #### Scenario: Aislamiento por tenant
 
-- **DADO** un turno activo de P1 en el tenant T1 de 10:00 a 10:30
-- **CUANDO** se crea un turno con el mismo profesional y horario en el
+- **GIVEN** un turno activo de P1 en el tenant T1 de 10:00 a 10:30
+- **WHEN** se crea un turno con el mismo profesional y horario en el
   tenant T2
-- **ENTONCES** el turno se crea sin conflicto (el anti-solape nunca mezcla
+- **THEN** el turno se crea sin conflicto (el anti-solape nunca mezcla
   tenants)
 
 ### Requirement: Adyacencia exacta permitida
@@ -68,9 +68,9 @@ considera solape.
 
 #### Scenario: Turno que empieza cuando termina otro → permitido
 
-- **DADO** un turno activo de P1 en S1 de 10:00 a 10:30
-- **CUANDO** se crea otro turno con P1 y S1 de 10:30 a 11:00
-- **ENTONCES** el turno se crea correctamente en estado `PENDIENTE`
+- **GIVEN** un turno activo de P1 en S1 de 10:00 a 10:30
+- **WHEN** se crea otro turno con P1 y S1 de 10:30 a 11:00
+- **THEN** el turno se crea correctamente en estado `PENDIENTE`
 
 ### Requirement: Cancelados y reprogramados no bloquean
 
@@ -80,16 +80,16 @@ la auto-oferta de lista de espera en C-07).
 
 #### Scenario: Hueco cancelado se reutiliza
 
-- **DADO** un turno `CANCELADO` de P1 en S1 de 10:00 a 10:30
-- **CUANDO** se crea un turno nuevo con P1 y S1 en ese mismo horario
-- **ENTONCES** el turno se crea correctamente
+- **GIVEN** un turno `CANCELADO` de P1 en S1 de 10:00 a 10:30
+- **WHEN** se crea un turno nuevo con P1 y S1 en ese mismo horario
+- **THEN** el turno se crea correctamente
 
 #### Scenario: Reprogramar libera el hueco original
 
-- **DADO** un turno activo de P1 de 10:00 a 10:30 que se reprograma a las
+- **GIVEN** un turno activo de P1 de 10:00 a 10:30 que se reprograma a las
   14:00 (pasando a estado `REPROGRAMADO` + nuevo turno activo a las 14:00)
-- **CUANDO** se crea otro turno con P1 de 10:00 a 10:30
-- **ENTONCES** el turno se crea correctamente y el reprogramado a las 14:00
+- **WHEN** se crea otro turno con P1 de 10:00 a 10:30
+- **THEN** el turno se crea correctamente y el reprogramado a las 14:00
   sigue bloqueando su nuevo horario
 
 ### Requirement: Sobreturno explícito y auditado
@@ -102,18 +102,18 @@ motivo.
 
 #### Scenario: Sobreturno con motivo se crea y se audita
 
-- **DADO** un turno activo de P1 de 10:00 a 10:30
-- **CUANDO** recepción crea un sobreturno con P1 de 10:15 a 10:45 indicando
+- **GIVEN** un turno activo de P1 de 10:00 a 10:30
+- **WHEN** recepción crea un sobreturno con P1 de 10:15 a 10:45 indicando
   motivo "urgencia con dolor"
-- **ENTONCES** el sobreturno se persiste con `sobreturno=true` y la auditoría
+- **THEN** el sobreturno se persiste con `sobreturno=true` y la auditoría
   contiene actor, motivo y antes/después
 
 #### Scenario: Sobreturno sin motivo se rechaza
 
-- **DADO** un turno activo de P1 de 10:00 a 10:30
-- **CUANDO** se intenta crear un sobreturno solapado sin motivo (vacío o
+- **GIVEN** un turno activo de P1 de 10:00 a 10:30
+- **WHEN** se intenta crear un sobreturno solapado sin motivo (vacío o
   ausente)
-- **ENTONCES** el sistema responde `422` y no persiste el turno
+- **THEN** el sistema responde `422` y no persiste el turno
 
 ### Requirement: Cancelar y reprogramar turnos
 
@@ -125,15 +125,15 @@ auditado).
 
 #### Scenario: Cancelación con anticipación libera el hueco
 
-- **DADO** un turno `CONFIRMADO` para dentro de 48 h
-- **CUANDO** se cancela con anticipación suficiente
-- **ENTONCES** el turno pasa a `CANCELADO`, queda auditado y su hueco admite
+- **GIVEN** un turno `CONFIRMADO` para dentro de 48 h
+- **WHEN** se cancela con anticipación suficiente
+- **THEN** el turno pasa a `CANCELADO`, queda auditado y su hueco admite
   un turno nuevo
 
 #### Scenario: Reprogramación revalida solape en servidor
 
-- **DADO** un turno activo de P1 de 10:00 a 10:30 y otro turno activo de P1
+- **GIVEN** un turno activo de P1 de 10:00 a 10:30 y otro turno activo de P1
   de 14:00 a 14:30
-- **CUANDO** se intenta reprogramar el primero hacia las 14:15
-- **ENTONCES** el sistema responde `409` con 3 alternativas y el turno
+- **WHEN** se intenta reprogramar el primero hacia las 14:15
+- **THEN** el sistema responde `409` con 3 alternativas y el turno
   original conserva su horario
