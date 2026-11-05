@@ -215,7 +215,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ## FASE 3 — Reserva online y lista de espera
 
 ### [C-06] `reserva-online-publica`
-- **Estado**: `[ ]` **preparado** (proposal, design, spec y tasks listos; NO implementado)
+- **Estado**: `[x]` completado (2026-11-05; 48 tests nuevos, suite 203 passed + 4 skipped, ruff/mypy verdes, `openspec validate --strict` en verde) + archivado en `openspec/changes/archive/2026-11-05-c-06-reserva-online-publica/`
 - **Scope**: Reserva por link sin login + cancelar/reprogramar con anticipación (US-010, US-011; RN-RE-01/02/03/05, RN-GL-02)
   - `GET /api/publico/{tokenTenant}/disponibilidad?prestacion=&profesional=&desde=` — slots reales servidor-side (profesional × sillón × duración − bloqueos), scoped por token de tenant
   - `POST /api/publico/{tokenTenant}/reservas` — crea turno PENDIENTE + token público; identificación liviana nombre + teléfono (DD-06), rate-limit + captcha/OTP liviano anti-spam
