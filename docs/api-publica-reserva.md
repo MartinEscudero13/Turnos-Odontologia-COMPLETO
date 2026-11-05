@@ -1,4 +1,4 @@
-# Contrato público — Reserva online sin login (C-06)
+# Contrato público — Reserva online sin login (C-06 + catálogo F-02)
 
 > Superficie expuesta por el link público `/r/:tokenTenant`. Todo request se
 > resuelve primero a un `tenant_id` desde el segmento `{tokenTenant}` de la ruta;
@@ -11,6 +11,7 @@
 
 | Método | Ruta | Éxito | Payload / params |
 |---|---|---|---|
+| GET | `/api/publico/{tokenTenant}/catalogo` | `200` prestaciones + profesionales activos (F-02 / OQ-F1) | — |
 | GET | `/api/publico/{tokenTenant}/disponibilidad` | `200` lista de huecos | query `prestacion` (obligatorio), `profesional` (opcional), `desde` (obligatorio, datetime aware) |
 | POST | `/api/publico/{tokenTenant}/verificacion` | `201` | body `{ "accion": "reservar" | "cancelar" | "reprogramar" }` |
 | POST | `/api/publico/{tokenTenant}/reservas` | `201` | body `{ prestacion, profesional, inicio, nombre, telefono, verificacion_id }` (strict) |
@@ -20,6 +21,10 @@
 
 ## Formas de respuesta (allow-list, sin `TurnoOut`)
 
+- **Catálogo** (`200`): `prestaciones: [{ id, nombre, duracion_min }]` (todas
+  las del tenant; en v1 la prestación no tiene flag `activo`) y
+  `profesionales: [{ id, nombre }]` (solo activos). Sin `tenant_id`, precios,
+  horarios ni PHI. Tenant activo sin datos ⇒ listas vacías.
 - **Disponibilidad** (por hueco): `inicio`, `fin`, `profesional_id`, `sillon_id`.
 - **Reserva creada** (`201`): `turno_id`, `estado`, `inicio`, `fin`, `origen`,
   `prestacion`, `sillon_id`, `token_publico`.
@@ -48,9 +53,9 @@
   servir cuando el turno pasa a `CANCELADO`/`REPROGRAMADO`/`PRESENTE`/`AUSENTE` o
   su `fin` ya pasó.
 
-## Config (nombres, sin valores fijados — OQ-1..OQ-5)
+## Config resuelta (OQ-1..OQ-5; detalle en `docs/decisiones-oq.md`)
 
-`RESERVA_TTL_H`, `CANCEL_ANTICIPACION_H`, `PUBLIC_RATE_LIMIT_MAX`,
-`PUBLIC_RATE_LIMIT_VENTANA_S`, `PUBLIC_VERIFICACION_TTL_MIN`,
-`PUBLIC_DISPONIBILIDAD_HORIZONTE_D`, `PUBLIC_ANTISPAM_MODO`.
-Ver `.env.example` para los nombres reservados.
+`RESERVA_TTL_H=48`, `CANCEL_ANTICIPACION_H=24`, `PUBLIC_RATE_LIMIT_MAX=10`,
+`PUBLIC_RATE_LIMIT_VENTANA_S=900`, `PUBLIC_VERIFICACION_TTL_MIN=10`,
+`PUBLIC_DISPONIBILIDAD_HORIZONTE_D=30`, `PUBLIC_ANTISPAM_MODO=captcha`.
+Ver `.env.example`.

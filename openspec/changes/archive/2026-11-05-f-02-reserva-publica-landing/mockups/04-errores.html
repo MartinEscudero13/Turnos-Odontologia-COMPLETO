@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Estados de error — reserva</title>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="mockups.css" />
+</head>
+<body>
+  <div class="reserva-shell">
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <header class="reserva-header">
+      <a class="brand" href="/r/T1" aria-label="Consultorio demo, reservar turno">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="brand-name">consultorio<span>.</span></span>
+      </a>
+      <span class="context" aria-hidden="true">Reserva online · sin login</span>
+    </header>
+
+    <main id="main" class="reserva-main">
+      <p class="eyebrow">Estados de error</p>
+      <h1>Cada error tiene una salida.</h1>
+
+      <!-- 404: enlace inválido -->
+      <section class="error-state" aria-labelledby="e404">
+        <p class="eyebrow">404 / enlace inválido</p>
+        <h2 id="e404">Este enlace no corresponde a un consultorio activo.</h2>
+        <p>
+          El link puede estar mal copiado o el consultorio ya no publica reservas online.
+          Pedí el link actualizado y volvé a intentar.
+        </p>
+        <a class="button button-primary" href="/">Volver al inicio</a>
+        <p class="error-mark" aria-hidden="true">404</p>
+      </section>
+
+      <!-- 409: hueco tomado con alternativas -->
+      <section aria-labelledby="e409">
+        <div class="ficha" role="alert" aria-live="assertive">
+          <div class="ficha-topline">
+            <span>Horario ocupado</span>
+            <span class="status-badge status-danger"><span class="status-dot" aria-hidden="true"></span>No disponible</span>
+          </div>
+          <h2 id="e409" style="margin-top: 1rem;">Alguien reservó antes que vos.</h2>
+          <p class="muted">El horario que elegiste ya no está libre. Elegí una de estas alternativas:</p>
+
+          <div class="ruler">
+            <ul class="slots" role="listbox" aria-label="Horarios alternativos">
+              <li>
+                <button type="button" class="slot" role="option" aria-selected="false">
+                  <span class="slot-time">09:30</span>
+                  <span class="slot-meta">30 min · Profesional disponible</span>
+                  <span class="slot-tag">Sillón 2</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="slot" role="option" aria-selected="false">
+                  <span class="slot-time">10:00</span>
+                  <span class="slot-meta">30 min · Profesional disponible</span>
+                  <span class="slot-tag">Sillón 1</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="slot" role="option" aria-selected="false">
+                  <span class="slot-time">11:00</span>
+                  <span class="slot-meta">30 min · Profesional disponible</span>
+                  <span class="slot-tag">Sillón 2</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 429: muchos intentos -->
+      <section class="error-state" aria-labelledby="e429">
+        <p class="eyebrow">429 / muchos intentos</p>
+        <h2 id="e429">Hiciste muchos intentos seguidos.</h2>
+        <p>
+          Para proteger la agenda, pausamos las reservas por un rato. Volvé en unos
+          minutos sin recargar la página.
+        </p>
+        <p class="muted">Se respeta el tiempo indicado por el servidor. No se reintenta solo.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Agenda odontológica con anti-solape real. Datos de demo ficticios.</p>
+    </footer>
+  </div>
+</body>
+</html>

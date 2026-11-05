@@ -12,6 +12,7 @@ Trabajo grupal de **Martin Escudero** y **Lautaro Naranjo**. Alcance, roles y ac
 - Integración MCP (Context7) y documentación del TP «skill propia + MCP»: [`docs/skills-mcp/`](docs/skills-mcp/README.md).
 - Fundación C-01: prerequisitos, arquitectura, setup, `docker-compose` y comandos de verificación: [`docs/foundation/bootstrap.md`](docs/foundation/bootstrap.md).
 - Sistema visual, skill `visual-turnos` y MCP de diseño (Figma/Stitch): [`docs/design/README.md`](docs/design/README.md) · [`PRODUCT.md`](PRODUCT.md) · [`DESIGN.md`](DESIGN.md).
+- Contrato público de reserva: [`docs/api-publica-reserva.md`](docs/api-publica-reserva.md). Decisiones de las preguntas abiertas OQ-1..OQ-9: [`docs/decisiones-oq.md`](docs/decisiones-oq.md).
 
 ## Prerrequisitos
 
@@ -59,7 +60,7 @@ npm test
 npm run build
 ```
 
-Estado verificado al cierre de C-01: backend/frontend verdes, `secret_scan` OK, `openspec validate c-01-foundation-setup --strict` en verde y smoke test de API/web con health `UP`.
+Estado verificado al cierre de **F-02 (2026-11-05)**: backend `208 passed, 4 skipped`; frontend `32 passed` + lint/typecheck/build en verde; `openspec validate f-02-reserva-publica-landing --strict` limpio; screenshots 375/768/1440 en `openspec/changes/f-02-reserva-publica-landing/mockups/previews/`.
 
 ## Type hints
 
@@ -159,6 +160,8 @@ ni de tests.
 | `backend/app/db.py` | Engine/session factories SQLAlchemy 2.0 |
 | `backend/app/app.py` | Factory FastAPI y middleware |
 | `backend/app/turnos/` | Dominio C-05: `overlap()`, cálculo de `fin`, 3 alternativas ante 409, máquina de estados, servicio + auditoría |
+| `backend/app/reservas/` | Dominio C-06 + catálogo F-02: puertos/adaptadores en memoria, disponibilidad pública, verificación, tokens, servicio y antispam |
+| `backend/app/routers/reservas_publicas.py` | Rutas públicas `/api/publico/{tokenTenant}/…` (catálogo, disponibilidad, reserva, gestión) |
 | `backend/app/schemas/` | Schemas Pydantic v2 del borde API (strict donde el contrato lo exige) |
 | `backend/app/models/` | Modelos SQLAlchemy (`tenant_id` everywhere, `timestamptz`, CHECKs) |
 | `backend/app/auth/` | Autenticación C-03: Argon2, JWT, refresh tokens, TOTP, rate-limit |
@@ -170,7 +173,9 @@ ni de tests.
 | `backend/seed_test.py` | Seed ficticio idempotente (`aplicar_seed()` + `seed_sql()` para PG real) |
 | `backend/requirements.txt` | Pines de runtime verificados |
 | `requirements-dev.txt` | Pines de desarrollo y CI |
-| `frontend/` | SPA React + TypeScript + Vite, lint/typecheck/test/build |
+| `frontend/` | SPA React + TypeScript + Vite, lint/typecheck/test/build. Incluye la landing pública `/r/:tokenTenant` (F-02) y la gestión por token `/r/:tokenTenant/turno/:token` |
+| `docs/api-publica-reserva.md` | Contrato público que consume la landing (allow-list y códigos) |
+| `docs/decisiones-oq.md` | Resolución de OQ-1..OQ-9 de C-06 (TTL, captcha, rate-limit, horizonte, etc.) |
 | `docker-compose.yml` | Servicios locales `api`, `web`, `db` y `redis` con healthchecks |
 | `.env.example` | Variables de entorno ejemplo sin secretos reales |
 | `.github/workflows/quality.yml` | CI paralela: backend, frontend y Compose |
@@ -233,6 +238,32 @@ ni de tests.
 - **Tests**: [`tests/`](tests/) — 104/104 en verde con `py -m pytest tests/ -q`.
 - **Desvíos documentados del ciclo**: sin PostgreSQL en el entorno (revisión 003 verificada por tests estructurales, no contra DB viva); tasks 4.1–4.3 green-first de aceptación (RED por módulo observado en 1.x–3.x, y 4.1 aportó un fallo real que se corrigió); sin chequeo automático de hints (para el CI de C-01). Detalle en `reimplementacion-python.md` del archive.
 - **Siguiente**: `C-06 reserva-online-publica` (depende de C-05 archivado).
+
+## Estado del ciclo C-06 (`reserva-online-publica`)
+
+- **Estado: archivado** el 2026-11-05. Implementa disponibilidad server-side, reserva sin login con token por turno, cancelar/reprogramar con anticipación exacta y anti-spam (captcha) con rate-limit.
+- **Spec aprobado**: [`openspec/specs/reserva-publica/spec.md`](openspec/specs/reserva-publica/spec.md).
+- **Contrato**: [`docs/api-publica-reserva.md`](docs/api-publica-reserva.md). OQ resueltas: [`docs/decisiones-oq.md`](docs/decisiones-oq.md).
+- **Archivo**: `openspec/changes/archive/2026-11-05-c-06-reserva-online-publica/`.
+- **Deuda declarada (D9)**: el dominio usa adaptadores en memoria inyectables; el wiring SQLAlchemy real (tablas de tokens/verificación y conexión al catálogo C-04) es un follow-up explícito.
+
+## Estado de la landing pública (F-02)
+
+- **Estado: archivado** el 2026-11-05. Landing mobile-first `/r/:tokenTenant` que consume la API pública: catálogo → prestación → huecos → nombre/teléfono/verificación → confirmación con token; gestión por token en `/r/:tokenTenant/turno/:token` (consultar/cancelar/reprogramar).
+- **Enabler backend incluido**: `GET /api/publico/{tokenTenant}/catalogo` (OQ-F1), solo lectura, tenant-scoped, `404` uniforme y allow-list sin PHI.
+- **Archivo**: `openspec/changes/archive/2026-11-05-f-02-reserva-publica-landing/`; capturas en `.../mockups/previews/`.
+- **Pendiente declarado**: proveedor real de captcha (hoy placeholder accesible), confirmación por WhatsApp/email (C-13) y wiring real del backend en la demo (D9 de C-06).
+
+## Alcance completo vs pendiente (TPI)
+
+| Área | Estado |
+|---|---|
+| Fundación (C-01, C-02, C-03, C-04) | ✅ archivada y verificada |
+| Agenda anti-solape (C-05) | ✅ archivada y reimplementada en Python |
+| Reserva online + landing (C-06, F-02) | ✅ archivadas, con tests de backend y frontend |
+| Fundación visual (F-01) | ✅ archivada |
+| Skill propia + MCP | ✅ `revisor-escenarios-turnos`, `visual-turnos` y MCP Context7 documentados y aplicados |
+| C-07…C-15 (caja, OS, WhatsApp, Mercado Pago, reportes, etc.) | ⏳ pendientes del roadmap; el TPI admite alcance parcial |
 
 ## Datos y secretos
 

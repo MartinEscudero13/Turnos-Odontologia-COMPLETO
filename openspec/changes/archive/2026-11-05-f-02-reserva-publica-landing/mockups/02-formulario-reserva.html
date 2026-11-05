@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reservar turno — formulario</title>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="mockups.css" />
+</head>
+<body>
+  <div class="reserva-shell">
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <header class="reserva-header">
+      <a class="brand" href="/r/T1" aria-label="Consultorio demo, reservar turno">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="brand-name">consultorio<span>.</span></span>
+      </a>
+      <span class="context" aria-hidden="true">Reserva online · sin login</span>
+    </header>
+
+    <main id="main" class="reserva-main">
+      <div class="reserva-grid">
+        <div>
+          <p class="eyebrow">Confirmá tu reserva</p>
+          <h1>Nombre, teléfono y una verificación.</h1>
+          <p class="muted">Con eso alcanza en esta versión. Si tu teléfono ya está en el consultorio, se vincula a tu ficha.</p>
+
+          <div class="ficha">
+            <div class="ficha-topline">
+              <span>Resumen</span>
+              <span class="status-badge status-pending"><span class="status-dot" aria-hidden="true"></span>Pendiente</span>
+            </div>
+            <div class="chosen">
+              <strong>Consulta · lunes 06.10 a las 09:00</strong>
+              <span class="muted">30 min · Sillón 1</span>
+            </div>
+
+            <form class="reserva-form" style="display: grid; gap: 1rem; margin-top: 1.25rem;" novalidate>
+              <div class="field">
+                <label for="nombre">Nombre</label>
+                <input id="nombre" name="nombre" autocomplete="name" required />
+              </div>
+
+              <div class="field">
+                <label for="telefono">Teléfono</label>
+                <input id="telefono" name="telefono" type="tel" inputmode="tel" autocomplete="tel"
+                       placeholder="+54 9 11 0000 0000" required />
+                <p class="field-message">Lo usamos para confirmar tu turno. No lo compartimos.</p>
+              </div>
+
+              <!-- Paso anti-spam: captcha (OQ-2 = captcha; proveedor TBD) -->
+              <div class="field">
+                <span class="field label" style="font-size: 0.85rem; font-weight: 700;">Verificación</span>
+                <div class="captcha">
+                  <span class="captcha-check">
+                    <span class="captcha-box" aria-hidden="true"></span>
+                    <span>No soy un robot</span>
+                  </span>
+                  <span class="tbd">captcha (TBD)</span>
+                </div>
+                <p class="field-message">Una verificación liviana de un solo uso, para evitar reservas automáticas.</p>
+              </div>
+
+              <button type="submit" class="button button-primary button-full">Reservar turno</button>
+            </form>
+          </div>
+
+          <a class="button button-quiet" href="01-elegir-prestacion.html" style="margin-top: 1rem;">
+            ← Volver a los horarios
+          </a>
+        </div>
+
+        <aside class="reserva-aside">
+          <div class="aside-note">
+            <p><strong>Sin cuenta ni contraseña.</strong> Recibís un código de turno para cancelar o reprogramar.</p>
+          </div>
+          <div class="aside-note">
+            <p><strong>Cancelación.</strong> Podés cancelar o reprogramar hasta 24 h antes del turno.</p>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>Agenda odontológica con anti-solape real. Datos de demo ficticios.</p>
+    </footer>
+  </div>
+</body>
+</html>

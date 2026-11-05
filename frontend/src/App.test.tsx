@@ -73,4 +73,28 @@ describe('visual foundation routes', () => {
     expect(screen.getByRole('heading', { name: /Ese turno no existe/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Volver al inicio/i })).toHaveAttribute('href', '/');
   });
+
+  it('renders the public booking landing at /r/:tokenTenant', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith('/api/publico/T1/catalogo')) {
+          return new Response(
+            JSON.stringify({
+              prestaciones: [{ id: 'PREST-30', nombre: 'Consulta', duracion_min: 30 }],
+              profesionales: [{ id: 'P1', nombre: 'Dra. Demo' }],
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+        return new Response('not found', { status: 404 });
+      }),
+    );
+    renderRoute('/r/T1');
+    expect(
+      await screen.findByRole('heading', { name: /Elegí la prestación y mirá los horarios/i }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Consulta')).toBeInTheDocument();
+  });
 });

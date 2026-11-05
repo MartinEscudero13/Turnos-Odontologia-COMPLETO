@@ -420,3 +420,8 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Estado**: `[x]` completado (2026-11-03; sistema visual, router, home, login, shell protegido, 404, skill `visual-turnos`, MCP Figma/Stitch documentado y screenshots 375/768/1440) + archivado en `openspec/changes/archive/2026-11-03-frontend-visual-foundation/`
 - **Verificación**: [`docs/design/screenshots/README.md`](docs/design/screenshots/README.md) y [`docs/design/README.md`](docs/design/README.md)
 - **Alcance**: fundación visual; las páginas de negocio (agenda, pacientes, reserva, caja, reportes) quedan como changes por página.
+
+### [F-02] `reserva-publica-landing`
+- **Estado**: `[x]` completado (2026-11-05; landing pública `/r/:tokenTenant` mobile-first, catálogo público `GET /api/publico/{tokenTenant}/catalogo`, reserva con verificación captcha placeholder, gestión por token, estados 403/404/409/422/429, a11y AA y screenshots 375/768/1440) + archivado en `openspec/changes/archive/2026-11-05-f-02-reserva-publica-landing/`
+- **Verificación**: `py -m pytest tests/ -q`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` y `openspec validate --strict` en verde; capturas en `openspec/changes/f-02-reserva-publica-landing/mockups/previews/`
+- **Alcance**: consume el contrato de C-06 y agrega el enabler backend de catálogo (OQ-F1). Pendiente declarado: proveedor real de captcha, confirmación WA/email (C-13) y wiring SQLAlchemy real del backend (D9 de C-06).

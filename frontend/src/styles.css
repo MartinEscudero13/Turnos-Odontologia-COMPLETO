@@ -997,3 +997,416 @@ h3 {
     font-size: 2.6rem;
   }
 }
+
+/* reserva-publica — F-02: ficha de turno, franjas horarias y gestion por token */
+.reserva-page {
+  margin: 0 auto;
+  max-width: var(--page-max);
+  padding: 1rem 1.5rem 4rem;
+}
+
+.reserva-page .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.reserva-heading {
+  max-width: 46rem;
+}
+
+.reserva-heading h1 {
+  font-size: clamp(2.1rem, 5.4vw, 3.6rem);
+}
+
+.reserva-heading .page-description {
+  color: var(--ink-soft);
+}
+
+.reserva-status {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--teal);
+  color: var(--ink-soft);
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+}
+
+.reserva-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  margin-top: 1.5rem;
+}
+
+.reserva-columna {
+  min-width: 0;
+}
+
+.reserva-paso {
+  margin-bottom: 1.5rem;
+}
+
+.reserva-aside {
+  align-content: start;
+  display: grid;
+  gap: 1rem;
+}
+
+.aside-note {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--teal);
+  padding: 0.8rem 1rem;
+}
+
+.aside-note p {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+/* La ficha de turno como objeto estructural (no card generica) */
+.ficha {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+  padding: 1.25rem;
+  position: relative;
+}
+
+.ficha-topline {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  font-family: var(--font-display);
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding-bottom: 0.85rem;
+}
+
+.ficha-topline span:first-child {
+  overflow-wrap: anywhere;
+}
+
+.ficha h2 {
+  margin-top: 1rem;
+}
+
+/* Regla de horarios como textura de fondo de la lista */
+.ruler {
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 3rem,
+    var(--surface);
+}
+
+/* Franja horaria: boton de fila completa, no card con sombra */
+.slots {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.slot {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  display: flex;
+  gap: 0.9rem;
+  justify-content: space-between;
+  margin: 0.4rem 0;
+  min-height: 56px;
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  width: 100%;
+}
+
+.slot:hover:not(:disabled) {
+  border-color: var(--teal);
+}
+
+.slot:focus-visible {
+  border-color: var(--teal);
+}
+
+.slot.is-selected {
+  background: var(--mint);
+  border-color: var(--teal);
+  border-left: 3px solid var(--teal);
+}
+
+.slot-time {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  min-width: 5.5rem;
+}
+
+.slot-meta {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  margin-right: auto;
+}
+
+.slot-tag {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  white-space: nowrap;
+}
+
+/* Selector de prestacion (lista accesible, no select escondido) */
+.prest-list {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.prest-option {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  width: 100%;
+}
+
+.prest-option:hover {
+  border-color: var(--teal);
+}
+
+.prest-option[aria-pressed='true'] {
+  background: var(--mint);
+  border-color: var(--teal);
+  border-left: 3px solid var(--teal);
+}
+
+.prest-option > span:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.prest-name {
+  font-weight: 700;
+}
+
+.prest-meta {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.prest-marker {
+  color: var(--teal-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prest-profesionales {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.field-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Resumen del turno elegido */
+.chosen {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+}
+
+.chosen:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.chosen strong {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  overflow-wrap: anywhere;
+}
+
+.reserva-form,
+.reserva-formulario .reserva-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.reserva-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+/* Captcha placeholder accesible (proveedor TBD) */
+.captcha {
+  align-items: center;
+  background: var(--paper);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 0.8rem 1rem;
+}
+
+.captcha-check {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 0.6rem;
+  min-height: 44px;
+}
+
+.captcha-check input {
+  accent-color: var(--teal-deep);
+  height: 28px;
+  width: 28px;
+}
+
+.tbd {
+  background: var(--paper);
+  border: 1px dashed var(--amber);
+  border-radius: var(--radius-pill);
+  color: #7b5919;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+}
+
+/* Token de gestion */
+.token-card {
+  align-items: center;
+  background: var(--mint);
+  border: 1px solid var(--teal);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+  margin: 0.75rem 0;
+  padding: 0.9rem 1rem;
+}
+
+.token-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Estados de error de enlace */
+.error-state {
+  margin: 0 auto;
+  max-width: 44rem;
+  padding: 3rem 1.5rem;
+}
+
+.error-state h1 {
+  max-width: 16ch;
+}
+
+.error-state p {
+  color: var(--ink-soft);
+  max-width: 48ch;
+}
+
+.error-mark {
+  color: var(--line);
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 14vw, 11rem);
+  line-height: 0.8;
+  margin: 0;
+  text-align: right;
+}
+
+.reserva-reprogramar {
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.reserva-reprogramar h2 {
+  font-size: 1.5rem;
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.ficha .empty-state {
+  background: transparent;
+  border: 0;
+  min-height: 0;
+  padding: 1rem 0;
+}
+
+@media (max-width: 860px) {
+  .reserva-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reserva-aside {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .reserva-page {
+    padding: 0.5rem 1rem 3rem;
+  }
+
+  .ficha {
+    padding: 1rem;
+  }
+
+  .slot {
+    gap: 0.6rem;
+    padding: 0.6rem 0.7rem;
+  }
+
+  .slot-time {
+    font-size: 1.2rem;
+    min-width: 4.6rem;
+  }
+
+  .slot-meta {
+    font-size: 0.76rem;
+  }
+
+  .slot-tag {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+  }
+}

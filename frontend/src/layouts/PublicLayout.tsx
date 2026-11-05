@@ -1,7 +1,10 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Brand } from '../components/Brand';
 
 export function PublicLayout(): JSX.Element {
+  const { pathname } = useLocation();
+  const esInicio = pathname === '/';
+
   return (
     <div className="shell-public">
       <a className="skip-link" href="#main">
@@ -10,9 +13,11 @@ export function PublicLayout(): JSX.Element {
       <header className="public-header">
         <Brand />
         <nav className="public-nav" aria-label="Navegación pública">
-          <a className="nav-link" href="#capacidades">
-            Cómo funciona
-          </a>
+          {esInicio ? (
+            <a className="nav-link" href="#capacidades">
+              Cómo funciona
+            </a>
+          ) : null}
           <Link className="button button-secondary button-small" to="/login">
             Ingresar al panel
           </Link>
@@ -24,7 +29,9 @@ export function PublicLayout(): JSX.Element {
       <footer className="public-footer">
         <Brand />
         <p>Agenda odontológica con anti-solape real. Datos de demo ficticios.</p>
-        <p className="footer-meta">v0.2 · Fundación visual</p>
+        <p className="footer-meta">
+          {esInicio ? 'v0.2 · Fundación visual' : 'Reserva online · sin login'}
+        </p>
       </footer>
     </div>
   );

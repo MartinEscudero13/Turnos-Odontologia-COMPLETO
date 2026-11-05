@@ -8,8 +8,9 @@ completamente testeable sin DB ni red.
 Reglas duras cumplidas acá:
 - Toda operación recibe `tenant_id` explícito (nunca una query sin tenant).
 - Los adaptadores en memoria solo devuelven lo sembrado por el test (nunca inventan datos).
-- Ningún puerto transporta nombre/teléfono de terceros salvo `PacientePort` (que es
-  exactamente el puerto de identificación, RN-RE-05).
+- Ningún puerto transporta nombre/teléfono de pacientes salvo `PacientePort` (que es
+  exactamente el puerto de identificación, RN-RE-05). El catálogo público (F-02) sí
+  expone `nombre` de prestación/profesional: es dato comercial, no PHI.
 """
 from __future__ import annotations
 
@@ -51,6 +52,7 @@ class Prestacion:
     id: str
     tenant_id: str
     duracion_min: int
+    nombre: str = ""
 
 
 @dataclass(frozen=True)
@@ -58,6 +60,7 @@ class Profesional:
     id: str
     tenant_id: str
     activo: bool = True
+    nombre: str = ""
 
 
 @dataclass(frozen=True)
@@ -126,6 +129,8 @@ class EntradaAuditoria:
 class CatalogoPort(Protocol):
     def prestacion(self, tenant_id: str, prestacion_id: str) -> Prestacion | None: ...
     def profesional(self, tenant_id: str, profesional_id: str) -> Profesional | None: ...
+    def prestaciones_activas(self, tenant_id: str) -> Sequence[Prestacion]: ...
+    def profesionales_activos(self, tenant_id: str) -> Sequence[Profesional]: ...
     def profesionales_habilitados(
         self, tenant_id: str, prestacion_id: str
     ) -> Sequence[Profesional]: ...
@@ -214,6 +219,19 @@ class CatalogoMemoria:
 
     def profesional(self, tenant_id: str, profesional_id: str) -> Profesional | None:
         return self._profesionales.get((tenant_id, profesional_id))
+
+    def prestaciones_activas(self, tenant_id: str) -> Sequence[Prestacion]:
+        # `Prestacion` no tiene flag `activo` (D9): todo el catálogo del tenant es visible.
+        return sorted(
+            (p for (tid, _), p in self._prestaciones.items() if tid == tenant_id),
+            key=lambda p: p.id,
+        )
+
+    def profesionales_activos(self, tenant_id: str) -> Sequence[Profesional]:
+        return sorted(
+            (p for (tid, _), p in self._profesionales.items() if tid == tenant_id and p.activo),
+            key=lambda p: p.id,
+        )
 
     def profesionales_habilitados(
         self, tenant_id: str, prestacion_id: str

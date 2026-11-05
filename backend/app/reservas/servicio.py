@@ -73,6 +73,14 @@ class ReservaCreada:
     paciente_id: str
 
 
+@dataclass(frozen=True)
+class CatalogoPublico:
+    """Catálogo de solo lectura del tenant (sin PHI, sin claves internas)."""
+
+    prestaciones: Sequence[Prestacion]
+    profesionales: Sequence[Profesional]
+
+
 class ServicioReservasPublicas:
     """Casos de uso públicos. Dependencias inyectables (D9), sin reloj real (tests)."""
 
@@ -218,6 +226,16 @@ class ServicioReservasPublicas:
             ocupados,
             bloqueos=bloqueos,
             cantidad=3,
+        )
+
+    # ---- catálogo ----
+
+    def catalogo(self, token_tenant: str) -> CatalogoPublico:
+        """Prestaciones y profesionales activos del tenant (solo lectura)."""
+        tenant_id = self._resolver_tenant(token_tenant)
+        return CatalogoPublico(
+            prestaciones=self._catalogo.prestaciones_activas(tenant_id),
+            profesionales=self._catalogo.profesionales_activos(tenant_id),
         )
 
     # ---- disponibilidad ----

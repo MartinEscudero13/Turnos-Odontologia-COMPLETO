@@ -1,0 +1,236 @@
+/* mockups.css — patrones propios de la landing de reserva pública (F-02).
+   Reutiliza los primitives de F-01 (button, field, status-badge, brand) con sus
+   mismas clases y los tokens de tokens.css. Patrones nuevos: franja horaria,
+   ficha de turno, captcha placeholder, token de gestión y estados de error. */
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: inherit; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: wait; }
+
+h1, h2, h3, p { margin-top: 0; }
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  margin-bottom: 0.6rem;
+}
+h1 { font-size: var(--step-3); font-weight: 700; }
+h2 { font-size: clamp(1.7rem, 3.2vw, 2.5rem); }
+h3 { font-size: var(--step-1); }
+
+:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+
+.skip-link {
+  background: var(--ink); color: var(--surface);
+  left: 1rem; padding: 0.7rem 1rem; position: fixed; top: -5rem; z-index: 100;
+}
+.skip-link:focus { top: 1rem; }
+
+/* Brand (idéntico a F-01) */
+.brand { align-items: center; display: inline-flex; gap: 0.7rem; text-decoration: none; }
+.brand-mark {
+  background: var(--teal-deep); display: grid; gap: 2px;
+  grid-template-columns: repeat(3, 4px); height: 28px; padding: 6px; width: 28px;
+}
+.brand-mark span { background: var(--mint); display: block; height: 100%; }
+.brand-mark span:nth-child(2) { opacity: 0.7; }
+.brand-mark span:nth-child(3) { opacity: 0.4; }
+.brand-name {
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.brand-name span { color: var(--teal); }
+
+.eyebrow {
+  color: var(--teal); font-size: var(--step--1); font-weight: 700;
+  letter-spacing: 0.08em; margin-bottom: 0.75rem; text-transform: uppercase;
+}
+.muted { color: var(--ink-soft); font-size: 0.9rem; }
+
+/* Buttons (idénticos a F-01) */
+.button {
+  align-items: center; border: 1px solid transparent; border-radius: var(--radius-pill);
+  display: inline-flex; font-weight: 700; gap: 0.5rem; justify-content: center;
+  min-height: 46px; padding: 0.7rem 1.25rem; text-decoration: none;
+  transition: background 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease);
+}
+.button-primary { background: var(--teal-deep); color: var(--surface); }
+.button-primary:hover { background: var(--teal); }
+.button-secondary { background: transparent; border-color: var(--line); color: var(--ink); }
+.button-secondary:hover { border-color: var(--teal); color: var(--teal-deep); }
+.button-quiet { background: transparent; border-color: transparent; color: var(--ink-soft); min-height: 38px; padding: 0.35rem 0; }
+.button-quiet:hover { color: var(--ink); }
+.button-danger { background: var(--coral); color: var(--white); }
+.button-small { min-height: 38px; padding: 0.45rem 0.95rem; }
+.button-full { width: 100%; }
+
+/* Field (idéntico a F-01) */
+.field { display: grid; gap: 0.35rem; }
+.field label { font-size: 0.85rem; font-weight: 700; }
+.field input {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  color: var(--ink); min-height: 48px; padding: 0.65rem 0.8rem; width: 100%;
+}
+.field input:focus { border-color: var(--teal); outline: 3px solid rgba(12, 107, 90, 0.18); outline-offset: 0; }
+.field-message { color: var(--ink-soft); font-size: 0.8rem; margin: 0; }
+.field-message.error, .form-error { color: var(--coral); }
+.form-error {
+  background: rgba(191, 81, 64, 0.08); border-left: 3px solid var(--coral);
+  margin: 0; padding: 0.65rem 0.8rem;
+}
+
+/* Status badge (idéntico a F-01) */
+.status-badge {
+  align-items: center; border: 1px solid currentColor; border-radius: var(--radius-pill);
+  display: inline-flex; font-size: 0.76rem; font-weight: 700; gap: 0.4rem;
+  letter-spacing: 0.01em; padding: 0.25rem 0.65rem; white-space: nowrap;
+}
+.status-dot { background: currentColor; border-radius: 50%; height: 6px; width: 6px; }
+.status-success { color: var(--teal); }
+.status-pending { color: #7b5919; }
+.status-danger { color: var(--coral); }
+.status-neutral { color: var(--ink-soft); }
+
+/* ===== Reserva pública (F-02) ===== */
+.reserva-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.reserva-header {
+  align-items: center; display: flex; justify-content: space-between;
+  margin: 0 auto; max-width: var(--page-max); padding: 1.25rem 1.5rem; width: 100%;
+}
+.reserva-header .context {
+  color: var(--ink-soft); font-size: 0.8rem;
+}
+
+.reserva-main { flex: 1; margin: 0 auto; max-width: var(--page-max); padding: 1rem 1.5rem 4rem; width: 100%; }
+
+/* La ficha de turno como objeto estructural */
+.ficha {
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft);
+  padding: 1.25rem; position: relative;
+}
+.ficha-topline {
+  align-items: center; border-bottom: 1px solid var(--line); display: flex;
+  font-family: var(--font-display); justify-content: space-between; padding-bottom: 0.85rem;
+}
+
+/* Regla de horarios como textura de fondo de la lista */
+.ruler {
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 3rem, var(--surface);
+}
+
+/* Franja horaria: el hueco es un botón de fila completa, no una card con sombra */
+.slots { list-style: none; margin: 1rem 0 0; padding: 0; }
+.slot {
+  align-items: center; background: transparent; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); color: var(--ink); display: flex; gap: 0.9rem;
+  justify-content: space-between; min-height: 56px; padding: 0.7rem 0.9rem;
+  text-align: left; width: 100%; margin: 0.4rem 0;
+}
+.slot:hover { border-color: var(--teal); }
+.slot:focus-visible { border-color: var(--teal); }
+.slot.is-selected { border-color: var(--teal); border-left: 3px solid var(--teal); background: var(--mint); }
+.slot-time { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; min-width: 5.5rem; }
+.slot-meta { color: var(--ink-soft); font-size: 0.82rem; }
+.slot-tag {
+  border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--ink-soft);
+  font-size: 0.72rem; padding: 0.2rem 0.6rem; white-space: nowrap;
+}
+
+/* Selector de prestación (lista accesible, no select nativo escondido) */
+.prest-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+.prest-option {
+  align-items: center; background: transparent; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); color: var(--ink); display: flex; gap: 0.8rem;
+  justify-content: space-between; min-height: 56px; padding: 0.7rem 0.9rem; text-align: left; width: 100%;
+}
+.prest-option[aria-pressed="true"] { border-color: var(--teal); border-left: 3px solid var(--teal); background: var(--mint); }
+.prest-option:hover { border-color: var(--teal); }
+.prest-name { font-weight: 700; }
+.prest-meta { color: var(--ink-soft); font-size: 0.82rem; }
+
+/* Captcha placeholder accesible (proveedor TBD) */
+.captcha {
+  align-items: center; background: var(--paper); border: 1px dashed var(--line);
+  border-radius: var(--radius-sm); display: flex; gap: 0.8rem; justify-content: space-between;
+  min-height: 72px; padding: 0.8rem 1rem;
+}
+.captcha-check { align-items: center; display: flex; gap: 0.6rem; }
+.captcha-box { border: 2px solid var(--line); border-radius: var(--radius-sm); height: 28px; width: 28px; }
+.captcha-note { color: var(--ink-soft); font-size: 0.78rem; }
+
+/* Token de gestión */
+.token-card {
+  align-items: center; background: var(--mint); border: 1px solid var(--teal);
+  border-radius: var(--radius-sm); display: flex; flex-wrap: wrap; gap: 0.6rem;
+  justify-content: space-between; padding: 0.9rem 1rem; margin: 0.75rem 0;
+}
+.token-value { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.02em; overflow-wrap: anywhere; }
+
+/* Resumen del turno elegido */
+.chosen {
+  border-top: 1px solid var(--line); margin-top: 1rem; padding-top: 0.8rem;
+  display: grid; gap: 0.3rem;
+}
+.chosen strong { font-family: var(--font-display); font-size: 1.3rem; }
+
+/* Estados de error */
+.error-state { margin: 0 auto; max-width: 44rem; padding: 3rem 0; }
+.error-state h1 { max-width: 14ch; }
+.error-state p { color: var(--ink-soft); max-width: 48ch; }
+.error-mark {
+  color: var(--line); font-family: var(--font-display);
+  font-size: clamp(4rem, 14vw, 11rem); line-height: 0.8; margin: 0; text-align: right;
+}
+
+.footer {
+  border-top: 1px solid var(--line); color: var(--ink-soft); margin: 0 auto;
+  max-width: var(--page-max); padding: 1.25rem 1.5rem 2rem; width: 100%;
+}
+.footer p { font-size: 0.8rem; margin: 0; }
+
+/* Anotación de demo/TBD en los mockups */
+.tbd {
+  background: var(--paper); border: 1px dashed var(--amber); color: #7b5919;
+  font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-pill);
+}
+
+/* Layout de dos columnas en desktop (ficha + contexto) */
+.reserva-grid { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr); }
+.reserva-aside { display: grid; gap: 1rem; align-content: start; }
+.aside-note {
+  background: var(--paper); border: 1px solid var(--line); border-left: 3px solid var(--teal);
+  padding: 0.8rem 1rem;
+}
+.aside-note p { color: var(--ink-soft); font-size: 0.82rem; margin: 0; }
+
+@media (max-width: 760px) {
+  .reserva-grid { grid-template-columns: 1fr; }
+  .reserva-aside { display: none; }
+  .slot-time { font-size: 1.2rem; min-width: 4.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

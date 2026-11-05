@@ -14,6 +14,28 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 AccionIn = Literal["reservar", "cancelar", "reprogramar"]
 
 
+class PrestacionPublicaOut(BaseModel):
+    """Prestación del catálogo público (allow-list: sin tenant_id ni precio_base)."""
+
+    id: str
+    nombre: str
+    duracion_min: int
+
+
+class ProfesionalPublicoOut(BaseModel):
+    """Profesional activo del catálogo público (sin tenant_id ni datos de contacto)."""
+
+    id: str
+    nombre: str
+
+
+class CatalogoPublicoOut(BaseModel):
+    """GET /catalogo: solo prestaciones y profesionales del tenant."""
+
+    prestaciones: list[PrestacionPublicaOut]
+    profesionales: list[ProfesionalPublicoOut]
+
+
 class DisponibilidadOut(BaseModel):
     """Hueco libre (claves exactas: sin pacientes ni PHI)."""
 

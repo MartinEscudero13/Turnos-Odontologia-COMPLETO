@@ -20,8 +20,11 @@ from app.reservas.servicio import DemasiadasSolicitudes, ServicioReservasPublica
 from app.schemas.reserva import (
     AlternativaPublicaOut,
     CancelarIn,
+    CatalogoPublicoOut,
     DisponibilidadOut,
     ErrorPublicoOut,
+    PrestacionPublicaOut,
+    ProfesionalPublicoOut,
     ReprogramarIn,
     ReservaConsultaOut,
     ReservaIn,
@@ -49,6 +52,22 @@ def _error_publico(exc: TurnoError) -> dict[str, object]:
 
 def crear_router_publico(svc: ServicioReservasPublicas) -> APIRouter:
     r = APIRouter()
+
+    @r.get(
+        "/api/publico/{token_tenant}/catalogo",
+        response_model=CatalogoPublicoOut,
+    )
+    def catalogo(token_tenant: str) -> CatalogoPublicoOut:
+        cat = svc.catalogo(token_tenant)
+        return CatalogoPublicoOut(
+            prestaciones=[
+                PrestacionPublicaOut(id=p.id, nombre=p.nombre, duracion_min=p.duracion_min)
+                for p in cat.prestaciones
+            ],
+            profesionales=[
+                ProfesionalPublicoOut(id=p.id, nombre=p.nombre) for p in cat.profesionales
+            ],
+        )
 
     @r.get(
         "/api/publico/{token_tenant}/disponibilidad",
