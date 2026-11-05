@@ -217,8 +217,8 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ### [C-06] `reserva-online-publica`
 - **Estado**: `[ ]` **preparado** (proposal, design, spec y tasks listos; NO implementado)
 - **Scope**: Reserva por link sin login + cancelar/reprogramar con anticipación (US-010, US-011; RN-RE-01/02/03/05, RN-GL-02)
-  - `GET /api/disponibilidad?prestacion=&profesional=&desde=` — slots reales servidor-side (profesional × sillón × duración − bloqueos), scoped por token de tenant
-  - `POST /api/reservas/publicas` — crea turno PENDIENTE + token público; identificación liviana nombre + teléfono (DD-06), rate-limit + captcha/OTP liviano anti-spam
+  - `GET /api/publico/{tokenTenant}/disponibilidad?prestacion=&profesional=&desde=` — slots reales servidor-side (profesional × sillón × duración − bloqueos), scoped por token de tenant
+  - `POST /api/publico/{tokenTenant}/reservas` — crea turno PENDIENTE + token público; identificación liviana nombre + teléfono (DD-06), rate-limit + captcha/OTP liviano anti-spam
   - Rutas públicas `/r/:tokenTenant` (landing reserva, mobile-first) con confirmación inmediata; `cancelar|reprogramar` valida anticipación mínima configurable (default 24 h, `CANCEL_ANTICIPACION_H`); debajo del umbral deriva a recepción auditada
   - Caso slot tomado entre pasos → 409 + 3 alternativas
   - Tests: slots excluyen bloqueos/solapes, reserva vincula paciente por teléfono, anticipación enforced, rate-limit bloquea abuso

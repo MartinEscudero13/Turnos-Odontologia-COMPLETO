@@ -13,11 +13,11 @@ pacientes.
 
 ## What Changes
 
-- **Disponibilidad pública server-side**: `GET /api/disponibilidad?prestacion=&profesional=&desde=`
+- **Disponibilidad pública server-side**: `GET /api/publico/{tokenTenant}/disponibilidad?prestacion=&profesional=&desde=`
   calcula huecos reales (profesional × sillón × `duracion_min` − turnos activos −
   bloqueos), scoped por el tenant resuelto en la ruta. Nada de grilla armada por el
   cliente (RN-RE-01, `knowledge-base/05_reglas_de_negocio.md:16`).
-- **Reserva pública**: `POST /api/reservas/publicas` crea un turno `PENDIENTE` con
+- **Reserva pública**: `POST /api/publico/{tokenTenant}/reservas` crea un turno `PENDIENTE` con
   `origen=RESERVA_ONLINE` y `token_publico`, identificando al paciente sólo con
   nombre + teléfono E.164; teléfono existente vincula la ficha en vez de duplicarla
   (RN-RE-05, `:20`; DD-06, `knowledge-base/09_decisiones_y_supuestos.md:38-42`).
@@ -78,18 +78,18 @@ comportamiento de C-05, sería otro change: acá el spec de C-05 queda intacto.
 
 | # | Deuda | Estado real en el repo | Mitigación en C-06 |
 |---|---|---|---|
-| D-A | **C-03 auth no existe** | Las rutas internas toman el actor de headers (`backend/app/routers/turnos.py:37-49`), sin JWT | Las rutas públicas **no** leen headers de actor: derivan tenant de la ruta y paciente del teléfono/token. JWT real reemplaza la dependencia sin cambiar el contrato |
-| D-B | **C-04 catálogos/pacientes no existe** | Sólo hay tabla `turnos` (`backend/alembic/versions/003_turnos_anti_solape.py`); `CHANGES.md:171-180` sigue `[ ]` | C-06 programa contra puertos (`CatalogoPort`, `PacientePort`) con adaptadores en memoria para tests; el wiring SQLAlchemy queda como tarea bloqueada por C-04 |
+| D-A | **C-03 auth ya implementado y archivado** | C-03 está completado y archivado (`openspec/changes/archive/2026-11-03-c-03-auth-rbac-auditoria/`): JWT + RBAC + auditoría (`backend/app/core/audit`) en verde | Las rutas públicas **no** leen headers de actor: derivan tenant de la ruta y paciente del teléfono/token. Que C-03 exista no cambia el contrato público (sigue siendo público) |
+| D-B | **C-04 catálogos/pacientes ya implementado y archivado** | Los modelos reales viven en `backend/app/models/catalogos.py` (`Prestacion`, `Profesional`, `Sillon`, `HorarioSemanal`, `Bloqueo`, `Paciente`); `CHANGES.md` C-04 está `[x]` | C-06 programa contra puertos (`CatalogoPort`, `PacientePort`); con C-04 aterrizado, los puertos pueden cablearse a los modelos reales en lugar de adaptadores en memoria |
 | D-C | **C-13 WhatsApp no existe** | No hay envío de mensajes | Se emite evento vía `NotificadorPort` (no-op en tests); confirmación inmediata sólo en pantalla/respuesta HTTP |
 | D-D | **C-11 señas no existe** | Sin preferencia MP ni expiración por pago | La reserva queda `PENDIENTE`; `RESERVA_TTL_H` se declara como config (valor en OQ-1), la liberación por falta de seña es C-11 |
 | D-E | **C-07 lista de espera no existe** | Sin auto-oferta | La cancelación sólo libera el hueco (estado `CANCELADO`); el worker de oferta es C-07 |
-| D-F | **UI `/r/:tokenTenant` no existe** | No hay `frontend/` en el árbol (C-01 pendiente) | C-06 congela el contrato API y deja la landing mobile-first como follow-up, igual que C-05 hizo con la UI de agenda |
-| D-G | **Revisión de escenarios** | Pendiente | Antes de `/opsx:apply`, correr `revisor-escenarios-turnos` (exigido por `AGENTS.md`) |
+| D-F | **UI `/r/:tokenTenant` no existe** | Ya existe `frontend/` y la fundación visual F-01 está archivada (`openspec/changes/archive/2026-11-03-frontend-visual-foundation/`); sólo falta la landing de reserva | C-06 congela el contrato API y deja la landing mobile-first de `/r/:tokenTenant` como follow-up de frontend, igual que C-05 hizo con la UI de agenda |
+| D-G | **Revisión de escenarios** | Completada (`revision.md`, 2026-11-03) | La skill corrió antes del apply: 4 bloqueantes (B1–B4) + 13 mayores (M1–M13) corregidos; `openspec validate --strict` en verde |
 
 ## Criterios de aceptación globales
 
 - [ ] CA-G1 La disponibilidad pública coincide con el motor de C-05 (test de paridad: mismo predicado de solape/bloqueo, mismo cálculo de `fin`).
-- [ ] CA-G2 `POST /api/reservas/publicas` responde `201` con turno `PENDIENTE`, `origen=RESERVA_ONLINE`, `fin` calculado y `token_publico` no vacío.
+- [ ] CA-G2 `POST /api/publico/{tokenTenant}/reservas` responde `201` con turno `PENDIENTE`, `origen=RESERVA_ONLINE`, `fin` calculado y `token_publico` no vacío.
 - [ ] CA-G3 Slot tomado entre pasos y reservas concurrentes devuelven `409` con exactamente 3 alternativas reales, sin turno duplicado.
 - [ ] CA-G4 Anticipación: exactamente `CANCEL_ANTICIPACION_H` acepta; un minuto menos rechaza sin mutar estado y deriva a recepción.
 - [ ] CA-G5 Cross-tenant: token/pedido de otro tenant responde `404` uniforme y no lee ni escribe filas ajenas.

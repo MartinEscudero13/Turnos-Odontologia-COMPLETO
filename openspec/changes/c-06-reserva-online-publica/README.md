@@ -18,8 +18,8 @@ garantía (RN-AG-02, RN-GL-02).
 |---|---|
 | `proposal.md` | Problema, alcance, actores, US-010/US-011, dependencia con C-05, deuda declarada (C-03, C-04, C-13, C-11, C-07, UI) y criterios globales |
 | `design.md` | Decisiones D1–D11 con alternativas y trade-offs, OQ-1..OQ-9, seams con firmas, riesgos y plan de despliegue (sin DDL) |
-| `specs/reserva-publica/spec.md` | 9 requirements, 32 escenarios (feliz, error de negocio, borde exacto de anticipación, concurrencia, multi-tenant, privacidad) |
-| `tasks.md` | 47 tareas TDD rojo-primero, cada una con el test exacto y el archivo destino |
+| `specs/reserva-publica/spec.md` | 10 requirements, 48 escenarios (feliz, error de negocio, borde exacto de anticipación, concurrencia, multi-tenant, privacidad) |
+| `tasks.md` | 50 tareas TDD rojo-primero, cada una con el test exacto y el archivo destino |
 
 ## Decisiones en una línea
 
@@ -45,7 +45,8 @@ garantía (RN-AG-02, RN-GL-02).
 - No crea señas ni toca Mercado Pago (C-11): el turno queda `PENDIENTE`.
 - No auto-oferta huecos a lista de espera (C-07): sólo libera el hueco.
 - No envía WhatsApp/email (C-13): emite evento por `NotificadorPort`.
-- No trae UI: no hay `frontend/` en el árbol (C-01 pendiente).
+- No trae UI: el `frontend/` ya existe y la fundación visual F-01 está archivada;
+  la landing `/r/:tokenTenant` es el follow-up de frontend pendiente.
 
 ## Valores pendientes (no inventados)
 

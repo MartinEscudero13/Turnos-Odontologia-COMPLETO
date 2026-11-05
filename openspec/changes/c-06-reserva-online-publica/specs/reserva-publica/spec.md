@@ -22,51 +22,51 @@ reservar.
 
 #### Scenario: Huecos reales con turnos ya reservados
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
   T1 con la prestación PREST-30 (30 min), el profesional P1 habilitado y horario
   semanal 09:00 a 12:00 del 2026-10-06, y un turno activo de P1 en el sillón S1
   de 2026-10-06T10:00:00-03:00 a 2026-10-06T10:30:00-03:00
-- **CUANDO** el paciente pide
+- **WHEN** el paciente pide
   `GET /api/publico/T1/disponibilidad?prestacion=PREST-30&profesional=P1&desde=2026-10-06T00:00:00-03:00`
-- **ENTONCES** la respuesta `200` no incluye ningún hueco que solape
+- **THEN** la respuesta `200` no incluye ningún hueco que solape
   `[2026-10-06T10:00:00-03:00, 2026-10-06T10:30:00-03:00)` y cada hueco ofrecido
   dura 30 min
 
 #### Scenario: Un bloqueo resta disponibilidad
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y el
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y el
   profesional P1 con horario 09:00 a 12:00 y un bloqueo del
   2026-10-07T09:00:00-03:00 al 2026-10-07T12:00:00-03:00
-- **CUANDO** el paciente pide `GET /api/publico/T1/disponibilidad` con
+- **WHEN** el paciente pide `GET /api/publico/T1/disponibilidad` con
   `desde=2026-10-07T00:00:00-03:00`
-- **ENTONCES** la respuesta `200` no ofrece ningún hueco del 2026-10-07
+- **THEN** la respuesta `200` no ofrece ningún hueco del 2026-10-07
 
 #### Scenario: Sin intersección entre profesional y consultorio
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el
   consultorio con horario 09:00 a 13:00 y el profesional P1 con horario 14:00 a
   18:00 del 2026-10-08
-- **CUANDO** el paciente pide `GET /api/publico/T1/disponibilidad` con
+- **WHEN** el paciente pide `GET /api/publico/T1/disponibilidad` con
   `desde=2026-10-08T00:00:00-03:00`
-- **ENTONCES** la respuesta `200` devuelve la lista de huecos vacía
+- **THEN** la respuesta `200` devuelve la lista de huecos vacía
 
 #### Scenario: Fin derivado de la prestación
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y la
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y la
   prestación PREST-45 con `duracion_min = 45`
-- **CUANDO** la respuesta `200` de `GET /api/publico/T1/disponibilidad` ofrece un
+- **WHEN** la respuesta `200` de `GET /api/publico/T1/disponibilidad` ofrece un
   hueco que empieza en 2026-10-06T09:00:00-03:00
-- **ENTONCES** ese hueco termina en 2026-10-06T09:45:00-03:00
+- **THEN** ese hueco termina en 2026-10-06T09:45:00-03:00
 
 #### Scenario: Un inicio fuera de la grilla o bloqueado se rechaza
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el
   profesional P1 con horario 09:00 a 12:00 del 2026-10-06 y un bloqueo de
   10:00 a 11:00 de ese día, y una verificación válida para reservar en T1
-- **CUANDO** se envía `POST /api/publico/T1/reservas` con
+- **WHEN** se envía `POST /api/publico/T1/reservas` con
   `inicio=2026-10-06T10:15:00-03:00` (dentro del bloqueo) y, en otra solicitud,
   con `inicio=2026-10-06T13:00:00-03:00` (fuera de horario)
-- **ENTONCES** ambas respuestas son `409` con alternativas reales, ningún turno
+- **THEN** ambas respuestas son `409` con alternativas reales, ningún turno
   queda persistido y el `200` de disponibilidad nunca había ofrecido esos inicios
 
 ### Requirement: Identificación liviana con vinculación por teléfono
@@ -79,38 +79,38 @@ vincular queda en `OQ-8`: este change no la exige ni la prohíbe.
 
 #### Scenario: Teléfono nuevo crea paciente y turno
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
   T1 sin ningún paciente con el teléfono `+5491100000000` y una verificación
   válida para reservar
-- **CUANDO** el paciente "Paciente Demo" reserva con nombre "Paciente Demo" y
+- **WHEN** el paciente "Paciente Demo" reserva con nombre "Paciente Demo" y
   teléfono `+54 9 11 0000 0000` para un hueco libre
-- **ENTONCES** se crea un paciente nuevo en T1 con teléfono normalizado
+- **THEN** se crea un paciente nuevo en T1 con teléfono normalizado
   `+5491100000000` y el turno queda asociado a ese paciente con estado `PENDIENTE`
 
 #### Scenario: Teléfono existente vincula sin duplicar
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el
   paciente PACI-1 de T1 con teléfono normalizado `+5491100000000` y un turno suyo,
   y una verificación válida para reservar
-- **CUANDO** otra reserva pública de T1 usa el mismo teléfono `+5491100000000`
-- **ENTONCES** el turno nuevo referencia `PACI-1` y no existe un segundo paciente
+- **WHEN** otra reserva pública de T1 usa el mismo teléfono `+5491100000000`
+- **THEN** el turno nuevo referencia `PACI-1` y no existe un segundo paciente
   con ese teléfono en T1
 
 #### Scenario: Dos reservas concurrentes con el mismo teléfono nuevo crean un paciente
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
   T1 sin pacientes con `+5491100000000`, dos huecos libres distintos y una
   verificación válida para cada reserva
-- **CUANDO** las dos reservas con ese mismo teléfono se procesan en paralelo
-- **ENTONCES** ambas responden `201`, existe exactamente un paciente con
+- **WHEN** las dos reservas con ese mismo teléfono se procesan en paralelo
+- **THEN** ambas responden `201`, existe exactamente un paciente con
   `+5491100000000` en T1 y los dos turnos referencian su mismo `paciente_id`
 
 #### Scenario: Teléfono inválido no crea nada
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
   T1 sin pacientes y una verificación válida para reservar
-- **CUANDO** se envía una reserva con teléfono `no-es-un-telefono`
-- **ENTONCES** el sistema responde `422` sin crear paciente ni turno
+- **WHEN** se envía una reserva con teléfono `no-es-un-telefono`
+- **THEN** el sistema responde `422` sin crear paciente ni turno
 
 ### Requirement: Reserva pública con token y confirmación inmediata
 
@@ -123,60 +123,60 @@ deriva `fin` de `duracion_min` y elige un sillón activo libre.
 
 #### Scenario: Reserva creada con token público
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el tenant
   T1 con PREST-30, el profesional P1, los sillones activos S1 y S2, S1 ocupado de
   11:00 a 11:30 del 2026-10-06 y S2 libre, y una verificación válida para reservar
-- **CUANDO** "Paciente Demo" envía `POST /api/publico/T1/reservas` con
+- **WHEN** "Paciente Demo" envía `POST /api/publico/T1/reservas` con
   `prestacion=PREST-30`, `profesional=P1`, `inicio=2026-10-06T11:00:00-03:00`,
   `nombre=Paciente Demo`, `telefono=+5491100000000`, `verificacion_id=VER-1`
-- **ENTONCES** la respuesta `201` trae `estado=PENDIENTE`,
+- **THEN** la respuesta `201` trae `estado=PENDIENTE`,
   `origen=RESERVA_ONLINE`, `inicio=2026-10-06T11:00:00-03:00`,
   `fin=2026-10-06T11:30:00-03:00` calculado por el servidor, `sillon_id=S2`
   elegido por el servidor y un `token_publico` UUID v4 no vacío
 
 #### Scenario: Cada reserva obtiene un token distinto
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y dos
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y dos
   reservas consecutivas creadas en el mismo tenant T1
-- **CUANDO** se comparan sus `token_publico`
-- **ENTONCES** los dos tokens son distintos, cada uno es un UUID v4 parseable y
+- **WHEN** se comparan sus `token_publico`
+- **THEN** los dos tokens son distintos, cada uno es un UUID v4 parseable y
   ninguno coincide con el `turno_id` ni con el `tokenTenant`
 
 #### Scenario: El fin nunca lo fija el cliente
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y el
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y el
   payload mínimo válido de reserva (`prestacion`, `profesional`, `inicio`,
   `nombre`, `telefono`, `verificacion_id`) al que se agrega el campo `fin` con
   `2026-10-06T11:15:00-03:00`
-- **CUANDO** el paciente envía la reserva a `POST /api/publico/T1/reservas`
-- **ENTONCES** el sistema responde `422` porque `fin` está fuera del payload
+- **WHEN** el paciente envía la reserva a `POST /api/publico/T1/reservas`
+- **THEN** el sistema responde `422` porque `fin` está fuera del payload
   declarado, y no crea el turno
 
 #### Scenario: Sin sillón libre responde 409 sin turno
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, el
   profesional P1 libre y los únicos sillones activos S1 y S2 ocupados de 11:00 a
   11:30 del 2026-10-06
-- **CUANDO** el paciente reserva con `inicio=2026-10-06T11:00:00-03:00`
-- **ENTONCES** el sistema responde `409` con alternativas reales, ningún turno
+- **WHEN** el paciente reserva con `inicio=2026-10-06T11:00:00-03:00`
+- **THEN** el sistema responde `409` con alternativas reales, ningún turno
   queda persistido y `GET /api/publico/T1/disponibilidad` tampoco ofrecía ese
   inicio
 
 #### Scenario: Un hueco del mismo día es reservable sin lead time adicional
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un hueco
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un hueco
   libre el mismo día de 11:00 a 11:30
-- **CUANDO** el paciente consulta disponibilidad con `desde=2026-10-05T00:00:00-03:00`
+- **WHEN** el paciente consulta disponibilidad con `desde=2026-10-05T00:00:00-03:00`
   y reserva ese hueco
-- **ENTONCES** el hueco se ofrece y la reserva responde `201`: mientras `OQ-6`
+- **THEN** el hueco se ofrece y la reserva responde `201`: mientras `OQ-6`
   siga abierta, `C-06` no impone un lead time mínimo adicional al reloj del
   servidor
 
 #### Scenario: Consulta del turno propio por token
 
-- **DADO** una reserva `PENDIENTE` de T1 con `token_publico` TOK-B
-- **CUANDO** se pide `GET /api/publico/T1/reservas/TOK-B`
-- **ENTONCES** la respuesta `200` trae sólo `turno_id`, `estado`, `inicio`, `fin`,
+- **GIVEN** una reserva `PENDIENTE` de T1 con `token_publico` TOK-B
+- **WHEN** se pide `GET /api/publico/T1/reservas/TOK-B`
+- **THEN** la respuesta `200` trae sólo `turno_id`, `estado`, `inicio`, `fin`,
   `prestacion` y `token_publico`, sin `tenant_id` ni `paciente_id`
 
 ### Requirement: Verificación liviana de un solo uso
@@ -191,52 +191,52 @@ lo hay.
 
 #### Scenario: Emisión de una verificación válida
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y el tenant
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y el tenant
   T1 con `PUBLIC_VERIFICACION_TTL_MIN = 10` y `PUBLIC_ANTISPAM_MODO` configurado
-- **CUANDO** se envía `POST /api/publico/T1/verificacion` con
+- **WHEN** se envía `POST /api/publico/T1/verificacion` con
   `accion=reservar`
-- **ENTONCES** la respuesta `201` trae un `verificacion_id` no vacío,
+- **THEN** la respuesta `201` trae un `verificacion_id` no vacío,
   `expira_at=2026-10-05T09:10:00-03:00` y `canal` igual al valor configurado de
   `PUBLIC_ANTISPAM_MODO`, sin fijar aquí si es captcha u OTP (`OQ-2`)
 
 #### Scenario: Verificación vencida responde 403 sin mutar
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:11:00-03:00`, una
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:11:00-03:00`, una
   verificación emitida a las 09:00 con `PUBLIC_VERIFICACION_TTL_MIN = 10` y un
   hueco libre en T1
-- **CUANDO** se intenta reservar ese hueco con ese `verificacion_id`
-- **ENTONCES** el sistema responde `403`, no crea el turno y el hueco sigue
+- **WHEN** se intenta reservar ese hueco con ese `verificacion_id`
+- **THEN** el sistema responde `403`, no crea el turno y el hueco sigue
   ofreciéndose en `GET /api/publico/T1/disponibilidad`
 
 #### Scenario: La verificación es de un solo uso
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y una
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y una
   verificación ya consumida por una reserva exitosa en T1
-- **CUANDO** se reutiliza la misma verificación para una segunda reserva
-- **ENTONCES** el sistema responde `403` y no crea el segundo turno
+- **WHEN** se reutiliza la misma verificación para una segunda reserva
+- **THEN** el sistema responde `403` y no crea el segundo turno
 
 #### Scenario: Reuso concurrente de la misma verificación
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, una sola
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, una sola
   verificación válida y dos solicitudes simultáneas de T1 para el mismo hueco
-- **CUANDO** ambas se procesan en paralelo con ese `verificacion_id`
-- **ENTONCES** exactamente una responde `201`, la otra responde `403` y queda un
+- **WHEN** ambas se procesan en paralelo con ese `verificacion_id`
+- **THEN** exactamente una responde `201`, la otra responde `403` y queda un
   solo turno persistido en ese horario
 
 #### Scenario: Acción sin verificación válida se rechaza
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y el tenant
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y el tenant
   T1 con el hueco de 2026-10-06T11:00:00-03:00 libre
-- **CUANDO** se envía `POST /api/publico/T1/reservas` sin la verificación liviana
-- **ENTONCES** el sistema responde `403` y el hueco sigue ofreciéndose en
+- **WHEN** se envía `POST /api/publico/T1/reservas` sin la verificación liviana
+- **THEN** el sistema responde `403` y el hueco sigue ofreciéndose en
   `GET /api/publico/T1/disponibilidad`
 
 #### Scenario: Verificación válida permite reservar
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y una
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y una
   verificación liviana válida, no consumida y no vencida para T1
-- **CUANDO** se envía la reserva de un hueco libre
-- **ENTONCES** el sistema responde `201` con el turno en estado `PENDIENTE`
+- **WHEN** se envía la reserva de un hueco libre
+- **THEN** el sistema responde `201` con el turno en estado `PENDIENTE`
 
 ### Requirement: Rate-limit por IP y por tenant
 
@@ -248,19 +248,19 @@ turno existen.
 
 #### Scenario: Rate-limit por IP excedido no muta estado
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un mismo
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un mismo
   origen que supera `PUBLIC_RATE_LIMIT_MAX` solicitudes en
   `PUBLIC_RATE_LIMIT_VENTANA_S` segundos sobre T1
-- **CUANDO** envía una reserva más
-- **ENTONCES** el sistema responde `429` con `Retry-After` y no crea el turno
+- **WHEN** envía una reserva más
+- **THEN** el sistema responde `429` con `Retry-After` y no crea el turno
 
 #### Scenario: Rate-limit por tenant frena una IP nueva
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y
   `PUBLIC_RATE_LIMIT_MAX` solicitudes de reserva en T1 hechas desde IP distintas
   dentro de `PUBLIC_RATE_LIMIT_VENTANA_S`
-- **CUANDO** una IP que no había participado envía otra reserva a T1
-- **ENTONCES** el sistema responde `429` con `Retry-After` y no crea el turno
+- **WHEN** una IP que no había participado envía otra reserva a T1
+- **THEN** el sistema responde `429` con `Retry-After` y no crea el turno
 
 ### Requirement: Cancelar y reprogramar con anticipación mínima
 
@@ -272,90 +272,90 @@ auditoría del rechazo.
 
 #### Scenario: Exactamente en el umbral se acepta
 
-- **DADO** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00`, un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00`, un turno
   de T1 que inicia exactamente 24 h después (`2026-10-21T09:00:00-03:00`), estado
   `PENDIENTE`, `CANCEL_ANTICIPACION_H = 24` y una verificación válida para cancelar
-- **CUANDO** con su `token_publico` se envía
+- **WHEN** con su `token_publico` se envía
   `POST /api/publico/T1/reservas/TOK-C/cancelacion` con `verificacion_id=VER-2`
-- **ENTONCES** el sistema responde `200` y el turno queda en estado `CANCELADO`
+- **THEN** el sistema responde `200` y el turno queda en estado `CANCELADO`
 
 #### Scenario: Un minuto por debajo del umbral se rechaza sin mutar
 
-- **DADO** el reloj del servidor fijado en `2026-10-20T09:01:00-03:00`, un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-20T09:01:00-03:00`, un turno
   de T1 que inicia en `2026-10-21T09:00:00-03:00` (23 h 59 min),
   `CANCEL_ANTICIPACION_H = 24` y una verificación válida para cancelar
-- **CUANDO** con su `token_publico` se envía
+- **WHEN** con su `token_publico` se envía
   `POST /api/publico/T1/reservas/TOK-C/cancelacion`
-- **ENTONCES** el sistema responde `403`, indica que debe gestionarse en
+- **THEN** el sistema responde `403`, indica que debe gestionarse en
   recepción y el turno conserva estado `PENDIENTE` y horario
 
 #### Scenario: El rechazo bajo el umbral queda auditado
 
-- **DADO** el reloj del servidor fijado en `2026-10-20T09:01:00-03:00` y un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-20T09:01:00-03:00` y un turno
   de T1 que inicia en `2026-10-21T09:00:00-03:00` con `CANCEL_ANTICIPACION_H = 24`
-- **CUANDO** la cancelación pública responde `403` por estar bajo el umbral
-- **ENTONCES** existe una entrada append-only `CANCELACION_RECHAZADA` del turno,
+- **WHEN** la cancelación pública responde `403` por estar bajo el umbral
+- **THEN** existe una entrada append-only `CANCELACION_RECHAZADA` del turno,
   con motivo `BAJO_ANTICIPACION`, `antes=PENDIENTE`, `despues=PENDIENTE` y sin
   nombre ni teléfono
 
 #### Scenario: La cancelación pública libera el hueco
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un turno
   de T1 del 2026-10-06 de 10:00 a 10:30 (`-03:00`) cancelado con anticipación
   suficiente por su paciente
-- **CUANDO** se pide disponibilidad para ese profesional y sillón desde
+- **WHEN** se pide disponibilidad para ese profesional y sillón desde
   `2026-10-06T00:00:00-03:00`
-- **ENTONCES** el hueco de 2026-10-06T10:00:00-03:00 vuelve a ofrecerse
+- **THEN** el hueco de 2026-10-06T10:00:00-03:00 vuelve a ofrecerse
 
 #### Scenario: Reprogramación pública exitosa
 
-- **DADO** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00`, un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00`, un turno
   `PENDIENTE` de T1 el 2026-10-21 de 10:00 a 10:30 (`-03:00`) y el hueco de 14:00
   a 14:30 libre, con verificación válida para reprogramar
-- **CUANDO** el paciente reprograma a `2026-10-21T14:00:00-03:00` con su
+- **WHEN** el paciente reprograma a `2026-10-21T14:00:00-03:00` con su
   `token_publico` y `verificacion_id=VER-3`
-- **ENTONCES** el sistema responde `200`, el turno original queda `REPROGRAMADO`,
+- **THEN** el sistema responde `200`, el turno original queda `REPROGRAMADO`,
   se crea un turno `PENDIENTE` de 14:00 a 14:30 y el `token_publico` sigue
   gestionando el turno nuevo
 
 #### Scenario: Reprogramar bajo el umbral se rechaza sin mutar
 
-- **DADO** el reloj del servidor fijado en `2026-10-20T09:01:00-03:00`, un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-20T09:01:00-03:00`, un turno
   `PENDIENTE` de T1 que inicia en `2026-10-21T09:00:00-03:00`, el hueco de 14:00
   a 14:30 libre y una verificación válida para reprogramar
-- **CUANDO** el paciente intenta reprogramar a `2026-10-21T14:00:00-03:00`
-- **ENTONCES** el sistema responde `403`, el turno original conserva
+- **WHEN** el paciente intenta reprogramar a `2026-10-21T14:00:00-03:00`
+- **THEN** el sistema responde `403`, el turno original conserva
   `inicio=2026-10-21T09:00:00-03:00` y estado `PENDIENTE`, no se crea turno nuevo
   y queda la entrada `REPROGRAMACION_RECHAZADA` con motivo `BAJO_ANTICIPACION`
 
 #### Scenario: Reprogramar a un hueco ocupado no toca el original
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, un turno
   PENDIENTE de T1 el 2026-10-12 de 10:00 a 10:30 (`-03:00`) y otro turno activo
   de 14:00 a 14:30 del mismo profesional y sillón
-- **CUANDO** el paciente reprograma su turno a 2026-10-12T14:15:00-03:00 con su
+- **WHEN** el paciente reprograma su turno a 2026-10-12T14:15:00-03:00 con su
   `token_publico` y una verificación válida
-- **ENTONCES** el sistema responde `409` con hasta 3 alternativas y el turno
+- **THEN** el sistema responde `409` con hasta 3 alternativas y el turno
   original conserva `inicio=2026-10-12T10:00:00-03:00` y estado `PENDIENTE`
 
 #### Scenario: Cancelar sin verificación válida no muta
 
-- **DADO** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00` y un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00` y un turno
   `PENDIENTE` de T1 que inicia el `2026-10-21T09:00:00-03:00` con
   `CANCEL_ANTICIPACION_H = 24`
-- **CUANDO** se envía `POST /api/publico/T1/reservas/TOK-C/cancelacion` sin
+- **WHEN** se envía `POST /api/publico/T1/reservas/TOK-C/cancelacion` sin
   `verificacion_id`
-- **ENTONCES** el sistema responde `403`, el turno conserva `PENDIENTE` y no
+- **THEN** el sistema responde `403`, el turno conserva `PENDIENTE` y no
   aparece la entrada `CANCELADO` en la auditoría
 
 #### Scenario: Reprogramar sin verificación válida no muta
 
-- **DADO** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00` y un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00` y un turno
   `PENDIENTE` de T1 el 2026-10-21 de 10:00 a 10:30 (`-03:00`) con un hueco libre
   a las 14:00
-- **CUANDO** se envía la reprogramación con su `token_publico` sin
+- **WHEN** se envía la reprogramación con su `token_publico` sin
   `verificacion_id`
-- **ENTONCES** el sistema responde `403`, el original conserva `PENDIENTE` en
+- **THEN** el sistema responde `403`, el original conserva `PENDIENTE` en
   10:00 y no se crea turno nuevo
 
 ### Requirement: Hueco tomado, concurrencia y prohibición de sobreturno
@@ -368,39 +368,39 @@ nunca se convierte en sobreturno.
 
 #### Scenario: Slot tomado entre pasos responde 409 con alternativas
 
-- **DADO** el reloj del servidor fijado en `2026-10-12T09:00:00-03:00`, un
+- **GIVEN** el reloj del servidor fijado en `2026-10-12T09:00:00-03:00`, un
   paciente que vio libre el hueco de 2026-10-13T10:00:00-03:00 y, antes de
   confirmar, recepción ocupa ese hueco de 10:00 a 10:30
-- **CUANDO** el paciente confirma el hueco que había visto con una verificación
+- **WHEN** el paciente confirma el hueco que había visto con una verificación
   válida
-- **ENTONCES** el sistema responde `409` con hasta 3 alternativas en orden
+- **THEN** el sistema responde `409` con hasta 3 alternativas en orden
   cronológico y no crea ningún turno para el paciente
 
 #### Scenario: Dos reservas concurrentes del mismo hueco
 
-- **DADO** el reloj del servidor fijado en `2026-10-12T09:00:00-03:00` y dos
+- **GIVEN** el reloj del servidor fijado en `2026-10-12T09:00:00-03:00` y dos
   solicitudes públicas simultáneas de T1 para el mismo hueco de
   2026-10-13T11:00:00-03:00, con una verificación válida cada una
-- **CUANDO** ambas se procesan en paralelo
-- **ENTONCES** exactamente una responde `201`, la otra responde `409` con hasta 3
+- **WHEN** ambas se procesan en paralelo
+- **THEN** exactamente una responde `201`, la otra responde `409` con hasta 3
   alternativas y queda un solo turno persistido en ese horario
 
 #### Scenario: El público no puede crear sobreturno
 
-- **DADO** el reloj del servidor fijado en `2026-10-12T09:00:00-03:00` y un
+- **GIVEN** el reloj del servidor fijado en `2026-10-12T09:00:00-03:00` y un
   payload de reserva pública que incluye `sobreturno: true`
-- **CUANDO** se envía a `POST /api/publico/T1/reservas`
-- **ENTONCES** el sistema responde `422` y no persiste ningún turno con
+- **WHEN** se envía a `POST /api/publico/T1/reservas`
+- **THEN** el sistema responde `422` y no persiste ningún turno con
   `sobreturno=true`
 
 #### Scenario: El solape por sillón no se degrada a sobreturno
 
-- **DADO** el reloj del servidor fijado en `2026-10-13T09:00:00-03:00` y el sillón
+- **GIVEN** el reloj del servidor fijado en `2026-10-13T09:00:00-03:00` y el sillón
   S1 de T1 ocupado de 2026-10-14T11:00:00-03:00 a 2026-10-14T11:30:00-03:00 por
   otro profesional
-- **CUANDO** el paciente reserva con el profesional P2 en S1 desde
+- **WHEN** el paciente reserva con el profesional P2 en S1 desde
   2026-10-14T11:15:00-03:00
-- **ENTONCES** el sistema responde `409` con hasta 3 alternativas y no crea el
+- **THEN** el sistema responde `409` con hasta 3 alternativas y no crea el
   turno
 
 ### Requirement: Aislamiento multi-tenant en las rutas públicas
@@ -413,42 +413,42 @@ token inexistente, sin revelar su existencia.
 
 #### Scenario: Token de un tenant en la ruta de otro
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un turno
   activo del tenant T1 con `token_publico` TOK-A
-- **CUANDO** se usa `GET /api/publico/T2/reservas/TOK-A`
-- **ENTONCES** el sistema responde `404` sin devolver datos del turno de T1
+- **WHEN** se usa `GET /api/publico/T2/reservas/TOK-A`
+- **THEN** el sistema responde `404` sin devolver datos del turno de T1
 
 #### Scenario: La disponibilidad no se contamina entre tenants
 
-- **DADO** el reloj del servidor fijado en `2026-10-14T09:00:00-03:00`, el
+- **GIVEN** el reloj del servidor fijado en `2026-10-14T09:00:00-03:00`, el
   profesional P1 y el sillón S1 ocupados en T1 el 2026-10-15 de 10:00 a 10:30
   (`-03:00`) y libres en T2 a la misma hora
-- **CUANDO** se pide disponibilidad pública de T2 desde
+- **WHEN** se pide disponibilidad pública de T2 desde
   2026-10-15T00:00:00-03:00
-- **ENTONCES** el hueco de 2026-10-15T10:00:00-03:00 se ofrece en T2 y no en T1
+- **THEN** el hueco de 2026-10-15T10:00:00-03:00 se ofrece en T2 y no en T1
 
 #### Scenario: Una reserva en un tenant no escribe en otro
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y los
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y los
   tenants T1 y T2 con el mismo hueco libre
-- **CUANDO** se crea una reserva pública en T2
-- **ENTONCES** T1 sigue sin turnos en ese horario
+- **WHEN** se crea una reserva pública en T2
+- **THEN** T1 sigue sin turnos en ese horario
 
 #### Scenario: Los headers de actor no cambian el tenant público
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y un
   request a `POST /api/publico/T2/reservas` con `X-Tenant-Id: T1` y `X-Rol: ADMIN`
-- **CUANDO** el sistema procesa la reserva
-- **ENTONCES** la reserva queda en T2 con `origen=RESERVA_ONLINE` y no se aplica
+- **WHEN** el sistema procesa la reserva
+- **THEN** la reserva queda en T2 con `origen=RESERVA_ONLINE` y no se aplica
   ningún permiso de `ADMIN`
 
 #### Scenario: tokenTenant inexistente o tenant inactivo responde 404
 
-- **DADO** un `tokenTenant=NO-EXISTE` sin tenant y un tenant T3 con
+- **GIVEN** un `tokenTenant=NO-EXISTE` sin tenant y un tenant T3 con
   `activo=false` y `tokenTenant=T3`
-- **CUANDO** se piden `GET /api/publico/NO-EXISTE/disponibilidad` y
+- **WHEN** se piden `GET /api/publico/NO-EXISTE/disponibilidad` y
   `GET /api/publico/T3/disponibilidad`
-- **ENTONCES** ambas respuestas son `404` con el mismo cuerpo, sin `tenant_id` ni
+- **THEN** ambas respuestas son `404` con el mismo cuerpo, sin `tenant_id` ni
   datos de agenda
 
 ### Requirement: Privacidad de respuestas y logs
@@ -459,36 +459,36 @@ SHALL NOT registrar PHI.
 
 #### Scenario: La disponibilidad no expone pacientes
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y la
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y la
   disponibilidad de T1 con turnos activos de dos pacientes distintos
-- **CUANDO** el paciente consulta `GET /api/publico/T1/disponibilidad`
-- **ENTONCES** ninguna entrada incluye `paciente_id`, nombre, teléfono ni dato
+- **WHEN** el paciente consulta `GET /api/publico/T1/disponibilidad`
+- **THEN** ninguna entrada incluye `paciente_id`, nombre, teléfono ni dato
   clínico
 
 #### Scenario: La reserva sólo devuelve el turno propio
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, T1 con la
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00`, T1 con la
   reserva de "Paciente Demo" y otro turno activo de "Otro Paciente Demo" con
   teléfono `+5491100000001`
-- **CUANDO** se lee la respuesta `201` de la reserva de "Paciente Demo"
-- **ENTONCES** sus únicas claves son `turno_id`, `estado`, `inicio`, `fin`,
+- **WHEN** se lee la respuesta `201` de la reserva de "Paciente Demo"
+- **THEN** sus únicas claves son `turno_id`, `estado`, `inicio`, `fin`,
   `origen`, `prestacion`, `sillon_id` y `token_publico`, y no aparece el nombre ni
   el teléfono de "Otro Paciente Demo"
 
 #### Scenario: El 404 no filtra si el turno existe en otro tenant
 
-- **DADO** un token inexistente y un token real de T1 usados en la ruta pública
+- **GIVEN** un token inexistente y un token real de T1 usados en la ruta pública
   de T2
-- **CUANDO** se comparan ambas respuestas de `GET /api/publico/T2/reservas/{token}`
-- **ENTONCES** ambas son `404` con el mismo cuerpo, sin `tenant_id`, nombre ni
+- **WHEN** se comparan ambas respuestas de `GET /api/publico/T2/reservas/{token}`
+- **THEN** ambas son `404` con el mismo cuerpo, sin `tenant_id`, nombre ni
   teléfono
 
 #### Scenario: Los logs no contienen PHI
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y una
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y una
   reserva pública exitosa en T1
-- **CUANDO** se inspecciona el registro estructurado de la operación
-- **ENTONCES** sólo aparecen identificadores (`tenant_id`, `turno_id`), estado y
+- **WHEN** se inspecciona el registro estructurado de la operación
+- **THEN** sólo aparecen identificadores (`tenant_id`, `turno_id`), estado y
   horarios; no aparecen nombre, teléfono ni token
 
 ### Requirement: Trazabilidad de las acciones públicas
@@ -500,25 +500,25 @@ rechazo con motivo.
 
 #### Scenario: La reserva pública queda auditada
 
-- **DADO** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y una
+- **GIVEN** el reloj del servidor fijado en `2026-10-05T09:00:00-03:00` y una
   reserva pública exitosa en T1
-- **CUANDO** se consulta la auditoría del turno
-- **ENTONCES** existe una entrada `CREADO` con actor público, `antes` vacío,
+- **WHEN** se consulta la auditoría del turno
+- **THEN** existe una entrada `CREADO` con actor público, `antes` vacío,
   `despues=PENDIENTE` y sin nombre ni teléfono
 
 #### Scenario: Cancelación pública audita el antes y el después
 
-- **DADO** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00` y un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00` y un turno
   `PENDIENTE` de T1 cancelado por el paciente con anticipación suficiente
-- **CUANDO** se consulta la auditoría del turno
-- **ENTONCES** existe una entrada `CANCELADO` con `antes=PENDIENTE` y
+- **WHEN** se consulta la auditoría del turno
+- **THEN** existe una entrada `CANCELADO` con `antes=PENDIENTE` y
   `despues=CANCELADO`
 
 #### Scenario: La reprogramación pública audita el antes y el después
 
-- **DADO** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00` y un turno
+- **GIVEN** el reloj del servidor fijado en `2026-10-20T09:00:00-03:00` y un turno
   `PENDIENTE` de T1 el 2026-10-21 de 10:00 a 10:30 (`-03:00`) reprogramado con
   anticipación suficiente
-- **CUANDO** se consulta la auditoría del turno original
-- **ENTONCES** existe una entrada `REPROGRAMADO` con `antes=PENDIENTE` y
+- **WHEN** se consulta la auditoría del turno original
+- **THEN** existe una entrada `REPROGRAMADO` con `antes=PENDIENTE` y
   `despues=REPROGRAMADO`, y el turno nuevo tiene su entrada `CREADO`

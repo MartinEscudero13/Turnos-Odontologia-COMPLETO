@@ -3,14 +3,21 @@
 > Estado: **preparado, no implementado**. Este documento decide el HOW; el QUÉ
 > está en `specs/reserva-publica/spec.md` y el porqué en `proposal.md`.
 
+## UI Mockups
+
+- Decision: no (no UI) — C-06 es backend-only; la landing `/r/:tokenTenant` es un follow-up de frontend fuera del scope de este change (Non-Goals).
+- Fecha: 2026-11-05
+
 ## Context
 
 Stack real del repo: Python + FastAPI + SQLAlchemy 2 + Alembic + PostgreSQL 15
 multi-tenant con RLS (`knowledge-base/09_decisiones_y_supuestos.md:5-10`, DD-01).
 Lo implementado es C-05 (`backend/app/turnos/`, migración 003) con dominio puro
-en memoria, borde Pydantic y actor por headers. No existen C-01/C-03/C-04 en el
-árbol (ver "Deuda declarada" en `proposal.md`), por lo que C-06 se apoya en
-puertos con adaptadores en memoria y deja el wiring real como tarea bloqueada.
+en memoria, borde Pydantic y actor por headers. C-03 (auth/RBAC/auditoría) y
+C-04 (catálogos/pacientes, `backend/app/models/catalogos.py`) ya están
+implementados y archivados, por lo que sus modelos/servicios son el destino real
+de los puertos de C-06: el wiring SQLAlchemy de `CatalogoPort`/`PacientePort` ya
+no está bloqueado.
 
 Reglas duras aplicables (`AGENTS.md`): anti-solape sólo en DB (R3) con paridad en
 el servicio, TDD rojo-primero en concurrencia/idempotencia/ventana (R4), sin
@@ -24,7 +31,8 @@ login con token por turno; cancelar/reprogramar con anticipación exacta;
 anti-spam verificable; `409` + 3 alternativas; aislamiento por tenant y
 privacidad de respuesta; trazabilidad append-only.
 
-**Non-Goals:** UI `/r/:tokenTenant` (follow-up: no hay `frontend/`); envío de
+**Non-Goals:** UI `/r/:tokenTenant` (follow-up de frontend: el `frontend/` ya
+existe y la fundación F-01 está archivada); envío de
 WA/email (C-13); seña y preferencia MP (C-11); auto-oferta a lista de espera
 (C-07); auth JWT (C-03); DDL nueva (la columna `turnos.token_publico` ya existe).
 
@@ -97,10 +105,11 @@ WA/email (C-13); seña y preferencia MP (C-11); auto-oferta a lista de espera
   consultorio es el teléfono (`09:41`); (c) crear paciente siempre → duplica
   fichas y rompe la historia clínica.
   Trade-off: dos pacientes distintos pueden compartir teléfono (familia) → OQ-8.
-  Deuda: `04_modelo_de_datos.md:53` declara índice `(tenant_id, telefono)`, **no**
-  `UNIQUE(tenant_id, telefono)`; C-06 cierra la carrera de alta con una sola
-  transacción y lock por `(tenant_id, telefono)` y deja la restricción de DB como
-  tarea de C-04 (no hay DDL nueva acá, D10).
+  Deuda: la constraint `UNIQUE(tenant_id, telefono)` **ya existe** en
+  `backend/app/models/catalogos.py` (UniqueConstraint
+  `pacientes_tenant_telefono_unique`, C-04 archivado); C-06 cierra la carrera de
+  alta con una sola transacción y lock por `(tenant_id, telefono)` y no agrega
+  DDL nueva acá (D10).
 
 - **D5 — Anti-spam en capas: rate-limit + verificación de un solo uso.**
   (1) Contador por `(tenant, ip)` y por `(tenant, accion)` sobre
@@ -171,7 +180,11 @@ WA/email (C-13); seña y preferencia MP (C-11); auto-oferta a lista de espera
   en el router → datos inventados y contradice RN-AU-01; (c) tocar C-05 para que
   lea catálogos → cambia un change archivado.
   Trade-off: dos implementaciones por puerto (memoria/real) → se paga con un
-  test de contrato por puerto y una tarea de wiring explícita.
+  test de contrato por puerto y una tarea de wiring explícita. **Estado real:**
+  con C-03 y C-04 ya archivados, el wiring SQLAlchemy de `CatalogoPort`/
+  `PacientePort` (y el `AuditoriaPort` real en `backend/app/core/audit`) ya está
+  desbloqueado: el follow-up condicional de `tasks.md` ("cuando aterrice
+  C-04/C-03") dejó de ser condicional.
 
 - **D10 — Sin migración nueva; el estado anti-spam vive fuera de Postgres.**
   `turnos.token_publico` (003:41) + índice único parcial (003:80-83) alcanzan
@@ -210,8 +223,8 @@ WA/email (C-13); seña y preferencia MP (C-11); auto-oferta a lista de espera
 
 ## Seams
 
-Interfaces que C-06 **consume** (C-05 real, C-03/C-04/C-13 inexistentes) y las
-que **define** para no acoplarse. Firmas con type hints (R7).
+Interfaces que C-06 **consume** (C-05, C-03 y C-04 ya archivados; C-13
+inexistente) y las que **define** para no acoplarse. Firmas con type hints (R7).
 
 ```python
 # --- C-05 real: backend/app/turnos/servicio.py ---
@@ -254,14 +267,14 @@ def buscar_alternativas(
 ) -> list[Alternativa]: ...                                               # :58
 
 
-# --- C-03 (NO existe): hoy headers, mañana JWT ---
+# --- C-03 (ya archivado): JWT + RBAC + auditoría ---
 def actor_desde_headers(x_tenant_id: str, x_user_id: str, x_rol: str,
                         x_profesional_id: str | None = None) -> Actor: ...  # routers/turnos.py:37
 # C-06 NO usa esta dependencia en rutas públicas: un header X-Tenant-Id no
 # puede cambiar el tenant resuelto por la ruta ni el rol del paciente.
 
 
-# --- C-04 (NO existe): puertos que C-06 define y hoy resuelve en memoria ---
+# --- C-04 (ya archivado): puertos que C-06 define; se cablean a backend/app/models/catalogos.py ---
 class CatalogoPort(Protocol):
     def prestacion(self, tenant_id: str, prestacion_id: str) -> Prestacion: ...
     def profesionales_habilitados(self, tenant_id: str,
@@ -323,9 +336,9 @@ class AuditoriaPort(Protocol):            # adapter real: backend/app/core/audit
   rate-limit y sin token en logs (D3/D8).
 - [Spam con teléfonos ficticios] → rate-limit + verificación single-use (D5);
   calibración pendiente (OQ-2/OQ-3).
-- [`pacientes`/catálogos ausentes (C-04)] → puertos + adaptadores en memoria
-  (D9); riesgo de drift al integrar → test de contrato por puerto y tarea de
-  wiring bloqueada.
+- [Drift al integrar `CatalogoPort`/`PacientePort` con los modelos reales de
+  C-04] → puertos + adaptadores en memoria (D9); riesgo de drift al integrar →
+  test de contrato por puerto y wiring (ya desbloqueado con C-04 archivado).
 - [El token vive más que la reserva pendiente] → vigencia por estado (D3):
   `CANCELADO`/`REPROGRAMADO`/`PRESENTE`/`AUSENTE` o `fin` pasado ⇒ `404`.
 - [Zona horaria] → borde exige datetimes aware (`AwareDatetime`,
