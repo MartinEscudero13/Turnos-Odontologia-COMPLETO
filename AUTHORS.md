@@ -15,8 +15,8 @@ fueron entregados. No deben reescribirse para reflejar el trabajo grupal posteri
 
 ## Alcance vigente
 
-- **Martin Escudero**: implementación de los changes C-01 a C-04 y mantenimiento de C-05.
-- **Lautaro Naranjo**: C-06 y la pieza de skill propia + MCP del TP2.
+- **Martin Escudero**: implementación de los changes C-01 a C-04 y mantenimiento de C-05. Cambios pendientes: **C-10 `caja-cierre-diario`**, **C-12 `obras-sociales-liquidacion`**, **C-14 `google-calendar-sync`**.
+- **Lautaro Naranjo**: C-06 y la pieza de skill propia + MCP del TP2. Cambios pendientes: **C-07 `lista-espera-auto-oferta`**, **C-08 `ficha-clinica-consentimiento`**, **C-09 `odontograma-presupuesto`**, **C-11 `senas-mercadopago`**, **C-13 `whatsapp-recordatorios`**, **C-15 `admin-plataforma-exportacion`**.
 - **C-01 `foundation-setup`**: implementado, verificado y archivado el 2026-11-03.
 - **Guía de continuación para Lautaro**: [`docs/equipo/guia-lautaro.md`](docs/equipo/guia-lautaro.md).
 
