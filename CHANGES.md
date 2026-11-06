@@ -303,7 +303,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - Modelos: `MovimientoCaja(tenant, fecha, medio EFECTIVO/TRANSFERENCIA/MP/OS, monto centavos, tipo INGRESO/EGRESO, turno_id?, usuario_id, anulado + motivo)`, `CierreDiario UNIQUE(tenant, fecha)` con totales por medio, diferencia, responsable, cerrado_at
   - Endpoints: `GET /api/caja/movimientos?fecha=`, `POST /api/caja/movimientos`, `POST /api/caja/cierre` (diferencia 0 o motivo con observación auditable), anulación con motivo + movimiento compensatorio (nunca borrado; post-cierre exige compensatorio)
   - UI SPA `/caja`: movimientos por medio + señas aplicadas, carga de efectivo real vs sistema, reportes base (ocupación, ausentismo, facturación por profesional)
-  - Migración 007: movimientos_caja, cierres_diarios + RLS
+  - Migración 008: movimientos_caja, cierres_diarios + RLS
   - Tests: cierre con diferencia exige motivo, día sin responsable no cierra, anulación post-cierre crea compensatorio sin editar cierre
 - **Dependencias**: C-03, C-05
 - **Governance**: ALTO
@@ -317,11 +317,11 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 
 ### [C-11] `senas-mercadopago`
 - **Estado**: `[ ]` pendiente
-- **Scope**: Seña online atada a reserva con liberación automática y webhook idempotente (US-041; RN-SE-01/02/03/04/05) — ⚠️ PO-01 abierta (alcance de seña configurable por tenant, default por prestación)
+- **Scope**: Seña online atada a reserva con liberación automática y webhook idempotente (US-041; RN-SE-01/02/03/04/05) — ✅ PO-01 resuelta: default por tenant + override opcional por prestación (`docs/decisiones-po.md`); quedan provisionales monto/% y anticipación de cancelación (24 h)
   - Modelos: `Sena(tenant, turno unique?, monto, estado PENDIENTE/ACREDITADA/LIBERADA/APLICADA/DEVUELTA, mp_preference_id, expira_at SENA_TTL_H)` + `PagoMP(mp_payment_id unique, sena, monto, estado, raw_json, received_at)`
   - Flujo: prestación con `requiere_sena` → seña PENDIENTE + preferencia MP → `/pagar/:tokenSena` → webhook `POST /api/webhooks/mercadopago` idempotente (duplicado → 200 sin efecto) → ACREDITADA → turno CONFIRMADO; expira sin pago → turno liberado + dispara auto-oferta (C-07)
   - Política de cancelación visible al reservar; seña visible en agenda con estado; MP caído → reserva PENDIENTE + reintento/backoff (RN-IN-03)
-  - Migración 008: senas, pagos_mp + RLS
+  - Migración 009: senas, pagos_mp + RLS
   - Tests: webhook duplicado no duplica, expiración libera turno y ofrece a lista, seña se aplica al cobro (C-10)
 - **Dependencias**: C-05, C-07, C-10
 - **Governance**: CRITICO
@@ -340,7 +340,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - Modelos: `ObraSocial(tenant, nombre, activa)`, `Cobertura(tenant, obra_social, prestacion, porcentaje/monto, tope?)`, `Liquidacion(tenant, obra_social, periodo, estado, total)` + líneas por turno atendido con OS
   - Endpoints: `/api/obras-sociales`, `/api/coberturas`, `/api/liquidaciones` (por período, exportable); UI etiquetada "configurada, no validada en vivo"
   - Seed: 3–5 OS comunes por tenant (nombres, sin aranceles reales); validación realtime SOAP/WS explícitamente fuera (fase 2)
-  - Migración 009: obras_sociales, coberturas, liquidaciones + RLS
+  - Migración 010: obras_sociales, coberturas, liquidaciones + RLS
   - Tests: cobertura OS × prestación calcula a-cargo-paciente, liquidación agrupa solo turnos atendidos del período
 - **Dependencias**: C-04, C-05
 - **Governance**: MEDIO
@@ -356,13 +356,13 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 
 ### [C-13] `whatsapp-recordatorios`
 - **Estado**: `[ ]` pendiente
-- **Scope**: Recordatorios y confirmación por WhatsApp API oficial + email fallback + recall sanitario (US-020, US-021, US-052; RN-IN-01/03) — ⚠️ PO-03 abierta (BSP/proveedor a definir en demos)
+- **Scope**: Recordatorios y confirmación por WhatsApp API oficial + email fallback + recall sanitario (US-020, US-021, US-052; RN-IN-01/03) — ⛔ PO-03 diferida (2026-11-06): proveedor/BSP sin definir; no se implementa hasta elegirlo (`docs/decisiones-po.md`)
   - Modelo `MensajeWA(tenant, paciente, turno?, plantilla, estado ENVIADO/ENTREGADO/LEIDO/FALLIDO, provider_message_id unique?)`
   - `workers/`: cron recordatorios (ej. 24 h antes, anticipación/horario/mensaje configurables) con plantillas aprobadas; proveedor y número declarados por tenant
   - Webhook `POST /api/webhooks/whatsapp`: actualiza estados visibles en agenda; respuesta "SI"/"NO" → CONFIRMADO/CANCELADO (cancelación dispara C-07); respuesta ambigua → link de confirmación
   - Outbox / cola con backoff: WA caído → email fallback (SMTP) + reintento; agenda/caja intactas
   - Recall sanitario (US-052): motivo clínico + fecha objetivo por WA, separado de marketing (fuera de alcance)
-  - Migración 010: mensajes_wa, recordatorios/config + RLS
+  - Migración 011: mensajes_wa, recordatorios/config + RLS
   - Tests: webhook entrante confirma/cancela, cancelación dispara auto-oferta, fallback email cuando WA falla, estados visibles por turno
 - **Dependencias**: C-05, C-07
 - **Governance**: ALTO
@@ -382,7 +382,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - Push: turno creado/modificado/cancelado → evento GCal; pull: webhook/polling → evento externo se refleja como bloqueo informativo no-reservable
   - Conflicto: gana el sistema, se re-oferta el hueco (C-07) y se avisa al profesional; token revocado → aviso + agenda interna intacta; GCal caído → cola con reintento
   - Endpoints: `/api/calendar/oauth`, `/api/calendar/webhook`
-  - Migración 011: calendar_links + RLS
+  - Migración 012: calendar_links + RLS
   - Tests: crear turno pushea evento, evento externo bloquea slot, conflicto lo gana el sistema, token revocado no rompe agenda
 - **Dependencias**: C-05
 - **Governance**: MEDIO
