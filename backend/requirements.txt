@@ -1,7 +1,8 @@
 # Turnos-Odontologia runtime dependencies (C-01 foundation and C-05 domain).
 # Pines verificados en el entorno (py launcher, Python 3.14.0).
+# sqlalchemy >=2.0.57: 2.0.35 rompe con anotaciones PEP 604 (Mapped[X | None]) en Python 3.14.
 fastapi==0.115.0
-sqlalchemy[asyncio]==2.0.35
+sqlalchemy[asyncio]==2.0.57
 pydantic==2.13.4
 pydantic-settings==2.15.0
 alembic==1.19.1

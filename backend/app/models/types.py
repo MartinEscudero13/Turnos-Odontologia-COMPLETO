@@ -7,4 +7,4 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 def jsonb_type() -> Any:
     """Return JSONB on PostgreSQL and JSON on SQLite test databases."""
-    return JSON().with_variant(JSONB(), "postgresql")  # type: ignore[no-untyped-call]
+    return JSON().with_variant(JSONB(), "postgresql")
