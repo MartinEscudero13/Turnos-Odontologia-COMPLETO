@@ -257,12 +257,12 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 > `C-08` corre en paralelo con `C-05` tras `C-04`. `C-09` requiere `C-08` archivado.
 
 ### [C-08] `ficha-clinica-consentimiento`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-06; 46 tests nuevos, suite 296 passed + 4 skipped, ruff/mypy verdes, `openspec validate --strict` en verde) + archivado en `openspec/changes/archive/2026-11-06-c-08-ficha-clinica-consentimiento/`
 - **Scope**: Ficha clínica mínima con consentimiento previo y evoluciones inmutables (US-030; RN-CL-03/04, RN-AU-03)
   - Modelos: `Ficha(paciente 1—1)`, `Evolucion(tenant, paciente, profesional, fecha, texto, firma_hash?)` append-only (corrección = nueva evolución), `Adjunto(ficha, tipo Rx/foto, storage ref)`, `Consentimiento(paciente, timestamp, canal móvil)`
   - Endpoints: `/api/pacientes/:id/ficha`, `/api/evoluciones`, `/api/adjuntos`, `/api/consentimientos` (firma en móvil)
   - Regla: sin consentimiento firmado → bloquea clínica, permite solo agenda; nada de PHI en logs ni mensajes
-  - Migración 005: fichas, evoluciones, adjuntos, consentimientos + RLS
+  - Migración 006: fichas, evoluciones, adjuntos, consentimientos + RLS
   - Tests: evolución no editable (UPDATE rechazado), sin consentimiento bloquea POST clínico pero no agenda, adjunto scoped por tenant
 - **Dependencias**: C-04
 - **Governance**: ALTO

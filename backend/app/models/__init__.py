@@ -10,6 +10,7 @@ from app.models.catalogos import (
     ProfesionalPrestacion,
     Sillon,
 )
+from app.models.ficha_clinica import Adjunto, Consentimiento, Evolucion, Ficha
 from app.models.lista_espera import ListaEspera, Oferta
 from app.models.refresh_token import RefreshToken
 from app.models.tenant import ParametroTenant, Tenant
@@ -17,9 +18,13 @@ from app.models.turno import Turno
 from app.models.usuario import Usuario
 
 __all__ = [
+    "Adjunto",
     "Auditoria",
     "Base",
     "Bloqueo",
+    "Consentimiento",
+    "Evolucion",
+    "Ficha",
     "HorarioSemanal",
     "ListaEspera",
     "Oferta",
