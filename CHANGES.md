@@ -281,7 +281,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - Modelos: `Presupuesto(tenant, paciente, estado BORRADOR/VIGENTE/PARCIAL/ACEPTADO/VENCIDO)` + `PresupuestoLinea(pieza_fdi?, prestacion, monto, cobertura_os, a_cargo_paciente)` + `Aceptacion(linea, acepta, fecha, canal)`
   - UI odontograma FDI + botón "derivar a presupuesto" (hallazgo → línea en 1 clic); sistema aplica cobertura OS si existe, si no 100% particular visible
   - Endpoints: `/api/odontograma`, `/api/presupuestos`, `POST /api/presupuestos/:id/aceptar` (parcial/total); lo aceptado genera turnos (C-05) e imputación a caja (C-10); lo pendiente → recupero/recall
-  - Migración 006: odontograma_hallazgos, presupuestos, líneas, aceptaciones + RLS
+  - Migración 007: odontograma_hallazgos, presupuestos, líneas, aceptaciones + RLS
   - Tests: FDI fuera de 11–48 rechazado, aceptación parcial imputa solo líneas aceptadas, transacción hallazgo+presupuesto atómica
 - **Dependencias**: C-04, C-08
 - **Governance**: MEDIO
