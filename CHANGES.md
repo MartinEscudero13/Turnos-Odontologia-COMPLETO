@@ -4,6 +4,19 @@
 > Cada change es atómico: un agente puede implementarlo en una sesión (~4-6 horas).
 > **Leer este archivo antes de ejecutar cualquier `/opsx:propose`.**
 
+## Progreso al 2026-11-13
+
+| | |
+|---|---|
+| Archivados | **13** — C-01 … C-11, F-01, F-02 |
+| Pendientes | C-12 obras sociales · C-14 Google Calendar · C-15 admin y reportes |
+| Bloqueado | C-13 WhatsApp (PO-03: sin proveedor/BSP) |
+| Migraciones | 001 → 009 aplicadas y reversibles contra PostgreSQL real |
+| Suite | 678 passed + 42 skipped local · 720 passed + 0 skipped con `C02_DATABASE_URL` |
+
+**Deuda de integración declarada**: los routers de C-05…C-11 existen y son inyectables pero todavía no
+están montados en `create_app` (ver [`README.md` § Límites declarados](README.md#límites-declarados-del-alcance)).
+
 ---
 
 ## Cómo usar este documento

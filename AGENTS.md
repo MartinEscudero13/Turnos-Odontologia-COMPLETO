@@ -10,8 +10,9 @@
 - Entrada corta para Lautaro: [`CONTINUAR.md`](CONTINUAR.md).
 - Contexto extendido de entorno: [`docs/equipo/guia-lautaro.md`](docs/equipo/guia-lautaro.md).
 - Alcance y autoría: [`AUTHORS.md`](AUTHORS.md).
-- **C-02, C-03 y C-04 ya están archivados; C-06 `reserva-online-publica` está desbloqueado.**
-- Los changes **C-01 a C-04** y **F-01** corresponden a Martin Escudero; **C-06** y la pieza skill+MCP del TP2 corresponden a Lautaro Naranjo.
+- **C-01 a C-11, F-01 y F-02 están archivados** (13 changes). Pendientes: C-12, C-14, C-15; **C-13 bloqueado por PO-03** (sin proveedor de WhatsApp).
+- Los changes **C-01 a C-04**, **C-05** y **F-01** corresponden a Martin Escudero; **C-06** y la pieza skill+MCP del TP2 a Lautaro Naranjo; **C-07 a C-11** se cerraron en la fase posterior al TP2.
+- **Deudas declaradas**: UI de C-09/C-10/C-11 diferida a `C-09-UI`, `C-10-UI` y `C-11-UI` (changes sin crear), y los routers de C-05…C-11 todavía no están montados en `create_app`. Detalle en [`README.md` § Límites declarados](README.md#límites-declarados-del-alcance).
 
 ---
 
@@ -120,9 +121,11 @@ React, Vite, Mercado Pago, WhatsApp Cloud API o Google Calendar API). Configurac
 
 El plan de implementación completo está en [CHANGES.md](CHANGES.md). Resumen:
 
-- **Total**: 15 changes en 8 fases (FASE 0 — Cimientos … FASE 7 — Administración y plataforma).
+- **Total**: 17 items en 8 fases (15 changes `C-NN` + 2 frentes visuales `F-NN`), de los cuales **13 están archivados**.
 - **Camino crítico** (8): `C-01 → C-02 → C-03 → C-04 → C-05 → C-06 → C-10 → C-15`.
-- **Primer change**: `C-01` (foundation-setup: scaffolding FastAPI + Vite + docker-compose + Alembic).
+- **Completados**: C-01 … C-11, F-01 y F-02.
+- **Primer change pendiente**: `C-12` (obras sociales y liquidación). `C-13` está bloqueado por PO-03.
+- **Deuda de integración abierta**: montar los routers de C-05…C-11 en `create_app` (ver `README.md` § Límites declarados).
 
 **Antes de cualquier `/opsx:propose`**: leé [CHANGES.md](CHANGES.md), identificá las dependencias del change y los archivos de "Leer antes".
 

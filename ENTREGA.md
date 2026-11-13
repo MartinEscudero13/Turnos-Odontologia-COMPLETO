@@ -1,8 +1,14 @@
 # ENTREGA — TP2 «Integrar una skill propia y un MCP al proyecto odontológico»
 
-**Proyecto**: Turnos-Odontologia (SaaS de agenda odontológica, multi-tenant) · **Fecha de corte**: 2026-11-03
+**Proyecto**: Turnos-Odontologia (SaaS de agenda odontológica, multi-tenant) · **Fecha de corte del TP2**: 2026-11-03
 **Método**: adaptación al dominio de este repo de la pieza equivalente del proyecto hermano
 (SDD-Active_Stack-main)
+
+> **Nota de estado (actualizada 2026-11-13)**: este documento registra la entrega del **TP2** tal como se
+> presentó el 2026-11-03. El proyecto siguió avanzando: C-06 a C-11, F-02 y la fase de caja/señas ya están
+> implementados, verificados y archivados (13 changes archivados, 678 tests verdes). Donde una fila diga
+> "preparado, no implementado" o "pendiente", se conserva el estado del corte y se aclara el estado real
+> entre corchetes. El estado vigente del proyecto vive en el [`README.md`](README.md) y en [`CHANGES.md`](CHANGES.md).
 
 ## Integrantes
 
@@ -21,7 +27,7 @@
 | Ficha de investigación | [`docs/skills-mcp/investigacion.md`](docs/skills-mcp/investigacion.md) |
 | Informe de aplicación | [`docs/skills-mcp/aplicacion.md`](docs/skills-mcp/aplicacion.md) |
 | Evidencias | [`docs/skills-mcp/evidencias/`](docs/skills-mcp/evidencias/) (01–04 + snapshot antes/después) |
-| Change preparado | [`openspec/changes/c-06-reserva-online-publica`](openspec/changes/c-06-reserva-online-publica/) |
+| Change preparado | [`openspec/changes/archive/2026-11-05-c-06-reserva-online-publica`](openspec/changes/archive/2026-11-05-c-06-reserva-online-publica/) — implementado y archivado el 2026-11-05 |
 | C-01 archivado | `openspec/changes/archive/2026-11-03-c-01-foundation-setup/` |
 | Verificación de C-01 | [`docs/foundation/verification-report.md`](docs/foundation/verification-report.md) |
 
@@ -38,7 +44,7 @@
 | MCP conectado y al menos una herramienta real ejecutada | ✅ | `opencode mcp list`; `resolve-library-id` + `query-docs` (evidencia 03) |
 | MCP documentado (requisitos, config, verificación, troubleshooting) | ✅ | `README.md` § *MCP: Context7* + `docs/skills-mcp/mcp.json.example` |
 | MCP documentado como integración, no como skill | ✅ | `AGENTS.md` § *MCP: Context7* (fuera del registry) |
-| Change pendiente preparado con SDD (proposal/design/spec/tasks) | ✅ | `openspec/changes/c-06-reserva-online-publica/` (proposal, design, spec `reserva-publica`, tasks) |
+| Change pendiente preparado con SDD (proposal/design/spec/tasks) | ✅ | `openspec/changes/c-06-reserva-online-publica/` (proposal, design, spec `reserva-publica`, tasks) — **implementado y archivado el 2026-11-05** |
 | ≥3 escenarios verificables | ✅ | **48 escenarios** en 10 requirements |
 | Tareas con la forma de verificación de cada escenario | ✅ | **50 tareas**, cada una con el nombre exacto del test que la verifica |
 | Reglas del change revisadas contra la KB | ✅ | Revisión con la skill (`revision.md`); sin valores abiertos inventados |
@@ -54,18 +60,20 @@
 
 ## Estado de cierre
 
-1. **Commits y push**: completados en `master` (`8f0c5d0..8ec3a9a`).
+1. **Commits y push del TP2**: completados en `master` (`8f0c5d0..8ec3a9a`).
 2. **C-01**: implementado, verificado y archivado.
-3. **C-02 a C-04**: siguientes changes, a cargo de Martin Escudero.
-4. **C-06**: preparado, no implementado (lo exige el TP2).
+3. **C-02 a C-04**: implementados y archivados el 2026-11-03 (C-03 auth/RLS y C-04 catálogos quedaron cerrados ese mismo día).
+4. **C-06**: preparado en el corte del TP2 e **implementado y archivado el 2026-11-05**. Después se cerraron C-07 (2026-11-05), C-08 (2026-11-06), C-09 (2026-11-12), C-10 y C-11 (2026-11-13).
 5. **Video**: pendiente, se entrega fuera del repositorio.
+6. **Estado vigente**: 13 changes archivados, migraciones 001–009 verificadas contra PostgreSQL real, 678 tests verdes local y 720 con `C02_DATABASE_URL`. Ver [`README.md`](README.md).
 
 ## Reproducir
 
 ```bash
-cd C:\Users\tinch\Desktop\Turnos-Odontologia
+git clone https://github.com/MartinEscudero13/Turnos-Odontologia-COMPLETO.git
+cd Turnos-Odontologia-COMPLETO
 py -m pip install -r requirements-dev.txt
-py -m pytest tests/ -q                    # 114 tests
+py -m pytest tests/                       # 678 passed, 42 skipped
 py -m ruff check .
 py -m mypy --config-file pyproject.toml
 openspec validate --all --strict
@@ -84,5 +92,7 @@ curl --fail http://localhost:8000/api/health   # {"status":"UP",...}
 docker compose down
 ```
 
-Resultados esperados al cierre: **114 passed**, lint/typecheck en verde, `openspec validate --all --strict`
-sin fallos, `Skill is valid!`, `context7 connected` y health `UP`.
+Resultados esperados al 2026-11-13: **678 passed + 42 skipped**, lint/typecheck en verde,
+`openspec validate --all --strict` sin fallos (15/15), `Skill is valid!`, `context7 connected` y health
+`UP`. Para correr los 42 tests que requieren base viva, ver
+[`README.md` § Tests](README.md#suite-completa-con-postgresql-real).

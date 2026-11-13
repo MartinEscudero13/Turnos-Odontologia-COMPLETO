@@ -80,6 +80,24 @@ auditoria (tenant, actor, acción, entidad, antes/después, timestamp) — appen
 - `mensajes_wa`: `id`, `tenant_id`, `paciente_id`, `turno_id?`, `plantilla`, `estado(ENVIADO, ENTREGADO, LEIDO, FALLIDO)`, `provider_message_id unique?`.
 - `auditoria`: append-only `(tenant_id, actor_id, accion, entidad, entidad_id, antes jsonb, despues jsonb, at)`; sin UPDATE/DELETE (revoke).
 
+## Extensiones materializadas en migraciones (007–009)
+
+Además de las entidades planeadas arriba, las migraciones agregaron estas tablas y columnas. Son la
+fuente de verdad vigente; los `design.md` archivados de C-09, C-10 y C-11 documentan su semántica.
+
+| Migración | Objeto nuevo | Para qué |
+|---|---|---|
+| 007 | `odontograma_hallazgos`, `presupuestos`, `presupuesto_lineas`, `aceptaciones` | Odontograma FDI por diente/cara, presupuesto con ítems y aceptación por línea |
+| 008 | `movimientos_caja`, `cierres_diarios` | Caja multi-medio y cierre diario inmutable con snapshot de totales |
+| 008 | `cobros_pendientes` | Cobros de prestaciones atendidas aún no imputados a caja |
+| 008 | `ajustes_post_cierre` | Ledger separado para correcciones posteriores a un cierre (no reabre el cierre) |
+| 008 | `cuentas_por_cobrar_os` | Tramo OS **devengado informativo**, nunca un ingreso de caja |
+| 009 | `senas`, `pagos_mp` | Seña atada al turno y pagos de Mercado Pago con idempotencia por `mp_payment_id` |
+| 009 | `prestaciones.sena_modo`, `prestaciones.sena_valor` | Override por prestación de la regla de seña (PO-01) |
+
+Todas llevan `tenant_id NOT NULL` con RLS forzada. `senas.token_hash` y `pagos_mp.mp_payment_id` son
+únicos globales (no por tenant) para que el webhook público resuelva sin filtrar existencia entre tenants.
+
 ## Seed data inicial
 
 - Por tenant nuevo: roles (ADMIN/RECEPCION/ODONTOLOGO), estados de turno, medios de pago, 1 sillón ("Sillón 1"), prestaciones base (Consulta, Limpieza — duración/precio editables), plantillas WA (confirmación, recordatorio 24 h, cancelación, auto-oferta), parámetros (anticipación cancelación default 24 h, política de seña).

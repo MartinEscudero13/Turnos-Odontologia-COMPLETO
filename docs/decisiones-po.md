@@ -181,7 +181,7 @@ acá y el design del change la cita como `C11-OQ-N`.
   abierta; DD-06 asume paciente sin login).
 - `knowledge-base/11_integraciones.md` §WhatsApp — alcance v1 y guion de demo.
 - `CHANGES.md` — C-10 (caja), C-11 (señas) y C-13 (WhatsApp).
-- `openspec/changes/c-10-caja-cierre-diario/design.md` — estas 10 decisiones se citan
+- `openspec/changes/archive/2026-11-13-c-10-caja-cierre-diario/design.md` — estas 10 decisiones se citan
   como `C10-OQ-N` en el diseño y en los escenarios.
-- `openspec/changes/c-11-senas-mercadopago/design.md` §Open Questions — las OQ de C-11 se citan
+- `openspec/changes/archive/2026-11-13-c-11-senas-mercadopago/design.md` §Open Questions — las OQ de C-11 se citan
   como `C11-OQ-N` en el diseño, las delta specs y las tareas.

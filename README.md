@@ -2,6 +2,21 @@
 
 SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real, reserva online, WhatsApp, Mercado Pago y obras sociales.
 
+## Estado del proyecto (corte 2026-11-13)
+
+| | |
+|---|---|
+| Changes archivados | **13** de 17 — C-01…C-11, F-01, F-02 |
+| Specs vivas | **15** capabilities en `openspec/specs/` |
+| Migraciones | 001 → **009**, con `downgrade` verificado contra PostgreSQL real |
+| Tests backend | **678 passed, 42 skipped** en local · **720 passed, 0 skipped** con `C02_DATABASE_URL` |
+| Calidad | `mypy` 101 archivos · `ruff check .` · `openspec validate --all --strict` (15/15) en verde |
+| Frontend | Landing pública F-02 (reserva + gestión por token) con tests, lint, typecheck y build |
+
+> ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: el dominio de
+> C-05…C-11 está implementado y probado, pero sus routers **no están montados** todavía en `create_app`.
+> Está explicado sin vueltas más abajo.
+
 ## Equipo
 
 Trabajo grupal de **Martin Escudero** y **Lautaro Naranjo**. Alcance, roles y aclaración sobre entregas anteriores: [`AUTHORS.md`](AUTHORS.md).
@@ -34,8 +49,8 @@ docker compose version
 ## Instalación
 
 ```bash
-git clone <url-del-repo>
-cd Turnos-Odontologia
+git clone https://github.com/MartinEscudero13/Turnos-Odontologia-COMPLETO.git
+cd Turnos-Odontologia-COMPLETO
 py -m pip install -r requirements-dev.txt
 cd frontend
 npm ci
@@ -46,10 +61,31 @@ docker compose up -d --build
 
 Para solo compilar o inspeccionar la base compilada, ver `docs/foundation/bootstrap.md` y `scripts/verify-foundation.ps1`.
 
+## Cómo se levanta y qué responde hoy
+
+```bash
+docker compose up -d db            # PostgreSQL 15 en localhost:5433
+
+# migraciones 001 → 009 (el rol owner es el único que puede correr DDL)
+$env:DATABASE_OWNER_URL = "postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos"
+py -m alembic -c backend/alembic.ini upgrade head
+
+# API con el rol de aplicación (sin privilegios de owner)
+$env:DATABASE_URL = "postgresql+psycopg://turnos_app:dev-only-app-password@localhost:5433/turnos"
+cd backend; py -m uvicorn app.main:app --reload --port 8000
+```
+
+- **Swagger**: <http://localhost:8000/docs> · **OpenAPI**: <http://localhost:8000/openapi.json>
+- **Health**: `GET /api/health` → `{"status":"UP",...}`
+- **Rutas vivas en el bootstrap actual**: `health`, `auth` (login/refresh/logout/me/2FA), `catalogos`
+  (profesionales, sillones, prestaciones, horarios, bloqueos, pacientes).
+- **Rutas documentadas pero no montadas**: turnos, reserva pública, lista de espera, ficha clínica,
+  odontograma, presupuesto, caja y señas. Ver [Límites declarados](#límites-declarados-del-alcance).
+
 ## Tests
 
 ```bash
-py -m pytest tests/ -q
+py -m pytest tests/                       # 678 passed, 42 skipped (addopts ya trae -q)
 py -m ruff check .
 py -m mypy --config-file pyproject.toml
 
@@ -60,7 +96,25 @@ npm test
 npm run build
 ```
 
-Estado verificado al cierre de **F-02 (2026-11-05)**: backend `208 passed, 4 skipped`; frontend `32 passed` + lint/typecheck/build en verde; `openspec validate f-02-reserva-publica-landing --strict` limpio; screenshots 375/768/1440 en `openspec/changes/f-02-reserva-publica-landing/mockups/previews/`.
+### Suite completa con PostgreSQL real
+
+Los 42 tests que se saltean en local son los que necesitan una base viva (RLS real, `EXCLUDE` de
+anti-solape, carreras entre dos conexiones, migraciones). Para correrlos:
+
+```bash
+docker compose up -d db
+$env:C02_DATABASE_URL = "postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos"
+py -m pytest tests/                       # 720 passed, 0 skipped
+docker compose stop db
+```
+
+Si `C02_DATABASE_URL` no está definida, esos tests se saltean de forma explícita (no fallan en
+silencio). El gate de cada change exige `skipped == 0` con la variable seteada.
+
+Estado verificado al cierre de **C-11 (2026-11-13)**: backend `678 passed, 42 skipped` local y
+`720 passed, 0 skipped` con PostgreSQL; `mypy` y `ruff` en verde; `openspec validate --all --strict`
+15/15. El estado del frontend corresponde a **F-02 (2026-11-05)**: `32 passed` + lint/typecheck/build
+en verde, screenshots 375/768/1440 en `openspec/changes/archive/2026-11-05-f-02-reserva-publica-landing/mockups/previews/`.
 
 ## Type hints
 
@@ -156,38 +210,45 @@ ni de tests.
 | Directorio / archivo | Qué es |
 |----------------------|--------|
 | `backend/app/core/` | Core de la fundación C-01: `Settings`, logger JSON sin PHI, correlation IDs, excepciones |
-| `backend/app/routers/health.py` | `GET /api/health` |
+| `backend/app/app.py` | Factory FastAPI (`create_app`) con middleware y mapeo de errores; hoy monta `health`, `auth` y `catalogos` |
+| `backend/app/main.py` | Entrypoint Uvicorn (`app.main:app`) usado por el contenedor |
 | `backend/app/db.py` | Engine/session factories SQLAlchemy 2.0 |
-| `backend/app/app.py` | Factory FastAPI y middleware |
 | `backend/app/turnos/` | Dominio C-05: `overlap()`, cálculo de `fin`, 3 alternativas ante 409, máquina de estados, servicio + auditoría |
-| `backend/app/reservas/` | Dominio C-06 + catálogo F-02: puertos/adaptadores en memoria, disponibilidad pública, verificación, tokens, servicio y antispam |
-| `backend/app/routers/reservas_publicas.py` | Rutas públicas `/api/publico/{tokenTenant}/…` (catálogo, disponibilidad, reserva, gestión) |
+| `backend/app/reservas/` | Dominio C-06 + catálogo F-02: puertos/adaptadores, disponibilidad pública, verificación, tokens, antispam |
+| `backend/app/lista_espera/` | C-07: cola de espera, auto-oferta ante hueco liberado y vencimiento de ofertas |
+| `backend/app/ficha_clinica/` | C-08: ficha clínica y consentimiento informado con control de acceso |
+| `backend/app/odontograma/` | C-09: odontograma FDI por diente/cara y hallazgos |
+| `backend/app/presupuesto/` | C-09: presupuesto con ítems, aceptación y vínculo con el odontograma |
+| `backend/app/caja/` | C-10: movimientos multi-medio, imputación de prestaciones, cobros pendientes, anulación y ajustes post-cierre |
+| `backend/app/caja/cierre.py` | C-10: cierre diario inmutable con `pg_advisory_xact_lock` y snapshot de totales |
+| `backend/app/senas/` | C-11: seña atada al turno, preferencia MP, webhook idempotente, expiración, aplicación a caja y devoluciones |
+| `backend/app/routers/` | Routers inyectables por change (`crear_router` / `crear_app…`): `turnos`, `reservas_publicas`, `lista_espera`, `ficha_clinica`, `odontograma`, `presupuesto`, `caja`, `senas`, `senas_internas`, `webhooks_mp` |
+| `backend/app/routers/health.py` | `GET /api/health` |
+| `backend/app/routers/auth.py` | `/api/auth/login`, `refresh`, `logout`, `me`, `admin-check` (montado) |
+| `backend/app/routers/catalogos.py` | CRUD de catálogos y pacientes con RBAC (montado) |
 | `backend/app/schemas/` | Schemas Pydantic v2 del borde API (strict donde el contrato lo exige) |
-| `backend/app/models/` | Modelos SQLAlchemy (`tenant_id` everywhere, `timestamptz`, CHECKs) |
+| `backend/app/models/` | Modelos SQLAlchemy (`tenant_id` everywhere, `timestamptz`, CHECKs, RLS) |
 | `backend/app/auth/` | Autenticación C-03: Argon2, JWT, refresh tokens, TOTP, rate-limit |
-| `backend/app/models/catalogos.py` | Profesionales, sillones, prestaciones, horarios, bloqueos y pacientes C-04 |
-| `backend/app/routers/catalogos.py` | CRUD de catálogos y pacientes con RBAC |
-| `backend/app/routers/auth.py` | Endpoints `/api/auth/login`, `refresh`, `logout`, `me`, `admin-check` |
-| `backend/app/routers/` | Router FastAPI `/api/turnos` + `/api/auth`; C-05 mantiene actor por headers provisorio |
-| `backend/alembic/versions/` | Migraciones: 001 núcleo tenant + RLS, 002 catálogo C-04, 003 turnos, 004 auth |
+| `backend/alembic/versions/` | 001 núcleo tenant + RLS · 002 catálogo/pacientes · 003 turnos · 004 auth · 005 lista de espera · 006 ficha clínica · 007 odontograma/presupuesto · 008 caja/cierre · 009 señas/pagos MP |
 | `backend/seed_test.py` | Seed ficticio idempotente (`aplicar_seed()` + `seed_sql()` para PG real) |
 | `backend/requirements.txt` | Pines de runtime verificados |
 | `requirements-dev.txt` | Pines de desarrollo y CI |
 | `frontend/` | SPA React + TypeScript + Vite, lint/typecheck/test/build. Incluye la landing pública `/r/:tokenTenant` (F-02) y la gestión por token `/r/:tokenTenant/turno/:token` |
 | `docs/api-publica-reserva.md` | Contrato público que consume la landing (allow-list y códigos) |
-| `docs/decisiones-oq.md` | Resolución de OQ-1..OQ-9 de C-06 (TTL, captcha, rate-limit, horizonte, etc.) |
+| `docs/decisiones-oq.md` | Resolución de OQ-1..OQ-9 de C-06 |
+| `docs/decisiones-po.md` | Decisiones de producto PO-01/PO-03/PO-06 y las OQ de C-09, C-10 y C-11 |
 | `docker-compose.yml` | Servicios locales `api`, `web`, `db` y `redis` con healthchecks |
 | `.env.example` | Variables de entorno ejemplo sin secretos reales |
 | `.github/workflows/quality.yml` | CI paralela: backend, frontend y Compose |
-| `tests/` | Suite histórica C-05 más tests de fundación C-01 |
-| `openspec/specs/turnos-anti-solape/` | Spec vigente de C-05 (requisitos y escenarios aprobados) |
-| `openspec/changes/` | Planning artifacts; C-01 archived al cerrar esta entrega |
+| `tests/` | Suite completa por change: fundación, auth, catálogos, turnos, reservas, lista de espera, ficha, odontograma, presupuesto, caja, señas, migraciones y aislamiento |
+| `openspec/specs/` | 15 specs vivas (una por capability) |
+| `openspec/changes/archive/` | 13 changes archivados con proposal, design, specs y tasks |
 | `docs/foundation/bootstrap.md` | Setup, verificación, compose, troubleshooting |
 | `docs/foundation/verification-report.md` | Evidencia ejecutable del cierre C-01 |
 | `docs/discovery/` | Informe y checklist de Discovery |
 | `docs/skills-mcp/` | TP «skill propia + MCP»: ficha de investigación, ejemplo de configuración de Context7, vendor de la skill creadora y evidencias |
 | `knowledge-base/` | Dominio: visión, stack, actores/RBAC, modelo de datos, reglas de negocio, funcionalidades, flujos, arquitectura, decisiones, preguntas abiertas, integraciones |
-| `CHANGES.md` | Índice canónico de los 15 changes y su estado |
+| `CHANGES.md` | Índice canónico de los 17 changes y su estado |
 
 ## Estado del ciclo C-01 (`foundation-setup`)
 
@@ -196,7 +257,7 @@ ni de tests.
 - **Verificación ejecutable**: [`docs/foundation/verification-report.md`](docs/foundation/verification-report.md).
 - **Archivo archivado**: `openspec/changes/archive/2026-11-03-c-01-foundation-setup/`; spec principal en `openspec/specs/foundation-setup/spec.md`; 8 requisitos aprobados.
 - **Desvío documentado**: 001 y 002 están implementadas; 003 y 004 también.
-- **Siguiente**: C-03 `auth-rbac-auditoria`.
+- **Continuación histórica**: en ese corte el siguiente change era C-03 `auth-rbac-auditoria` (cerrado el 2026-11-03).
 
 ## Estado del ciclo C-04 (`catalogos-pacientes-base`)
 
@@ -237,7 +298,7 @@ ni de tests.
 - **Spec aprobado**: [`openspec/specs/turnos-anti-solape/spec.md`](openspec/specs/turnos-anti-solape/spec.md) — 6 requisitos (anti-solape por profesional/sillón con 409 + 3 alternativas, adyacencia exacta, cancelados/reprogramados que liberan hueco, sobreturno explícito auditado, cancelar/reprogramar con anticipación).
 - **Tests**: [`tests/`](tests/) — 104/104 en verde con `py -m pytest tests/ -q`.
 - **Desvíos documentados del ciclo**: sin PostgreSQL en el entorno (revisión 003 verificada por tests estructurales, no contra DB viva); tasks 4.1–4.3 green-first de aceptación (RED por módulo observado en 1.x–3.x, y 4.1 aportó un fallo real que se corrigió); sin chequeo automático de hints (para el CI de C-01). Detalle en `reimplementacion-python.md` del archive.
-- **Siguiente**: `C-06 reserva-online-publica` (depende de C-05 archivado).
+- **Continuación histórica**: en ese corte el siguiente change era C-06 `reserva-online-publica` (cerrado el 2026-11-05).
 
 ## Estado del ciclo C-06 (`reserva-online-publica`)
 
@@ -254,6 +315,14 @@ ni de tests.
 - **Archivo**: `openspec/changes/archive/2026-11-05-f-02-reserva-publica-landing/`; capturas en `.../mockups/previews/`.
 - **Pendiente declarado**: proveedor real de captcha (hoy placeholder accesible), confirmación por WhatsApp/email (C-13) y wiring real del backend en la demo (D9 de C-06).
 
+## Estado de los ciclos C-07 a C-11
+
+- **C-07 `lista-espera-auto-oferta`** — archivado el 2026-11-05. Cola de espera por prestación/profesional, auto-oferta ante hueco liberado, aceptación/rechazo por token y vencimiento de la oferta con reintento al siguiente candidato. 42 tests nuevos.
+- **C-08 `ficha-clinica-consentimiento`** — archivado el 2026-11-06. Ficha clínica con control de acceso por rol y consentimiento informado versionado. 46 tests nuevos.
+- **C-09 `odontograma-presupuesto`** — archivado el 2026-11-12. Odontograma FDI por diente/cara, presupuesto con ítems y aceptación, e imputación posterior a caja. Migración 007. Suite 416 passed + 10 skipped local; 426 + 0 con PostgreSQL.
+- **C-10 `caja-cierre-diario`** — archivado el 2026-11-13. Movimientos multi-medio, imputación de prestaciones y obras sociales, cobros pendientes, anulación con motivo, **cierre diario inmutable** con `pg_advisory_xact_lock` y snapshot de totales, ajustes post-cierre en ledger separado y reportes base. Migración 008. Suite 552 + 27 local; 579 + 0 con PostgreSQL.
+- **C-11 `senas-mercadopago`** — archivado el 2026-11-13. Seña atada 1:1 al turno (monto por prestación con override, truncado hacia abajo), preferencia de Mercado Pago con reintento y backoff, token público opaco, **webhook idempotente que verifica HMAC y re-consulta el pago** (nunca confía en el cuerpo; `503` fail-closed sin secreto), expiración atómica con auto-oferta a C-07, aplicación a caja vía C-10 con bloqueo por presupuesto aceptado, devolución como estado contable y transferencia de la seña al reprogramar. Migración 009. Suite 678 + 42 local; 720 + 0 con PostgreSQL.
+
 ## Alcance completo vs pendiente (TPI)
 
 | Área | Estado |
@@ -262,8 +331,43 @@ ni de tests.
 | Agenda anti-solape (C-05) | ✅ archivada y reimplementada en Python |
 | Reserva online + landing (C-06, F-02) | ✅ archivadas, con tests de backend y frontend |
 | Fundación visual (F-01) | ✅ archivada |
+| Lista de espera con auto-oferta (C-07) | ✅ archivada |
+| Ficha clínica y consentimiento (C-08) | ✅ archivada |
+| Odontograma y presupuesto (C-09) | ✅ archivada |
+| Caja y cierre diario (C-10) | ✅ archivada |
+| Señas con Mercado Pago (C-11) | ✅ archivada |
 | Skill propia + MCP | ✅ `revisor-escenarios-turnos`, `visual-turnos` y MCP Context7 documentados y aplicados |
-| C-07…C-15 (caja, OS, WhatsApp, Mercado Pago, reportes, etc.) | ⏳ pendientes del roadmap; el TPI admite alcance parcial |
+| C-12 obras sociales · C-14 Google Calendar · C-15 admin y reportes | ⏳ pendientes del roadmap |
+| C-13 WhatsApp | ⛔ bloqueado por PO-03 (no hay proveedor/BSP definido) |
+| UI de agenda, ficha, odontograma, caja y señas | ⛔ diferida a `C-09-UI`, `C-10-UI` y `C-11-UI` (changes aún no creados) |
+| Montaje de los routers de C-05…C-11 en `create_app` | ⛔ **pendiente** (ver límites) |
+
+## Límites declarados del alcance
+
+El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son los límites reales al
+2026-11-13, sin maquillaje:
+
+1. **El bootstrap de la API no monta C-05…C-11.** `backend/app/app.py` registra solo `health`, `auth` y
+   `catalogos`. Los demás routers existen y son inyectables (`crear_router(svc)`, `crear_app_…`), y sus
+   servicios están cubiertos por la suite, pero **no se engancharon a la app de producción**. Los
+   repositorios SQLAlchemy de caja, presupuesto y señas también existen y no están cableados al
+   arranque. Consecuencia concreta: por `uvicorn` solo se pueden crear turnos de catálogo y autenticarse;
+   no se puede reservar online, cobrar ni pagar una seña desde Swagger.
+2. **La persistencia real solo aplica a `auth` y `catalogos`.** El resto de los dominios corre sobre
+   puertos con adaptadores en memoria en tests y demostraciones. Los repositorios SQL están escritos y
+   probados contra PostgreSQL, pero no reemplazan a los adaptadores en el camino de la API.
+3. **Sin UI para los changes nuevos.** La única interfaz es la landing pública de F-02 y la fundación
+   visual de F-01. Agenda, ficha, odontograma, presupuesto, caja y señas son backend-only.
+4. **Integraciones externas simuladas.** Mercado Pago se ejercita con un adaptador fake que respeta el
+   contrato (firma HMAC, re-consulta del pago); no hay credenciales ni llamadas reales al proveedor.
+   WhatsApp no está implementado y Google Calendar no empezó.
+5. **Reembolso de seña manual.** El estado `DEVUELTA` es contable: el reintegro en Mercado Pago lo ejecuta
+   una persona desde el panel del proveedor. No hay API de reembolsos.
+6. **El ingreso de la seña queda con `tramo=NULL`.** `ServicioCaja.registrar_movimiento` no expone ese
+   parámetro y C-11 no puede escribir `movimientos_caja` directo. Corregirlo es un cambio en C-10.
+7. **El access log del servidor HTTP puede registrar el token público** de `/pagar/:tokenSena`. El log
+   estructurado de la aplicación lo redacta y hay test que lo verifica; la redacción del access log es
+   de infraestructura.
 
 ## Datos y secretos
 

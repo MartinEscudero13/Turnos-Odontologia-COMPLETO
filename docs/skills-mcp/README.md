@@ -20,5 +20,6 @@
   (nunca al repo).
 - **No es una skill**: Context7 es una integración MCP; no se registra en el skill registry ni se carga con
   la herramienta `skill`.
-- **C-06** sigue en estado `[ ]` (**preparado, no implementado**); ver
-  `openspec/changes/c-06-reserva-online-publica/`.
+- **C-06** quedó **implementado y archivado el 2026-11-05**; las evidencias de esta carpeta se tomaron
+  cuando el change estaba `[ ]` (preparado), así que citan la ruta previa al archivo. El change vive ahora
+  en `openspec/changes/archive/2026-11-05-c-06-reserva-online-publica/`.

@@ -9,25 +9,40 @@ Leé completo CONTINUAR.md, AGENTS.md, AUTHORS.md y docs/equipo/guia-lautaro.md.
 
 No modifiques nada todavía.
 Resumime:
-1) qué está terminado,
-2) qué falta para C-06,
-3) el plan TDD de las 50 tareas,
+1) qué está terminado hasta C-11,
+2) qué falta para el próximo change (C-12 obras sociales),
+3) qué deudas de integración están declaradas y en qué orden conviene cerrarlas,
 4) qué preguntas abiertas bloquean la implementación.
 
 Después esperá mi confirmación antes de tocar archivos.
 ```
 
-## Estado
+## Estado (2026-11-13)
 
-- C-01 a C-04, C-05 y F-01: **terminados y archivados**.
+- C-01 a C-11, F-01 y F-02: **terminados, verificados y archivados** (13 changes).
 - TP2 skill + MCP: **terminado y pusheado**.
-- **C-06 `reserva-online-publica`: siguiente trabajo, 0/50 tareas.**
+- Backend: **678 passed + 42 skipped** en local · **720 passed + 0 skipped** con `C02_DATABASE_URL`.
+- Migraciones **001 a 009** aplicadas y reversibles contra PostgreSQL real.
+- **Próximo trabajo del roadmap**: C-12 `obras-sociales-liquidacion`.
+- **C-13 `whatsapp-recordatorios` sigue bloqueado** por PO-03 (no hay proveedor/BSP definido).
 - Video del TP2: **no hace falta ahora**; queda para cuando se pida.
+
+## Deudas declaradas (leer antes de proponer nada)
+
+1. Los routers de C-05 a C-11 existen y son inyectables, pero **no están montados** en
+   `backend/app/app.py` (hoy solo `health`, `auth` y `catalogos`). Sin eso no hay demo end-to-end.
+2. La UI de C-09, C-10 y C-11 está diferida a `C-09-UI`, `C-10-UI` y `C-11-UI`, y esos changes no existen todavía.
+3. El ERD de `knowledge-base/04_modelo_de_datos.md` no incluye las tablas 007/008/009.
+
+Detalle completo en [`README.md` § Límites declarados del alcance](README.md#límites-declarados-del-alcance).
 
 ## Lo único que necesita hacer Lautaro
 
 1. Tener el repo actualizado.
-   - Si ya lo clonó y está en `master`, no hace falta nada.
+   - Si ya lo clonó y está en `master`:
+     ```bash
+     git pull --ff-only
+     ```
    - Si el clone es viejo o tiene conflictos:
      ```bash
      git fetch origin
@@ -50,12 +65,14 @@ git config --local user.name "Lautaro Naranjo"
 git config --local user.email "228012306+lauty-naranjo@users.noreply.github.com"
 ```
 
-## Antes de implementar C-06
+## Antes de implementar el próximo change
 
-- Cargar `revisor-escenarios-turnos` y auditar `openspec/changes/c-06-reserva-online-publica`.
+- Cargar `revisor-escenarios-turnos` y auditar la spec antes de escribir código. Es obligatoria para
+  cualquier change que toque agenda, turnos, anticipación, pagos, caja, obras sociales o lista de espera.
 - Cargar `visual-turnos` para cualquier pantalla nueva.
 - Leer `PRODUCT.md`, `DESIGN.md` y `docs/design/README.md`.
-- No tocar C-01 a C-04 ni la fundación visual sin hablarlo con Martin.
+- Correr la suite completa con PostgreSQL antes de archivar: `skipped == 0` es condición de cierre.
+- No tocar la fundación (C-01 a C-04) ni la fundación visual (F-01) sin hablarlo con Martin.
 
 ## Guía extendida
 
