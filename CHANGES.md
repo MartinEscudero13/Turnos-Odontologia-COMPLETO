@@ -321,7 +321,10 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ---
 
 ### [C-11] `senas-mercadopago`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-13; backend + contratos + migración 009 + delta specs alineadas; 678 passed + 42 skipped en suite local, 720 passed + 0 skipped con PostgreSQL real `C02_DATABASE_URL`, `mypy` (101 archivos) / `ruff check .` / `openspec validate --all --strict` en verde) + archivado en `openspec/changes/archive/2026-11-13-c-11-senas-mercadopago/`
+  - **Migración 009 aplicada y reversible**: `senas`, `pagos_mp` + `prestaciones.sena_modo`/`sena_valor` (RLS forzada fail-closed, `mp_payment_id` y `token_hash` únicos globales), verificada contra PostgreSQL real.
+  - **Diferido a `C-11-UI`**: la página `/pagar/:tokenSena` y la vista de la seña en agenda (tasks §12); C-11 no declara requirements de UI.
+  - **Limitaciones declaradas**: (1) el `INGRESO` de la seña queda con `tramo=NULL` porque `ServicioCaja.registrar_movimiento` no expone ese parámetro — corregirlo es un cambio en C-10; (2) el access log del servidor HTTP puede registrar el token público aunque el log de la aplicación lo redacta; (3) la devolución es un estado contable: el reintegro en Mercado Pago es manual y requiere un responsable operativo asignado.
 - **Scope**: Seña online atada a reserva con liberación automática y webhook idempotente (US-041; RN-SE-01/02/03/04/05) — ✅ PO-01 resuelta: default por tenant + override opcional por prestación (`docs/decisiones-po.md`); quedan provisionales monto/% y anticipación de cancelación (24 h)
   - Modelos: `Sena(tenant, turno unique?, monto, estado PENDIENTE/ACREDITADA/LIBERADA/APLICADA/DEVUELTA, mp_preference_id, expira_at SENA_TTL_H)` + `PagoMP(mp_payment_id unique, sena, monto, estado, raw_json, received_at)`
   - Flujo: prestación con `requiere_sena` → seña PENDIENTE + preferencia MP → `/pagar/:tokenSena` → webhook `POST /api/webhooks/mercadopago` idempotente (duplicado → 200 sin efecto) → ACREDITADA → turno CONFIRMADO; expira sin pago → turno liberado + dispara auto-oferta (C-07)
