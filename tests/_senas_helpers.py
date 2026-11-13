@@ -43,9 +43,11 @@ from app.reservas.antispam import ContadorMemoria
 from app.reservas.puertos import TenantMemoria
 from app.routers.caja import crear_app as crear_app_caja
 from app.routers.senas import crear_app_senas
+from app.routers.senas_internas import crear_app_senas_internas
 from app.routers.webhooks_mp import crear_app_webhooks
 from app.senas.adaptadores import AplicacionCajaServicio
 from app.senas.aplicacion import ServicioSenasAplicacion
+from app.senas.consulta import ServicioSenasConsulta
 from app.senas.puertos import (
     AdaptadorPasarelaFake,
     AuditoriaSenaMemoria,
@@ -335,6 +337,7 @@ class HarnessSenaCiclo:
         turno_estado: str = "PENDIENTE",
         inicio: datetime | None = None,
         ahora: datetime | None = None,
+        paciente_id: str | None = PACI1,
     ) -> Sena:
         """Crea el turno y la seña en el estado pedido (datos ficticios)."""
         momento = ahora or self.ahora
@@ -344,6 +347,7 @@ class HarnessSenaCiclo:
             turno_id=turno_id,
             inicio=comienzo,
             estado=turno_estado,
+            paciente_id=paciente_id,
         )
         sena = self.senas.crear(
             tenant_id=tenant_id,
@@ -472,6 +476,7 @@ class HarnessSenaAplicacion:
     def __init__(self, *, ahora: datetime | None = None) -> None:
         self.ahora = ahora or AHORA
         self.senas = SenaMemoria(reloj=lambda: self.ahora)
+        self.pagos = PagoMPMemoria(reloj=lambda: self.ahora)
         self.turnos = TurnoMemoriaSena()
         self.auditoria = AuditoriaSenaMemoria()
         self.presupuestos = PresupuestosMemoria()
@@ -518,6 +523,12 @@ class HarnessSenaAplicacion:
             uow_factory=lambda: UnidadDeTrabajoMemoria(self.senas, self.auditoria),
         )
         self.client_caja = TestClient(crear_app_caja(self.caja))
+        self.consulta = ServicioSenasConsulta(
+            self.senas, self.pagos, reloj=lambda: self.ahora
+        )
+        self.client_interno = TestClient(
+            crear_app_senas_internas(self.consulta, self.svc)
+        )
 
     # -- siembra ---------------------------------------------------------
 

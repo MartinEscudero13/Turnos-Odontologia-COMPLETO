@@ -310,6 +310,7 @@ class ServicioSenas:
             despues={
                 "mp_preference_id": preferencia.mp_preference_id,
                 "intento": actual.intentos_preferencia,
+                "monto_centavos": actual.monto_centavos,
             },
         )
         return actual
@@ -340,7 +341,11 @@ class ServicioSenas:
             tenant_id=sena.tenant_id,
             accion="SENA_PREFERENCIA_FALLIDA",
             sena=actual,
-            despues={"intento": intentos, "motivo": "pasarela_no_disponible"},
+            despues={
+                "intento": intentos,
+                "motivo": "pasarela_no_disponible",
+                "monto_centavos": actual.monto_centavos,
+            },
         )
         return actual
 
@@ -392,6 +397,7 @@ class ServicioSenas:
                         "estado": "LIBERADA",
                         "motivo_liberacion": MOTIVO_CANCELACION,
                         "turno_id": liberada.turno_id,
+                        "monto_centavos": liberada.monto_centavos,
                     },
                 )
                 return liberada
@@ -418,6 +424,7 @@ class ServicioSenas:
                         "estado": "DEVUELTA",
                         "motivo_devolucion": "POLITICA_CANCELACION",
                         "devuelta_por": None,
+                        "monto_centavos": devuelta.monto_centavos,
                     },
                 )
                 return devuelta
@@ -458,6 +465,7 @@ class ServicioSenas:
                         "turno_id": turno_anterior,
                         "turno_nuevo": turno_nuevo,
                         "motivo": f"ESTADO_{sena.estado}",
+                        "monto_centavos": sena.monto_centavos,
                     },
                 )
                 return None
@@ -506,6 +514,7 @@ class ServicioSenas:
                     "turno_id": turno_nuevo,
                     "expira_at": actualizada.expira_at.isoformat(),
                     "estado": actualizada.estado,
+                    "monto_centavos": actualizada.monto_centavos,
                     "token_reemitido": reemitido,
                 },
             )

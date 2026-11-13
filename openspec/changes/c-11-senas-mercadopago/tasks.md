@@ -414,49 +414,50 @@
 
 ## 11. RBAC, aislamiento, auditoría y PHI
 
-- [ ] 11.1 Escribir y hacer pasar `tests/test_api_senas.py::test_odontologo_lee_no_aplica`
+- [x] 11.1 Escribir y hacer pasar `tests/test_api_senas.py::test_odontologo_lee_no_aplica`
   (U3 ⇒ `200` al leer y `403` al aplicar, sin movimientos).
-- [ ] 11.2 Escribir y hacer pasar `tests/test_api_senas.py::test_recepcion_aplica_no_devuelve`
+- [x] 11.2 Escribir y hacer pasar `tests/test_api_senas.py::test_recepcion_aplica_no_devuelve`
   (U1 ⇒ `200` al aplicar y `403` al devolver).
-- [ ] 11.3 Escribir y hacer pasar `tests/test_api_senas.py::test_admin_aplica_y_devuelve`
+- [x] 11.3 Escribir y hacer pasar `tests/test_api_senas.py::test_admin_aplica_y_devuelve`
   (U2 ⇒ `APLICADA` y `DEVUELTA`, ambas auditadas con U2).
-- [ ] 11.4 Escribir y hacer pasar `tests/test_api_senas.py::test_paciente_401`
+- [x] 11.4 Escribir y hacer pasar `tests/test_api_senas.py::test_paciente_401`
   (identidad de paciente en listar/aplicar/devolver ⇒ `401`, sin exponer ni modificar nada).
-- [ ] 11.5 Escribir y hacer pasar `tests/test_api_senas.py::test_schema_rechaza_campos_extra`
+- [x] 11.5 Escribir y hacer pasar `tests/test_api_senas.py::test_schema_rechaza_campos_extra`
   (`tenant_id`, `paciente_nombre`, `monto_centavos` donde no corresponde ⇒ `422`).
-- [ ] 11.6 Escribir y hacer pasar
+- [x] 11.6 Escribir y hacer pasar
   `tests/test_aislamiento_senas.py::test_sena_de_t1_no_se_lee_desde_t2`
   (lectura por id desde T2 ⇒ `404` y ningún dato de T1).
-- [ ] 11.7 Escribir y hacer pasar
+- [x] 11.7 Escribir y hacer pasar
   `tests/test_aislamiento_senas.py::test_aplicar_desde_otro_tenant_404`
   (⇒ `404` y ningún movimiento en T2).
-- [ ] 11.8 Escribir y hacer pasar
+- [x] 11.8 Escribir y hacer pasar
   `tests/test_aislamiento_senas.py::test_webhook_no_cruza_tenants`
   (metadata de T2 con `sena_id` de T1 ⇒ no acredita, `500`, log con ids).
-- [ ] 11.9 Escribir y hacer pasar `tests/test_aislamiento_senas.py::test_listado_no_mezcla`
+- [x] 11.9 Escribir y hacer pasar `tests/test_aislamiento_senas.py::test_listado_no_mezcla`
   (`GET /api/senas` de T1 devuelve sólo las de T1).
-- [ ] 11.10 Escribir el test de auditoría (rojo) y hacerlo pasar:
+- [x] 11.10 Escribir el test de auditoría (rojo) y hacerlo pasar:
   `tests/test_auditoria_senas.py::test_cada_transicion_audita`
   (`SENA_CREADA`, `SENA_PREFERENCIA_CREADA`, `SENA_ACREDITADA`, `SENA_APLICADA`,
   `SENA_DEVUELTA`, `SENA_LIBERADA`, `SENA_TRANSFERIDA`, `SENA_REEMBOLSO_MP` con `sena_id`, monto,
   actor y `antes`/`después`).
-- [ ] 11.11 Escribir y hacer pasar
+- [x] 11.11 Escribir y hacer pasar
   `tests/test_auditoria_senas.py::test_webhook_rechazado_no_copia_cuerpo`
-  (firma inválida ⇒ `SENA_WEBHOOK_RECHAZADO` con ids y motivo de dominio, sin cuerpo ni datos del
-  pagador).
-- [ ] 11.12 Escribir y hacer pasar `tests/test_auditoria_senas.py::test_raw_json_minimizado`
+  (firma inválida ⇒ `401` con **log estructurado** de `mp_payment_id` y motivo de dominio, **sin**
+  fila de auditoría: la firma se verifica antes de resolver el tenant y no se inventa uno; nunca
+  copia el cuerpo ni datos del pagador).
+- [x] 11.12 Escribir y hacer pasar `tests/test_auditoria_senas.py::test_raw_json_minimizado`
   (`raw_json` sólo con id, estado, detalle, monto, moneda, `date_approved`, referencia y metadata;
   sin email, nombre, tarjeta ni cuotas, C11-OQ-11).
-- [ ] 11.13 Escribir y hacer pasar `tests/test_errors_phi.py::test_error_de_sena_sin_phi`
+- [x] 11.13 Escribir y hacer pasar `tests/test_errors_phi.py::test_error_de_sena_sin_phi`
   (el error de dominio y el log llevan sólo código, `sena_id`, `tenant_id` y monto).
-- [ ] 11.14 Escribir y hacer pasar `tests/test_auditoria_senas.py::test_auditoria_append_only`
+- [x] 11.14 Escribir y hacer pasar `tests/test_auditoria_senas.py::test_auditoria_append_only`
   (`UPDATE`/`DELETE` sobre una entrada de señas rechazados; la entrada original permanece).
-- [ ] 11.15 Escribir y hacer pasar
+- [x] 11.15 Escribir y hacer pasar
   `tests/test_api_senas.py::test_listado_por_inicio_del_turno`
   (`GET /api/senas?desde=2026-11-15&hasta=2026-11-30` devuelve sólo la seña cuyo `turno.inicio`
   cae en el rango, aunque la seña se haya creado antes; el filtro es sobre `turno.inicio` y no
   sobre `creado_en` ni `expira_at`, C11-OQ-10).
-- [ ] 11.16 Escribir y hacer pasar
+- [x] 11.16 Escribir y hacer pasar
   `tests/test_aislamiento_senas.py::test_devolver_desde_otro_tenant_404`
   (U2 `ADMIN` de T2 llama a `POST /api/senas/{id}/devolver` con una seña de T1 ⇒ `404`, la seña de
   T1 sigue `ACREDITADA` y no queda obligación en T2, F-20).
@@ -478,21 +479,44 @@
 
 ## 13. Gate de verificación y governance
 
-- [ ] 13.1 Suite completa con PostgreSQL real y sin tests salteados:
+- [x] 13.1 Suite completa con PostgreSQL real y sin tests salteados:
   `$env:C02_DATABASE_URL=...; py -m pytest tests/ -q` ⇒ `skipped == 0`. Sin la variable el gate
   **falla** (mismo criterio que C-10).
-- [ ] 13.2 `py -m mypy backend/app/senas` con config `strict` en verde.
-- [ ] 13.3 `py -m ruff check .` en verde.
-- [ ] 13.4 `openspec validate c-11-senas-mercadopago --strict` en verde.
-- [ ] 13.5 Correr `revisor-escenarios-turnos` sobre `specs/senas`, `specs/reserva-publica` y
+- [x] 13.2 `py -m mypy backend/app/senas` con config `strict` en verde.
+- [x] 13.3 `py -m ruff check .` en verde.
+- [x] 13.4 `openspec validate c-11-senas-mercadopago --strict` en verde.
+- [x] 13.5 Correr `revisor-escenarios-turnos` sobre `specs/senas`, `specs/reserva-publica` y
   `specs/turnos-anti-solape`, y corregir todo `BLOQUEANTE`/`MAYOR` antes de aplicar.
-- [ ] 13.6 Estado de las OQ: **fijadas 2026-11-13** `C11-OQ-01` (truncar al centavo), `C11-OQ-03`
+- [x] 13.6 Estado de las OQ: **fijadas 2026-11-13** `C11-OQ-01` (truncar al centavo), `C11-OQ-03`
   (decide `ADMIN`), `C11-OQ-04` (transferir), `C11-OQ-09` (reembolso manual) y `C11-OQ-10`
   (endpoint propio); **provisional** `C11-OQ-02` (24 h) y el backoff de `C11-OQ-05`; **abiertas no
   bloqueantes** `C11-OQ-05`, `06`, `07`, `08`, `11`, `12` y `13`. `design.md` §Open Questions y
   `docs/decisiones-po.md` §C-11 quedan sincronizados con ese estado.
-- [ ] 13.7 Verificación de cierre de esta auditoría: no queda `devuelve:false` al reservar, ni
+- [x] 13.7 Verificación de cierre de esta auditoría: no queda `devuelve:false` al reservar, ni
   `DUPLICADO` para pagos distintos, ni `por_mp_payment` sin `tenant_id`, ni referencias a
   `C11-OQ-12` para el descuento contra presupuesto.
-- [ ] 13.8 Aprobación explícita del dueño sobre proposal + design + specs + tasks. **Sin este
+- [x] 13.8 Aprobación explícita del dueño sobre proposal + design + specs + tasks. **Sin este
   paso no se escribe una línea de `backend/`, `tests/`, `frontend/` ni de migración.**
+
+### Notas de cierre (§13, 2026-11-13)
+
+- **13.1 — valores reales de la corrida**: local `678 passed, 42 skipped`; con PostgreSQL 15 real
+  (`docker compose`, puerto 5433, `alembic upgrade head`) `720 passed`, **`skipped == 0`**. El gate
+  se rechaza si el resumen trae `skipped > 0` o si falta `C02_DATABASE_URL`; no se acepta verde con
+  integración salteada (mismo criterio que C-10).
+- **13.2–13.4** adicionales al alcance mínimo: `mypy --config-file pyproject.toml backend/app`
+  (101 archivos) y `ruff check .` también en verde, porque §11 agrega `app/senas/consulta.py`,
+  `app/routers/senas_internas.py` y `app/schemas/senas.py`.
+- **13.5 — resultado de la auditoría**: 0 `BLOQUEANTE`. Un `MAYOR` corregido en esta misma pasada:
+  el escenario "El webhook rechazado no copia el cuerpo" de `specs/senas` exigía una fila de
+  auditoría para una firma inválida, imposible porque la firma se verifica antes de resolver el
+  tenant (D7) y `auditoria.tenant_id` es `NOT NULL`; quedó alineado con `design.md` D15/F-25 (log
+  estructurado con ids y motivo) y con `tasks.md` 11.11. Un `MAYOR` de la delta `turnos-anti-solape`
+  (auditoría de la transición del turno) se cubrió registrando `turno_id`/`turno_antes`/
+  `turno_despues` en las entradas `SENA_ACREDITADA` y `SENA_LIBERADA` (misma entrada append-only,
+  sin reescribir la auditoría de C-05).
+- **Token en logs (§11)**: el token del link público viaja en el path
+  (`/api/publico/{tenant}/senas/{token}`); `app/middleware.py` lo redacta como `[REDACTED]` en el
+  log estructurado de la aplicación (`test_log_del_request_no_incluye_el_token`). **Limitación
+  conocida**: el *access log* del servidor HTTP (uvicorn/gunicorn) sí puede registrar la URL cruda;
+  su redacción es de infraestructura y queda fuera de este change.

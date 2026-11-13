@@ -119,33 +119,38 @@ class ServicioSenasAplicacion:
 
         with self._uow_factory():
             sena = self._bloquear(tenant_id=tenant_id, sena_id=sena_id)
-            self._exigir_acreditada(sena)
-            self._exigir_sin_presupuesto(sena=sena, momento=momento)
+            try:
+                self._exigir_acreditada(sena)
+                self._exigir_sin_presupuesto(sena=sena, momento=momento)
 
-            movimiento = self._caja.registrar_ingreso_mp(
-                tenant_id=tenant_id,
-                turno_id=sena.turno_id,
-                monto_centavos=sena.monto_centavos,
-                fecha=fecha,
-                actor_id=actor.user_id,
-                concepto=concepto,
-            )
-            aplicada = self._senas.transicionar(
-                tenant_id=tenant_id,
-                sena_id=sena.id,
-                desde="ACREDITADA",
-                hacia="APLICADA",
-                campos={
-                    "aplicada_en": momento,
-                    "movimiento_caja_id": movimiento.id,
-                    "concepto_aplicacion": concepto,
-                },
-            )
-            if aplicada is None:
-                # Otra transacción aplicó primero (D11): no se crea otro ingreso.
-                raise ConflictoSena(
-                    CODIGO_SENA_YA_APLICADA, "la seña ya fue aplicada"
+                movimiento = self._caja.registrar_ingreso_mp(
+                    tenant_id=tenant_id,
+                    turno_id=sena.turno_id,
+                    monto_centavos=sena.monto_centavos,
+                    fecha=fecha,
+                    actor_id=actor.user_id,
+                    concepto=concepto,
                 )
+                aplicada = self._senas.transicionar(
+                    tenant_id=tenant_id,
+                    sena_id=sena.id,
+                    desde="ACREDITADA",
+                    hacia="APLICADA",
+                    campos={
+                        "aplicada_en": momento,
+                        "movimiento_caja_id": movimiento.id,
+                        "concepto_aplicacion": concepto,
+                    },
+                )
+                if aplicada is None:
+                    # Otra transacción aplicó primero (D11): no se crea otro ingreso.
+                    raise ConflictoSena(
+                        CODIGO_SENA_YA_APLICADA, "la seña ya fue aplicada"
+                    )
+            except ConflictoSena as exc:
+                # Log de dominio con ids y monto; nunca nombre, DNI ni teléfono.
+                self._rechazo(sena=sena, codigo=exc.codigo_dominio)
+                raise
             self._auditar(
                 sena=aplicada,
                 accion="SENA_APLICADA",
@@ -190,22 +195,26 @@ class ServicioSenasAplicacion:
 
         with self._uow_factory():
             sena = self._bloquear(tenant_id=tenant_id, sena_id=sena_id)
-            self._exigir_devoluble(sena)
-            devuelta = self._senas.transicionar(
-                tenant_id=tenant_id,
-                sena_id=sena.id,
-                desde="ACREDITADA",
-                hacia="DEVUELTA",
-                campos={
-                    "devuelta_en": momento,
-                    "motivo_devolucion": motivo_validado,
-                    "devuelta_por": actor.user_id,
-                },
-            )
-            if devuelta is None:
-                raise ConflictoSena(
-                    CODIGO_SENA_NO_DEVOLUBLE, "la seña ya no es devolvible"
+            try:
+                self._exigir_devoluble(sena)
+                devuelta = self._senas.transicionar(
+                    tenant_id=tenant_id,
+                    sena_id=sena.id,
+                    desde="ACREDITADA",
+                    hacia="DEVUELTA",
+                    campos={
+                        "devuelta_en": momento,
+                        "motivo_devolucion": motivo_validado,
+                        "devuelta_por": actor.user_id,
+                    },
                 )
+                if devuelta is None:
+                    raise ConflictoSena(
+                        CODIGO_SENA_NO_DEVOLUBLE, "la seña ya no es devolvible"
+                    )
+            except ConflictoSena as exc:
+                self._rechazo(sena=sena, codigo=exc.codigo_dominio)
+                raise
             self._auditar(
                 sena=devuelta,
                 accion="SENA_DEVUELTA",
@@ -214,6 +223,7 @@ class ServicioSenasAplicacion:
                 despues={
                     "estado": "DEVUELTA",
                     "motivo_devolucion": motivo_validado,
+                    "monto_centavos": devuelta.monto_centavos,
                     "devuelta_por": actor.user_id,
                 },
             )
@@ -293,6 +303,26 @@ class ServicioSenasAplicacion:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _rechazo(self, *, sena: Sena, codigo: str) -> None:
+        """Log estructurado del rechazo: código, `sena_id`, tenant y monto.
+
+        Nunca se agrega nombre, DNI, teléfono ni texto clínico: el error de
+        dominio viaja al borde con la allow-list del schema (RN-CL-04, D15).
+        """
+        logger.warning(
+            "sena_rechazada tenant_id=%s sena_id=%s monto_centavos=%s codigo=%s",
+            sena.tenant_id,
+            sena.id,
+            sena.monto_centavos,
+            codigo,
+            extra={
+                "codigo": codigo,
+                "tenant_id": sena.tenant_id,
+                "sena_id": sena.id,
+                "monto_centavos": sena.monto_centavos,
+            },
+        )
 
     def _momento(self, ahora: datetime | None) -> datetime:
         if ahora is not None:

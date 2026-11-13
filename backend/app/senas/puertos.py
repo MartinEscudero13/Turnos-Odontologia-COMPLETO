@@ -131,6 +131,18 @@ AccionSena = Literal[
 
 Reloj = Callable[[], datetime]
 
+# `status_detail` que informa Mercado Pago por estado: sólo se persiste en
+# `raw_json` (allow-list de D15), nunca decide el efecto.
+DETALLE_POR_ESTADO: dict[EstadoPagoMP, str] = {
+    "APPROVED": "accredited",
+    "PENDING": "pending_contingency",
+    "IN_PROCESS": "in_process",
+    "REJECTED": "cc_rejected_other_reason",
+    "CANCELLED": "cancelled",
+    "REFUNDED": "refunded",
+    "OTHER": "other",
+}
+
 # D3: el estado informado por MP no retrocede. El ranking sólo decide si se
 # actualiza la columna `estado`; nunca revierte un efecto ya aplicado.
 _RANKING_ESTADO: dict[EstadoPagoMP, int] = {
@@ -229,6 +241,9 @@ class PagoExterno:
     external_reference: str | None
     metadata: Mapping[str, str]
     aprobado_en: datetime | None = None
+    # `status_detail` de MP: se persiste en `raw_json` (allow-list de D15) y
+    # nunca se usa para decidir el efecto, que depende de `estado`.
+    detalle: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1000,6 +1015,7 @@ class AdaptadorPasarelaFake:
         tenant_id: str | None = None,
         turno_id: str | None = None,
         aprobado_en: datetime | None = None,
+        detalle: str | None = None,
     ) -> PagoExterno:
         metadata: dict[str, str] = {"sena_id": sena_id}
         if tenant_id is not None:
@@ -1014,6 +1030,7 @@ class AdaptadorPasarelaFake:
             external_reference=sena_id,
             metadata=metadata,
             aprobado_en=aprobado_en if estado == "APPROVED" else None,
+            detalle=detalle if detalle is not None else DETALLE_POR_ESTADO[estado],
         )
         self._pagos[mp_payment_id] = pago
         return pago

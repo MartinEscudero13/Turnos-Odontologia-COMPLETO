@@ -264,12 +264,19 @@ class ServicioSenasWebhook:
             )
         momento = self._momento(ahora)
         # La firma se verifica SIEMPRE antes de mirar el tipo o el cuerpo.
-        verificar_firma(
-            secreto=self._secreto,
-            x_signature=x_signature,
-            request_id=request_id,
-            data_id=data_id,
-        )
+        try:
+            verificar_firma(
+                secreto=self._secreto,
+                x_signature=x_signature,
+                request_id=request_id,
+                data_id=data_id,
+            )
+        except FirmaInvalida:
+            # No hay tenant resoluble todavía (la firma es lo primero, D7) y
+            # `auditoria.tenant_id` es NOT NULL: el rechazo no inventa tenant ni
+            # copia el cuerpo; queda el log estructurado con id y motivo (F-25).
+            self._log_rechazo(mp_payment_id=data_id, motivo="firma_invalida")
+            raise
         if tipo is not None and tipo != TIPO_PAGO:
             # `merchant_order` y cualquier otro tipo: 200 sin tocar nada.
             logger.info("webhook_mp_tipo_ignorado tipo=%s", tipo)
@@ -436,6 +443,16 @@ class ServicioSenasWebhook:
                 "estado": "ACREDITADA",
                 "mp_payment_id": pago.mp_payment_id,
                 "monto_centavos": pago.monto_centavos,
+                # La transición del turno queda en la **misma** entrada append-only
+                # (spec `turnos-anti-solape`): antes/después observable, sin que
+                # C-11 reescriba la auditoría de C-05.
+                "turno_id": sena.turno_id,
+                "turno_antes": turno.estado,
+                "turno_despues": (
+                    "CONFIRMADO"
+                    if turno.estado == _TURNO_CONFIRMABLE
+                    else turno.estado
+                ),
             },
         )
         return "ACREDITADA", acreditada
@@ -469,6 +486,7 @@ class ServicioSenasWebhook:
             despues={
                 "estado": "DEVUELTA",
                 "motivo_devolucion": motivo,
+                "monto_centavos": devuelta.monto_centavos,
                 "mp_payment_id": pago.mp_payment_id,
                 "resultado": resultado,
             },
@@ -494,6 +512,7 @@ class ServicioSenasWebhook:
                 despues={
                     "estado": "DEVUELTA",
                     "mp_payment_id": pago.mp_payment_id,
+                    "monto_centavos": (devuelta or sena).monto_centavos,
                     "resultado": "REEMBOLSADO",
                 },
             )
@@ -508,6 +527,7 @@ class ServicioSenasWebhook:
                 despues={
                     "estado": "APLICADA",
                     "mp_payment_id": pago.mp_payment_id,
+                    "monto_centavos": sena.monto_centavos,
                     "resultado": "REEMBOLSO_AJUSTE_CAJA",
                 },
             )
@@ -579,6 +599,19 @@ class ServicioSenasWebhook:
             },
         )
 
+    def _log_rechazo(self, *, mp_payment_id: str | None, motivo: str) -> None:
+        """Rechazo de autenticidad: id y motivo de dominio, nunca el cuerpo."""
+        logger.warning(
+            "webhook_mp_rechazado mp_payment_id=%s motivo=%s",
+            mp_payment_id or "-",
+            motivo,
+            extra={
+                "codigo": CODIGO_FIRMA_INVALIDA,
+                "mp_payment_id": mp_payment_id,
+                "motivo": motivo,
+            },
+        )
+
     # -- helpers --------------------------------------------------------
 
     def _raw_json(self, pago: PagoExterno) -> Mapping[str, Any]:
@@ -591,6 +624,7 @@ class ServicioSenasWebhook:
         return {
             "id": pago.mp_payment_id,
             "status": pago.estado,
+            "status_detail": pago.detalle,
             "transaction_amount": pago.monto_centavos,
             "currency_id": pago.moneda,
             "date_approved": (

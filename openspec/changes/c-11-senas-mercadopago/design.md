@@ -722,7 +722,7 @@ Acciones auditadas con el `AuditoriaPort` existente (C-03/C-08, RN-AU-02), con `
 | `SENA_DEVUELTA` | devolución manual o por política | `sena_id`, `motivo_devolucion`, actor (`NULL` = sistema), `antes`, `despues` |
 | `SENA_REEMBOLSO_MP` | webhook `REFUNDED` | `sena_id`, `mp_payment_id`, `resultado`, `antes`, `despues` |
 | `SENA_TRANSFERIDA` | reprogramación | `sena_id`, `turno_anterior`, `turno_nuevo`, `token_reemitido=true|false` |
-| `SENA_WEBHOOK_RECHAZADO` | firma inválida o no asociable | ids y motivo de dominio; nunca el cuerpo recibido |
+| `SENA_WEBHOOK_RECHAZADO` | **no se emite en v1**: sin tenant resoluble no hay fila (ver F-25); el rechazo va al log estructurado | ids y motivo de dominio; nunca el cuerpo recibido |
 
 Nunca se registran nombre, DNI, teléfono, texto clínico, email del pagador ni el link de pago.
 `raw_json` guarda **sólo** `{id, status, status_detail, transaction_amount, currency_id,
@@ -735,8 +735,11 @@ y códigos de dominio; nunca el token ni datos del pagador.
 (`AuditoriaPort`), y sólo se escribe cuando hay una mutación o un rechazo atribuible a una seña. El
 caso `500` de un pago **no asociable** no tiene entidad ni actor de tenant: se registra en el **log
 estructurado** con `tenant_id` de la metadata (si vino), `mp_payment_id`, `motivo` y nivel `error`;
-no se inventa una fila de auditoría ni se persiste el pago. Los rechazos de firma sí se auditan
-porque hay un tenant resoluble (`SENA_WEBHOOK_RECHAZADO`).
+no se inventa una fila de auditoría ni se persiste el pago. Los rechazos de firma **tampoco** se
+auditan: la firma se verifica antes de resolver el tenant (D7) y `auditoria.tenant_id` es `NOT NULL`,
+así que se deja el hecho en el **log estructurado** con `mp_payment_id` y motivo de dominio
+(`SENA_WEBHOOK_RECHAZADO` queda como vocabulario reservado para cuando el borde pueda resolver el
+tenant antes de validar la firma).
 
 ### D16 — Estrategia de tests (TDD rojo primero, tres niveles)
 

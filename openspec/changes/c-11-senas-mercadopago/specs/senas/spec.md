@@ -731,7 +731,7 @@ sistema SHALL NOT persistir ni loguear nombre, DNI, teléfono, email del pagador
 
 - **GIVEN** una notificación con firma inválida
 - **WHEN** se procesa y se rechaza
-- **THEN** la auditoría registra el rechazo con ids y motivo de dominio, y no copia el cuerpo recibido ni datos del pagador
+- **THEN** el rechazo queda en el log estructurado con el `mp_payment_id` y el motivo de dominio, sin fila de auditoría porque la firma se verifica antes de resolver el tenant y no se inventa uno, y no copia el cuerpo recibido ni datos del pagador
 
 #### Scenario: El pago guardado está minimizado
 

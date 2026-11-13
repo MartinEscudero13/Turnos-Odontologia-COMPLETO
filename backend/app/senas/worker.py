@@ -129,6 +129,15 @@ class ServicioSenasExpulsion:
                 "estado": "LIBERADA",
                 "motivo_liberacion": MOTIVO_EXPIRACION,
                 "turno_id": liberada.turno_id,
+                "monto_centavos": liberada.monto_centavos,
+                # La transición del turno queda en la misma entrada (spec
+                # `turnos-anti-solape`), con antes/después observable.
+                "turno_antes": turno.estado if turno is not None else None,
+                "turno_despues": (
+                    "CANCELADO"
+                    if auto_oferta_emitida
+                    else (turno.estado if turno is not None else None)
+                ),
                 "auto_oferta_emitida": auto_oferta_emitida,
             },
         )
