@@ -36,6 +36,7 @@ from app.reservas.puertos import (
     VerificadorPort,
     normalizar_telefono_e164,
 )
+from app.senas.puertos import SenaCreada, SenaPort
 from app.turnos.alternativas import Alternativa, HuecoOcupado, buscar_alternativas
 from app.turnos.servicio import (
     Actor,
@@ -72,6 +73,7 @@ class ReservaCreada:
     turno: Turno
     token_publico: str
     paciente_id: str
+    sena: SenaCreada | None = None
 
 
 @dataclass(frozen=True)
@@ -103,6 +105,7 @@ class ServicioReservasPublicas:
         rate_limit_ventana_s: int,
         horizonte_dias: int,
         reloj: Callable[[], datetime] | None = None,
+        sena_port: SenaPort | None = None,
     ) -> None:
         self._servicio_turnos = servicio_turnos
         self._catalogo = catalogo
@@ -119,6 +122,7 @@ class ServicioReservasPublicas:
         self._rate_limit_ventana_s = rate_limit_ventana_s
         self._horizonte_dias = horizonte_dias
         self._reloj = reloj or (lambda: datetime.now(UTC))
+        self._sena_port = sena_port
 
     @property
     def servicio_turnos(self) -> ServicioTurnos:
@@ -373,18 +377,33 @@ class ServicioReservasPublicas:
             raise ConflictoSolape("hueco tomado", alts) from None
 
         token = self._tokens.emitir(tenant_id, turno.id)
+        # C-11 (D5): la seña se persiste después del turno y antes de la
+        # preferencia. `SIN_SENA` no crea nada y el `201` mantiene su contrato.
+        sena: SenaCreada | None = None
+        if self._sena_port is not None:
+            sena = self._sena_port.crear_si_corresponde(
+                tenant_id=tenant_id,
+                turno_id=turno.id,
+                prestacion_id=prestacion.id,
+                turno_inicio=turno.inicio,
+                turno_fin=turno.fin,
+                ahora=momento,
+            )
         logger.info(
-            "reserva_publica tenant_id=%s turno_id=%s estado=%s inicio=%s fin=%s",
+            "reserva_publica tenant_id=%s turno_id=%s estado=%s inicio=%s fin=%s sena_id=%s",
             tenant_id,
             turno.id,
             turno.estado,
             turno.inicio.isoformat(),
             turno.fin.isoformat(),
+            sena.sena.id if sena is not None else "-",
         )
         self._auditar(tenant_id, turno.id, "CREADO", None, turno.estado)
         if self._notificador is not None:
             self._notificador.reserva_creada(tenant_id=tenant_id, turno_id=turno.id)
-        return ReservaCreada(turno=turno, token_publico=token, paciente_id=paciente.id)
+        return ReservaCreada(
+            turno=turno, token_publico=token, paciente_id=paciente.id, sena=sena
+        )
 
     def _sillon_libre(
         self,

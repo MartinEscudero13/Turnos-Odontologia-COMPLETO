@@ -32,7 +32,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal, Protocol, cast
 
-from app.senas.regla import ModoSena
+from app.senas.regla import ModoSena, PrestacionSena
 from app.turnos.servicio import NoEncontrado
 
 __all__ = [
@@ -43,6 +43,9 @@ __all__ = [
     "AuditoriaPort",
     "AuditoriaSenaMemoria",
     "ConceptoAplicacion",
+    "ConfiguracionSenaMemoria",
+    "ConfiguracionSenaPort",
+    "ContadorSenaPort",
     "EntradaAuditoriaSena",
     "EstadoPagoMP",
     "EstadoPreferencia",
@@ -56,15 +59,19 @@ __all__ = [
     "PagoNoEncontrado",
     "PasarelaNoDisponible",
     "PasarelaPagosPort",
+    "PoliticaSena",
     "Preferencia",
     "PresupuestosMemoria",
     "PresupuestosPort",
     "Reloj",
+    "ResolutorTenantPort",
     "ResultadoPagoMP",
     "Sena",
+    "SenaCreada",
     "SenaDuplicada",
     "SenaInvalida",
     "SenaMemoria",
+    "SenaPort",
     "SenaRepositorio",
     "TokenDuplicado",
     "TransicionTurnoInvalida",
@@ -157,7 +164,11 @@ class Sena:
     devuelta_por: str | None = None
     motivo_devolucion: str | None = None
     movimiento_caja_id: str | None = None
+    # Metadatos de proyección (join con `turnos`), no columnas de `senas`:
+    # permiten el listado por `turno.inicio` (C11-OQ-10) y la vista pública.
     turno_inicio: datetime | None = None
+    turno_fin: datetime | None = None
+    turno_prestacion: str | None = None
 
 
 @dataclass(frozen=True)
@@ -237,6 +248,29 @@ class EntradaAuditoriaSena:
     registrado_en: str
 
 
+@dataclass(frozen=True)
+class PoliticaSena:
+    """Política visible al reservar y al pagar (D12, F-01).
+
+    `reembolsable` es **la promesa** y vale `True` desde la creación; no depende
+    del estado de la seña. `hay_pago_acreditado` es el hecho actual: sólo
+    `True` con la seña `ACREDITADA`.
+    """
+
+    anticipacion_cancelacion_h: int
+    reembolsable: bool = True
+    hay_pago_acreditado: bool = False
+
+
+@dataclass(frozen=True)
+class SenaCreada:
+    """Resultado del alta: la seña, el token en claro (una sola vez) y la política."""
+
+    sena: Sena
+    token_sena: str
+    politica: PoliticaSena
+
+
 # ---------------------------------------------------------------------------
 # Errores de dominio y de infraestructura
 # ---------------------------------------------------------------------------
@@ -271,6 +305,45 @@ class TransicionTurnoInvalida(Exception):
 # ---------------------------------------------------------------------------
 
 
+class ResolutorTenantPort(Protocol):
+    """Resuelve el `{tokenTenant}` (slug público) a `tenant_id` (mismo C-06)."""
+
+    def resolver(self, token_tenant: str) -> str | None: ...
+
+
+class ContadorSenaPort(Protocol):
+    """Rate-limit público de C-06 (`ContadorPort`), reusado sin cambios."""
+
+    def incrementar(self, clave: str, ventana_s: int) -> int: ...
+
+    def ttl_s(self, clave: str) -> int: ...
+
+
+class ConfiguracionSenaPort(Protocol):
+    """Lectura de los dos niveles de la regla (D1): prestación y tenant."""
+
+    def parametros(self, *, tenant_id: str) -> Mapping[str, Any]: ...
+
+    def prestacion(
+        self, *, tenant_id: str, prestacion_id: str
+    ) -> PrestacionSena | None: ...
+
+
+class SenaPort(Protocol):
+    """Enganche desde C-06: crea la seña si la regla efectiva la exige."""
+
+    def crear_si_corresponde(
+        self,
+        *,
+        tenant_id: str,
+        turno_id: str,
+        prestacion_id: str,
+        turno_inicio: datetime,
+        turno_fin: datetime | None = None,
+        ahora: datetime | None = None,
+    ) -> SenaCreada | None: ...
+
+
 class SenaRepositorio(Protocol):
     def crear(
         self,
@@ -285,6 +358,9 @@ class SenaRepositorio(Protocol):
         expira_at: datetime,
         token_hash: str,
         ahora: datetime | None = None,
+        turno_inicio: datetime | None = None,
+        turno_fin: datetime | None = None,
+        turno_prestacion: str | None = None,
     ) -> Sena: ...
 
     def obtener(self, *, tenant_id: str, sena_id: str) -> Sena | None: ...
@@ -313,6 +389,15 @@ class SenaRepositorio(Protocol):
         desde: EstadoSena,
         hacia: EstadoSena,
         campos: Mapping[str, Any] | None = None,
+    ) -> Sena | None: ...
+
+    def actualizar(
+        self,
+        *,
+        tenant_id: str,
+        sena_id: str,
+        campos: Mapping[str, Any],
+        desde: EstadoSena | None = None,
     ) -> Sena | None: ...
 
     def reemitir_token(
@@ -506,6 +591,8 @@ class SenaMemoria:
         token_hash: str,
         ahora: datetime | None = None,
         turno_inicio: datetime | None = None,
+        turno_fin: datetime | None = None,
+        turno_prestacion: str | None = None,
     ) -> Sena:
         if monto_centavos <= 0:
             raise SenaInvalida("el monto de la seña debe ser positivo")
@@ -534,6 +621,8 @@ class SenaMemoria:
                 token_hash=token_hash,
                 creado_en=momento,
                 turno_inicio=turno_inicio,
+                turno_fin=turno_fin,
+                turno_prestacion=turno_prestacion,
             )
             self._siguiente += 1
             self._senas[sena.id] = sena
@@ -562,6 +651,32 @@ class SenaMemoria:
                 return None
             datos: dict[str, Any] = dict(campos or {})
             datos["estado"] = hacia
+            nueva = replace(actual, **datos)
+            self._senas[sena_id] = nueva
+            return nueva
+
+    def actualizar(
+        self,
+        *,
+        tenant_id: str,
+        sena_id: str,
+        campos: Mapping[str, Any],
+        desde: EstadoSena | None = None,
+    ) -> Sena | None:
+        """Update condicional de columnas mutables (preferencia/token).
+
+        No cambia `estado` (eso es `transicionar`) y devuelve `None` si el guard
+        `desde` no coincide, igual que la transición condicional de D11.
+        """
+        datos: dict[str, Any] = dict(campos)
+        if "estado" in datos:
+            raise SenaInvalida("usá transicionar para cambiar el estado")
+        with self._lock:
+            actual = self.obtener(tenant_id=tenant_id, sena_id=sena_id)
+            if actual is None:
+                raise NoEncontrado("seña no encontrada")
+            if desde is not None and actual.estado != desde:
+                return None
             nueva = replace(actual, **datos)
             self._senas[sena_id] = nueva
             return nueva
@@ -738,6 +853,12 @@ class AdaptadorPasarelaFake:
             {
                 "tenant_id": tenant_id,
                 "sena_id": sena_id,
+                "external_reference": sena_id,
+                "metadata": {
+                    "sena_id": sena_id,
+                    "turno_id": turno_id,
+                    "tenant_id": tenant_id,
+                },
                 "turno_id": turno_id,
                 "monto_centavos": monto_centavos,
                 "descripcion": descripcion,
@@ -865,6 +986,50 @@ class AdaptadorPasarelaFake:
             self._caida = False
         else:
             self._fallas.discard(mp_payment_id)
+
+
+class ConfiguracionSenaMemoria:
+    """Dos niveles de D1 en memoria: parámetros del tenant y override por prestación.
+
+    `parametros` devuelve sólo lo configurado (claves `sena_modo`/`sena_valor`);
+    la ausencia de ambas es "sin configuración" y la resuelve `resolver_regla`.
+    """
+
+    def __init__(self) -> None:
+        self._parametros: dict[str, dict[str, Any]] = {}
+        self._prestaciones: dict[tuple[str, str], PrestacionSena] = {}
+
+    def configurar(self, *, tenant_id: str, modo: str | None, valor: int | None) -> None:
+        claves: dict[str, Any] = {}
+        if modo is not None:
+            claves["sena_modo"] = modo
+        if valor is not None:
+            claves["sena_valor"] = valor
+        self._parametros[tenant_id] = claves
+
+    def agregar_prestacion(
+        self,
+        *,
+        tenant_id: str,
+        prestacion_id: str,
+        precio_base_centavos: int,
+        sena_modo: str | None = None,
+        sena_valor: int | None = None,
+    ) -> PrestacionSena:
+        prestacion = PrestacionSena(
+            id=prestacion_id,
+            precio_base_centavos=precio_base_centavos,
+            sena_modo=sena_modo,
+            sena_valor=sena_valor,
+        )
+        self._prestaciones[(tenant_id, prestacion_id)] = prestacion
+        return prestacion
+
+    def parametros(self, *, tenant_id: str) -> Mapping[str, Any]:
+        return dict(self._parametros.get(tenant_id, {}))
+
+    def prestacion(self, *, tenant_id: str, prestacion_id: str) -> PrestacionSena | None:
+        return self._prestaciones.get((tenant_id, prestacion_id))
 
 
 class TurnoMemoriaSena:

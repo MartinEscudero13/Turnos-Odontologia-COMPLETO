@@ -11,6 +11,8 @@ from typing import Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
+from app.schemas.senas import SenaReservaOut
+
 AccionIn = Literal["reservar", "cancelar", "reprogramar"]
 
 
@@ -59,7 +61,11 @@ class ReservaIn(BaseModel):
 
 
 class ReservaOut(BaseModel):
-    """Turno propio devuelto por el 201 (sin tenant_id ni paciente_id)."""
+    """Turno propio devuelto por el 201 (sin tenant_id ni paciente_id).
+
+    El bloque `sena` sólo aparece cuando la regla efectiva exige seña; sin seña
+    la respuesta conserva exactamente las claves del contrato de C-06.
+    """
 
     turno_id: str
     estado: str
@@ -69,6 +75,7 @@ class ReservaOut(BaseModel):
     prestacion: str
     sillon_id: str
     token_publico: str
+    sena: SenaReservaOut | None = None
 
 
 class ReservaConsultaOut(BaseModel):

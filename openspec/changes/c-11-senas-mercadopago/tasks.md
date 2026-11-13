@@ -125,39 +125,41 @@
 
 ## 4. Alta de la seña y preferencia (RN-SE-01, RN-IN-03)
 
-- [ ] 4.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 4.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_senas.py::test_crear_sena_porcentaje_3000`
   (reloj `2026-11-13T09:00:00-03:00`, `SENA_TTL_H=24`, turno del `2026-11-20` ⇒ seña `PENDIENTE`
   de `3000` con `regla_modo/regla_valor/precio_base_centavos` y `expira_at=2026-11-14T09:00:00-03:00`).
-- [ ] 4.2 Escribir y hacer pasar `tests/test_senas.py::test_expira_at_acotada_al_inicio`
+- [x] 4.2 Escribir y hacer pasar `tests/test_senas.py::test_expira_at_acotada_al_inicio`
   (turno del `2026-11-13T18:00:00-03:00` ⇒ `expira_at` igual al inicio, no `ahora + TTL`,
   C11-OQ-08).
-- [ ] 4.3 Escribir y hacer pasar `tests/test_senas.py::test_turno_sigue_pendiente`
+- [x] 4.3 Escribir y hacer pasar `tests/test_senas.py::test_turno_sigue_pendiente`
   (tras reservar con seña el turno queda `PENDIENTE` con `origen=RESERVA_ONLINE` y la seña
   `PENDIENTE`; ningún turno `CONFIRMADO`).
-- [ ] 4.4 Escribir y hacer pasar `tests/test_senas.py::test_dos_reservas_dos_senas`
+- [x] 4.4 Escribir y hacer pasar `tests/test_senas.py::test_dos_reservas_dos_senas`
   (dos huecos ⇒ dos señas con `turno_id` y `token_hash` distintos).
-- [ ] 4.5 Escribir y hacer pasar `tests/test_senas.py::test_segunda_sena_del_mismo_turno_409`
+- [x] 4.5 Escribir y hacer pasar `tests/test_senas.py::test_segunda_sena_del_mismo_turno_409`
   (segunda seña para el mismo turno ⇒ `409`, y sigue habiendo una sola).
-- [ ] 4.6 Escribir y hacer pasar
+- [x] 4.6 Escribir y hacer pasar
   `tests/test_sena_preferencia.py::test_preferencia_con_metadata_y_external_reference`
   (la preferencia se pide **después** de persistir la seña, con `external_reference=sena_id`,
   metadata de tenant/turno, vencimiento en `expira_at`; la seña queda `CREADA` con
   `mp_preference_id` e `init_point`).
-- [ ] 4.7 Escribir y hacer pasar
+- [x] 4.7 Escribir y hacer pasar
   `tests/test_sena_preferencia.py::test_mp_caido_reserva_201_y_preferencia_fallida`
   (pasarela que falla ⇒ reserva `201`, turno `PENDIENTE`, seña `PENDIENTE` con
   `preferencia_estado=FALLIDA` y ninguna fila perdida, RN-IN-03).
-- [ ] 4.8 Escribir y hacer pasar
+- [x] 4.8 Escribir y hacer pasar
   `tests/test_sena_preferencia.py::test_reintento_devuelve_la_misma_preferencia`
   (seña `CREADA` ⇒ `200` con el mismo `init_point`, sin segunda preferencia y sin sumar intentos).
-- [ ] 4.9 Escribir y hacer pasar `tests/test_sena_preferencia.py::test_reintento_respeta_backoff`
+- [x] 4.9 Escribir y hacer pasar `tests/test_sena_preferencia.py::test_reintento_respeta_backoff`
   (`intentos_preferencia=2` y `proximo_reintento_at` futuro ⇒ `202` con `reintentar_en`, sin llamar
-  a la pasarela y sin incrementar intentos, C11-OQ-05, provisional).
-- [ ] 4.10 Escribir y hacer pasar `tests/test_sena_preferencia.py::test_preferencia_vencida_409`
+  a la pasarela y sin incrementar intentos, C11-OQ-05, provisional) y
+  `tests/test_sena_preferencia.py::test_backoff_tope_de_15_minutos`
+  (`min(2**intentos, 15)` minutos).
+- [x] 4.10 Escribir y hacer pasar `tests/test_sena_preferencia.py::test_preferencia_vencida_409`
   (seña `PENDIENTE` con `expira_at <= ahora` ⇒ `409 SENA_VENCIDA`, la pasarela **no** se invoca y no
   se crea `init_point` nuevo, F-09).
-- [ ] 4.11 Escribir y hacer pasar
+- [x] 4.11 Escribir y hacer pasar
   `tests/test_reserva_publica_sena.py::test_controles_c06_siguen_aplicando`
   (reservar con seña sin `verificacion_id`, con verificación vencida o superando el rate-limit ⇒
   `403`/`429`, sin turno y sin seña persistidos, y el espía de la pasarela registra cero llamadas,
@@ -165,25 +167,25 @@
 
 ## 5. Token público y superficie de pago
 
-- [ ] 5.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 5.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_sena_token_publico.py::test_lectura_allow_list`
   (`GET /api/publico/T1/senas/TOK-S` ⇒ `200` con `sena_id`, `estado`, `monto_centavos`,
   `expira_at`, `preferencia_estado`, `init_point`, `turno` y `politica`, y ninguna otra clave).
-- [ ] 5.2 Escribir y hacer pasar
+- [x] 5.2 Escribir y hacer pasar
   `tests/test_sena_token_publico.py::test_token_de_otro_tenant_404_uniforme`
   (`GET /api/publico/T2/senas/TOK-S` con TOK-S de T1 ⇒ `404` idéntico al de un token inexistente).
-- [ ] 5.3 Escribir y hacer pasar `tests/test_sena_token_publico.py::test_token_rotado_404`
+- [x] 5.3 Escribir y hacer pasar `tests/test_sena_token_publico.py::test_token_rotado_404`
   (tras reemitir, el token anterior responde `404` y el nuevo funciona).
-- [ ] 5.4 Escribir y hacer pasar
+- [x] 5.4 Escribir y hacer pasar
   `tests/test_sena_token_publico.py::test_sena_no_pagable_sin_init_point`
   (`LIBERADA` o `expira_at` pasado ⇒ `200` con el estado y `init_point=null`).
-- [ ] 5.5 Escribir y hacer pasar
+- [x] 5.5 Escribir y hacer pasar
   `tests/test_sena_token_publico.py::test_no_expone_datos_del_paciente`
   (sin nombre, teléfono, DNI, `paciente_id` ni `tenant_id`; el token no aparece en el log).
-- [ ] 5.6 Escribir y hacer pasar `tests/test_sena_token_publico.py::test_solo_se_guarda_el_hash`
+- [x] 5.6 Escribir y hacer pasar `tests/test_sena_token_publico.py::test_solo_se_guarda_el_hash`
   (en la base no existe el token en claro; con el hash no se puede reconstruir el link y dos señas
   nunca comparten `token_hash`).
-- [ ] 5.7 Escribir y hacer pasar `tests/test_api_pago_publico.py::test_contrato_de_rutas`
+- [x] 5.7 Escribir y hacer pasar `tests/test_api_pago_publico.py::test_contrato_de_rutas`
   (`GET`/`POST .../preferencia` responden `200/201/202/404/429` según el escenario; sin
   `verificacion_id` no hace falta; `POST` no existe en `/api/publico/.../senas/{token}/pagar`).
 

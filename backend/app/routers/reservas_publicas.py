@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import AwareDatetime
 
 from app.reservas.puertos import AccionPublica
@@ -32,6 +32,8 @@ from app.schemas.reserva import (
     VerificacionIn,
     VerificacionOut,
 )
+from app.schemas.senas import PoliticaOut, SenaReservaOut
+from app.senas.puertos import SenaCreada
 from app.turnos.servicio import ConflictoSolape, TurnoError
 
 ACCIONES: tuple[str, ...] = ("reservar", "cancelar", "reprogramar")
@@ -48,6 +50,26 @@ def _error_publico(exc: TurnoError) -> dict[str, object]:
         detalle=exc.mensaje,
         alternativas=[AlternativaPublicaOut(inicio=a.inicio, fin=a.fin) for a in alts],
     ).model_dump(mode="json")
+
+
+def _sena_out(sena: SenaCreada | None) -> SenaReservaOut | None:
+    """Bloque `sena` del `201`: token en claro (una vez) + política visible."""
+    if sena is None:
+        return None
+    return SenaReservaOut(
+        sena_id=sena.sena.id,
+        estado=sena.sena.estado,
+        monto_centavos=sena.sena.monto_centavos,
+        expira_at=sena.sena.expira_at,
+        token_sena=sena.token_sena,
+        preferencia_estado=sena.sena.preferencia_estado,
+        init_point=sena.sena.mp_init_point,
+        politica=PoliticaOut(
+            anticipacion_cancelacion_h=sena.politica.anticipacion_cancelacion_h,
+            reembolsable=sena.politica.reembolsable,
+            hay_pago_acreditado=sena.politica.hay_pago_acreditado,
+        ),
+    )
 
 
 def crear_router_publico(svc: ServicioReservasPublicas) -> APIRouter:
@@ -99,8 +121,12 @@ def crear_router_publico(svc: ServicioReservasPublicas) -> APIRouter:
             verificacion_id=d.verificacion_id, expira_at=d.expira_at, canal=d.canal
         )
 
-    @r.post("/api/publico/{token_tenant}/reservas", status_code=201, response_model=ReservaOut)
-    def reservar(token_tenant: str, body: ReservaIn, request: Request) -> ReservaOut:
+    @r.post(
+        "/api/publico/{token_tenant}/reservas",
+        status_code=201,
+        response_model=ReservaOut,
+    )
+    def reservar(token_tenant: str, body: ReservaIn, request: Request) -> Response:
         res = svc.reservar(
             token_tenant,
             prestacion_id=body.prestacion,
@@ -111,7 +137,7 @@ def crear_router_publico(svc: ServicioReservasPublicas) -> APIRouter:
             verificacion_id=body.verificacion_id,
             ip=_ip_del_request(request),
         )
-        return ReservaOut(
+        salida = ReservaOut(
             turno_id=res.turno.id,
             estado=res.turno.estado,
             inicio=res.turno.inicio,
@@ -120,7 +146,14 @@ def crear_router_publico(svc: ServicioReservasPublicas) -> APIRouter:
             prestacion=res.turno.prestacion_id,
             sillon_id=res.turno.sillon_id,
             token_publico=res.token_publico,
+            sena=_sena_out(res.sena),
         )
+        contenido = salida.model_dump(mode="json")
+        # Sin seña, el `201` conserva exactamente las claves del contrato de C-06:
+        # el bloque no aparece como `null`.
+        if contenido.get("sena") is None:
+            contenido.pop("sena", None)
+        return JSONResponse(status_code=201, content=contenido)
 
     @r.get(
         "/api/publico/{token_tenant}/reservas/{token}",

@@ -26,6 +26,7 @@ from app.reservas.puertos import (
 from app.reservas.servicio import ServicioReservasPublicas
 from app.reservas.tokens import TokenRepositorioEnMemoria
 from app.routers.reservas_publicas import crear_app_publica
+from app.senas.puertos import SenaPort
 from app.turnos.servicio import ServicioTurnos
 
 T3 = "a0000000-0000-4000-8000-000000000003"
@@ -47,9 +48,11 @@ class Harness:
         canal: str = "captcha",
         anticipacion_min_horas: float = 24.0,
         reloj_inicial: datetime | None = None,
+        reloj: dict[str, datetime] | None = None,
         catalogo: CatalogoMemoria | None = None,
         pacientes: PacienteMemoria | None = None,
         tenants: TenantMemoria | None = None,
+        sena_port: SenaPort | None = None,
     ) -> None:
         self.turnos = ServicioTurnos(anticipacion_min_horas=anticipacion_min_horas)
         self.catalogo = catalogo or CatalogoMemoria()
@@ -59,7 +62,12 @@ class Harness:
         self.contador = ContadorMemoria()
         self.verificador = VerificadorMemoria(ttl_min=ttl_min, canal=canal)
         self.auditoria = AuditoriaMemoria()
-        self._reloj = {"ahora": reloj_inicial or dt("2026-10-05", 9)}
+        # C-11: el reloj puede compartirse con `ServicioSenas` (mismo instante en
+        # la reserva y en la consulta pública de la seña) y el enganche de seña es
+        # opcional para no romper los tests de C-06 sin seña.
+        self._reloj = reloj if reloj is not None else {
+            "ahora": reloj_inicial or dt("2026-10-05", 9)
+        }
 
         self.svc = ServicioReservasPublicas(
             self.turnos,
@@ -75,6 +83,7 @@ class Harness:
             rate_limit_ventana_s=rate_limit_ventana_s,
             horizonte_dias=horizonte_dias,
             reloj=lambda: self._reloj["ahora"],
+            sena_port=sena_port,
         )
         self.client = TestClient(crear_app_publica(self.svc))
 
