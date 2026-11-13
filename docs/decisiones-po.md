@@ -1,6 +1,6 @@
-# Decisiones PO-01, PO-03, PO-06 y C-10 — producto (señas, WhatsApp, paciente y caja)
+# Decisiones PO-01, PO-03, PO-06, C-10 y C-11 — producto (señas, WhatsApp, paciente, caja y cobro online)
 
-> Fecha: 2026-11-06 (PO-01, PO-03) · 2026-11-12 (PO-06, C-10) · Registro de decisiones y preguntas abiertas de `knowledge-base/10_preguntas_abiertas.md`.
+> Fecha: 2026-11-06 (PO-01, PO-03) · 2026-11-12 (PO-06, C-10) · 2026-11-13 (C-11) · Registro de decisiones y preguntas abiertas de `knowledge-base/10_preguntas_abiertas.md`.
 > Dueño de producto: Martin Escudero · Registradas por el orquestador a pedido del dueño.
 > Clasificación: **Resuelta** (decisión cerrada) · **Provisional** (default del equipo, confirmar con el dueño) · **Diferida** (no se decide todavía) · **Abierta** (documentada, sin decisión).
 
@@ -12,6 +12,7 @@
 | PO-03 | WhatsApp: **diferida**, sin proveedor/BSP definido | Diferida | C-13 (bloqueado para implementar) |
 | PO-06 | Acceso/identidad del paciente: **sigue abierta**; C-09 v1 excluye al paciente como actor | Abierta | C-09, C-09-UI, C-11 |
 | C-10-OQ-01…10 | Caja y cierre diario: las 10 preguntas abiertas del design quedan **resueltas** (v1) | Resuelta | C-10, C-11, C-12, C-15 |
+| C-11-OQ-01…13 | Señas con Mercado Pago: las preguntas que tocan plata quedan **fijadas** (2026-11-13) | Resuelta / Provisional | C-11, C-11-UI, C-15 |
 
 ---
 
@@ -143,6 +144,37 @@ queda acá y el design del change la cita.
 
 ---
 
+## C-11 — Señas con Mercado Pago: decisiones del dueño (2026-11-13)
+
+**Estado: fijadas las que tocan plata; una provisional y una diferida fuera de v1.** Aplican al
+change `c-11-senas-mercadopago` y no modifican la KB: donde la KB no se pronuncia, la decisión queda
+acá y el design del change la cita como `C11-OQ-N`.
+
+| OQ | Pregunta | Decisión v1 | Clasificación |
+|---|---|---|---|
+| C11-OQ-01 | ¿Cómo se redondea el porcentaje de la seña? | **Truncar hacia abajo al centavo** (`precio_base * pct // 100`); nunca redondear para arriba. | Fijada 2026-11-13 |
+| C11-OQ-02 | Anticipación mínima de cancelación para devolver la seña | **24 h**, tomadas de `CANCEL_ANTICIPACION_H`, con snapshot en la seña. Se revisa con el piloto. | **Provisional** |
+| C11-OQ-03 | ¿Qué pasa con la seña acreditada si cancelan por debajo del umbral? | La seña queda **`ACREDITADA`** y **decide un humano `ADMIN`**: `DEVUELTA` con motivo o `APLICADA` como cancelación tardía (`concepto=CANCELACION_TARDIA`). Sin automatismo. | Fijada 2026-11-13 |
+| C11-OQ-04 | Al reprogramar, ¿la seña se transfiere o se pide una nueva? | **Se transfiere** al turno nuevo con `expira_at` recalculado (`min(ahora + TTL, nuevo.inicio)`). **Mismo token si no venció**; si venció o se liberó, se reemite uno nuevo. | Fijada 2026-11-13 |
+| C11-OQ-09 | ¿La devolución se ejecuta por API de MP o a mano? | **Manual**: sin API de reembolsos. El sistema registra la obligación y el reintegro se ejecuta en el panel de Mercado Pago. | Fijada 2026-11-13 |
+| C11-OQ-10 | ¿La seña visible en agenda cambia el payload de turnos o usa endpoint propio? | **Endpoint propio** `GET /api/senas?desde=&hasta=`, filtrando por **`turno.inicio`**. `GET /api/turnos` no cambia. | Fijada 2026-11-13 |
+| C11-OQ-13 | ¿Se descuenta la seña contra un presupuesto aceptado (C-09)? | **Fuera de v1.** Mientras no exista el descuento automático, aplicar una seña con presupuesto aceptado vigente responde **`409 PRESUPUESTO_CON_SENA`**. | Diferida fuera de v1 (abierta, no bloqueante) |
+
+### Consecuencias
+
+- El reembolso es **manual** y **requiere un responsable operativo asignado**: sin una persona que
+  opere el panel de MP y ejecute los reintegros, `DEVUELTA`, `MONTO_DISTINTO` y `PAGO_EXCEDENTE` son
+  obligaciones sin dueño. Es condición de avance del governance CRÍTICO de C-11.
+- La anticipación de **24 h** y el **backoff** del reintento de preferencia
+  (`min(2**intentos, 15)` minutos, `C11-OQ-05`) son **provisionales**: son defaults del equipo y se
+  confirman con el piloto, no son un número cerrado del producto.
+- Las preguntas **no bloqueantes** que siguen abiertas son `C11-OQ-05`, `06`, `07`, `08`, `11`, `12`
+  y `13`; ninguna impide implementar v1.
+- `C11-OQ-12` (sólo `ARS`, sin tope de porcentaje) sigue abierta y **no** tiene relación con el
+  descuento contra presupuesto: ese es `C11-OQ-13`.
+
+---
+
 ## Referencias
 
 - `knowledge-base/10_preguntas_abiertas.md` — PO-01, PO-03 y PO-06 (PO-06 sigue
@@ -151,3 +183,5 @@ queda acá y el design del change la cita.
 - `CHANGES.md` — C-10 (caja), C-11 (señas) y C-13 (WhatsApp).
 - `openspec/changes/c-10-caja-cierre-diario/design.md` — estas 10 decisiones se citan
   como `C10-OQ-N` en el diseño y en los escenarios.
+- `openspec/changes/c-11-senas-mercadopago/design.md` §Open Questions — las OQ de C-11 se citan
+  como `C11-OQ-N` en el diseño, las delta specs y las tareas.
