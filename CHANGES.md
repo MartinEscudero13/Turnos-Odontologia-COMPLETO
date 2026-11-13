@@ -275,7 +275,9 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ---
 
 ### [C-09] `odontograma-presupuesto`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-12; backend + contratos + migración 007 + tests; 416 passed + 10 skipped en suite local, 426 passed + 0 skipped con PostgreSQL real `C02_DATABASE_URL`, `openspec validate c-09-odontograma-presupuesto --strict` en verde) + archivado en `openspec/changes/archive/2026-11-12-c-09-odontograma-presupuesto/`
+- **Nota UI**: la UI del odontograma/presupuesto quedó **diferida a `C-09-UI`** (tareas `D.1–D.9`); C-09 v1 no toca `frontend/` (verificado por el test de gate 10.5).
+- **Migración**: `007_odontograma_presupuesto` **aplicada** (`odontograma_hallazgos`, `presupuestos`, `presupuesto_lineas`, `aceptaciones`, RLS forzada fail-closed, CHECK de grilla FDI y suma de línea).
 - **Scope**: Odontograma FDI con historial → presupuesto por pieza con aceptación parcial e imputación (US-031, US-032; RN-CL-01/02, RN-OS-01)
   - Modelo `OdontogramaHallazgo(tenant, paciente, pieza_fdi 11–48, superficie?, hallazgo, fecha, profesional, resuelto bool)` con historial por pieza
   - Modelos: `Presupuesto(tenant, paciente, estado BORRADOR/VIGENTE/PARCIAL/ACEPTADO/VENCIDO)` + `PresupuestoLinea(pieza_fdi?, prestacion, monto, cobertura_os, a_cargo_paciente)` + `Aceptacion(linea, acepta, fecha, canal)`

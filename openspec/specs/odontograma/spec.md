@@ -1,10 +1,9 @@
-# Spec Delta — odontograma
+# odontograma Specification
 
 ## Purpose
-
 Registrar hallazgos odontológicos por pieza en notación FDI con historial por pieza, conservarlos como hecho clínico inmutable y derivarlos en un clic a una línea de presupuesto, siempre dentro del tenant y con consentimiento previo.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Registro de hallazgo FDI por pieza
 
@@ -31,8 +30,14 @@ El sistema SHALL registrar un hallazgo clínico con `pieza_fdi`, `superficie?`, 
 #### Scenario: FDI fuera de la grilla se rechaza
 
 - **GIVEN** T1 con PACI-1 y consentimiento firmado
-- **WHEN** se registra un hallazgo con `pieza_fdi=10`, `pieza_fdi=49` o `pieza_fdi=00`
-- **THEN** el sistema responde `422` con el mensaje de FDI inválida y no persiste ningún hallazgo para PACI-1
+- **WHEN** se registra un hallazgo con `pieza_fdi=10`, `pieza_fdi=20`, `pieza_fdi=30`, `pieza_fdi=40`, `pieza_fdi=49` o `pieza_fdi=00`
+- **THEN** el sistema responde `422` con el mensaje de FDI inválida y no persiste ningún hallazgo para PACI-1 (el cuadrante es válido pero el diente `0` no existe)
+
+#### Scenario: El texto del hallazgo no puede venir vacío
+
+- **GIVEN** T1 con PACI-1 y consentimiento firmado
+- **WHEN** se registra un hallazgo con `hallazgo=""` o con un payload vacío
+- **THEN** el sistema responde `422` (nunca `500`) y no persiste ningún hallazgo para PACI-1
 
 #### Scenario: FDI no numérica se rechaza
 
@@ -92,19 +97,25 @@ El sistema SHALL exponer el historial de hallazgos de un paciente agrupable por 
 
 ### Requirement: Inmutabilidad del contenido clínico del hallazgo
 
-El contenido clínico de un hallazgo (`pieza_fdi`, `superficie`, `hallazgo`, `fecha`, `profesional_id`) SHALL ser inmutable: SHALL NOT permitirse editarlo ni eliminar el hallazgo; una corrección SHALL registrarse como un hallazgo nuevo.
+El contenido clínico de un hallazgo (`pieza_fdi`, `superficie`, `hallazgo`, `fecha`, `profesional_id`) SHALL ser inmutable: SHALL NOT permitirse editarlo ni eliminar el hallazgo; una corrección SHALL registrarse como un hallazgo nuevo. La inmutabilidad SHALL rechazarse tanto en el borde —no existe endpoint de edición ni de borrado— como en la base de datos (`GRANT UPDATE (resuelto)` y `REVOKE DELETE` sobre `odontograma_hallazgos`).
 
 #### Scenario: Editar el texto de un hallazgo se rechaza
 
 - **GIVEN** T1 con el hallazgo HAL-1 ya persistido
 - **WHEN** se intenta modificar el `hallazgo` o la `pieza_fdi` de HAL-1
-- **THEN** el sistema responde `405 Method Not Allowed` (no existe endpoint de edición) y HAL-1 permanece intacto
+- **THEN** el sistema responde `405`, `403` (o `404` si la ruta de edición no existe) y HAL-1 permanece intacto
 
 #### Scenario: Eliminar un hallazgo se rechaza
 
 - **GIVEN** T1 con el hallazgo HAL-1 ya persistido
 - **WHEN** se intenta eliminar HAL-1
-- **THEN** el sistema responde `405 Method Not Allowed` y HAL-1 sigue presente
+- **THEN** el sistema responde `405`, `403` (o `404` si la ruta no existe) y HAL-1 sigue presente
+
+#### Scenario: La base también rechaza el UPDATE y el DELETE del hallazgo
+
+- **GIVEN** la base en la migración 007 y el hallazgo HAL-1
+- **WHEN** el rol de aplicación `turnos_app` intenta `UPDATE` de `hallazgo`/`pieza_fdi` o `DELETE` de HAL-1
+- **THEN** el `GRANT`/`REVOKE` de la base rechaza las dos operaciones y HAL-1 permanece intacto
 
 #### Scenario: Corregir agrega un hallazgo nuevo
 
@@ -132,7 +143,13 @@ El sistema SHALL permitir marcar un hallazgo como resuelto sólo una vez, pasand
 
 - **GIVEN** T1 con el hallazgo HAL-1 con `resuelto=true`
 - **WHEN** se intenta un `PATCH`/`PUT` que ponga `resuelto=false`
-- **THEN** el sistema responde `405 Method Not Allowed` (no existe endpoint de edición) y HAL-1 permanece `resuelto=true`
+- **THEN** el sistema responde `405`, `403` (o `404` si la ruta no existe) y HAL-1 permanece `resuelto=true`
+
+#### Scenario: Sin consentimiento no se resuelve un hallazgo
+
+- **GIVEN** T1 con el hallazgo HAL-1 con `resuelto=false` y PACI-1 sin consentimiento firmado
+- **WHEN** un rol clínico llama a `POST /api/odontograma/{id}/resolver`
+- **THEN** el sistema responde `409 CONSENTIMIENTO_REQUERIDO` y HAL-1 permanece con `resuelto=false`
 
 ### Requirement: Derivación atómica de hallazgo a línea de presupuesto
 
@@ -164,7 +181,7 @@ El sistema SHALL registrar un hallazgo y derivarlo a una línea de presupuesto e
 
 ### Requirement: Idempotencia de la derivación con Idempotency-Key
 
-La derivación SHALL exigir el header `Idempotency-Key` (UUID generado por el cliente); la primera solicitud SHALL crear hallazgo + línea y responder `201`; el replay con la misma key y el mismo payload SHALL responder `200` con los mismos `hallazgo_id`/`linea_id` sin crear nada; la misma key con payload distinto SHALL responder `409`.
+La derivación SHALL exigir el header `Idempotency-Key` (UUID del cliente): la primera solicitud SHALL crear hallazgo + línea y responder `201`; el replay con la misma key y el mismo payload SHALL responder `200` con los mismos ids sin crear nada; la misma key con payload distinto SHALL responder `409`. El replay SHALL excluir los campos que completa el servidor y una violación del UNIQUE parcial SHALL resolverse como `200`, nunca `500`.
 
 #### Scenario: Primera derivación con key válida crea una sola vez
 
@@ -196,6 +213,12 @@ La derivación SHALL exigir el header `Idempotency-Key` (UUID generado por el cl
 - **WHEN** se consulta la línea creada en cada tenant
 - **THEN** cada tenant conserva su propia derivación y ninguna ve la del otro
 
+#### Scenario: Dos derivaciones simultáneas con la misma key crean una sola
+
+- **GIVEN** T1 con PACI-1, consentimiento firmado y dos derivaciones simultáneas del mismo hallazgo a PREST-1 con la misma `Idempotency-Key`
+- **WHEN** ambas se procesan —una gana el `INSERT` y la otra pierde contra el UNIQUE parcial por tenant—
+- **THEN** una responde `201`, la otra responde `200` replay con los mismos `hallazgo_id`/`linea_id`, y quedan un solo hallazgo y una sola línea
+
 ### Requirement: Gate de consentimiento en la clínica del odontograma
 
 El sistema SHALL exigir un consentimiento con `timestamp` válido para registrar hallazgos, resolverlos o derivarlos; sin consentimiento SHALL responder `409 CONSENTIMIENTO_REQUERIDO` y SHALL NOT bloquear la agenda del mismo paciente.
@@ -226,7 +249,7 @@ El sistema SHALL exigir un consentimiento con `timestamp` válido para registrar
 
 ### Requirement: RBAC del odontograma
 
-El sistema SHALL permitir escribir hallazgos a `ADMIN` y al `ODONTOLOGO` acotado a los pacientes que atiende, SHALL dar a `RECEPCION` sólo lectura y al `PACIENTE` lectura de su propio odontograma; un rol o alcance sin permiso SHALL recibir `403`.
+El sistema SHALL permitir escribir hallazgos a `ADMIN` y al `ODONTOLOGO` acotado a los pacientes que atiende, SHALL dar a `RECEPCION` sólo lectura y al `ODONTOLOGO` lectura de los pacientes que atiende; un rol o alcance sin permiso SHALL recibir `403`. En v1 el `PACIENTE` SHALL NOT acceder al odontograma: no hay login, JWT ni link público de paciente (DD-06/DD-07); el acceso del paciente es `C09-OQ-10` y queda fuera de v1.
 
 #### Scenario: Odontólogo escribe el hallazgo de un paciente que atiende
 
@@ -246,17 +269,17 @@ El sistema SHALL permitir escribir hallazgos a `ADMIN` y al `ODONTOLOGO` acotado
 - **WHEN** recepción lee el odontograma de PACI-1 y luego intenta registrar un hallazgo
 - **THEN** la lectura responde `200` y la escritura responde `403`
 
-#### Scenario: Paciente lee su odontograma, no el ajeno
+#### Scenario: Recepción y odontólogo leen el historial completo de la pieza
 
-- **GIVEN** T1 con PACI-1 y PACI-2, ambos con hallazgos
-- **WHEN** PACI-1 lee su odontograma y luego intenta leer el de PACI-2
-- **THEN** el propio responde `200` y el ajeno responde `403`/`404`
+- **GIVEN** T1 con un usuario RECEPCION y el odontólogo P1, y PACI-1 con hallazgos en la pieza 36
+- **WHEN** recepción y P1 consultan el historial de PACI-1 para `pieza_fdi=36`
+- **THEN** ambos reciben `200` con el mismo historial ordenado por `fecha`
 
-#### Scenario: Paciente no escribe hallazgos
+#### Scenario: El paciente no accede a su odontograma en v1
 
-- **GIVEN** T1 con PACI-1 con consentimiento firmado
-- **WHEN** PACI-1 intenta registrar un hallazgo de su propia pieza 36
-- **THEN** el sistema responde `403` y no persiste el hallazgo
+- **GIVEN** T1 con PACI-1 con hallazgos
+- **WHEN** una petición se presenta con identidad de paciente (sin sesión interna) para leer el odontograma de PACI-1
+- **THEN** el sistema responde `401` y no expone ningún hallazgo; el acceso del paciente es `C09-OQ-10` y queda fuera de v1
 
 #### Scenario: El odontólogo no firma un hallazgo de otro profesional
 
@@ -280,25 +303,25 @@ Toda lectura y escritura de hallazgos SHALL acotarse al `tenant_id`; un hallazgo
 - **WHEN** un rol clínico de T2 intenta resolver HAL-1
 - **THEN** el sistema responde `404` y HAL-1 permanece sin cambios
 
-### Requirement: UI del odontograma FDI con derivación en un clic
+### Requirement: UI del odontograma FDI con derivación en un clic (diferida a C-09-UI)
 
-La interfaz SHALL mostrar las 32 piezas de la grilla FDI permanente (11–18, 21–28, 31–38, 41–48), el historial de la pieza seleccionada y una acción "derivar a presupuesto" que registre el hallazgo y muestre la línea creada; un error de dominio SHALL mostrarse sin dejar la UI en estado de éxito.
+Este requirement queda **diferido al change `C-09-UI`** por decisión del dueño (2026-11-12): C-09 v1 entrega backend, contratos, migración 007 y tests, y no toca frontend. La interfaz SHALL mostrar las 32 piezas FDI, el historial de la pieza y la acción "derivar a presupuesto", y SHALL mostrar los errores de dominio como error; estos criterios se verifican en `C-09-UI`, no en C-09.
 
 #### Scenario: Registrar un hallazgo desde la UI
 
-- **GIVEN** la página `/odontograma` con PACI-1 y consentimiento firmado
+- **GIVEN** la página `/odontograma` de `C-09-UI` con PACI-1 y consentimiento firmado
 - **WHEN** el usuario selecciona la pieza 36, escribe el hallazgo y confirma
 - **THEN** la UI llama a `POST /api/odontograma` y muestra el hallazgo en el historial de la pieza 36
 
 #### Scenario: Derivar en un clic muestra la línea y el a cargo
 
-- **GIVEN** un hallazgo de la pieza 36 visible en la UI y PACI-1 sin obra social
+- **GIVEN** un hallazgo de la pieza 36 visible en la UI de `C-09-UI` y PACI-1 sin obra social
 - **WHEN** el usuario pulsa "derivar a presupuesto" y elige PREST-1
 - **THEN** la UI muestra la línea con `monto=150000`, `cobertura_os=0` y `a_cargo_paciente=150000`
 
 #### Scenario: FDI inválida no se muestra como hallazgo creado
 
-- **GIVEN** la página `/odontograma` de PACI-1
+- **GIVEN** la página `/odontograma` de `C-09-UI` de PACI-1
 - **WHEN** el usuario envía una pieza fuera de la grilla FDI (por ejemplo `19` o `49`) y el backend responde `422`
 - **THEN** la UI muestra el error y el historial de la pieza no cambia
 
