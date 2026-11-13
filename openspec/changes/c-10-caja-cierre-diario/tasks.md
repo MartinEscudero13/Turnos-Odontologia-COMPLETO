@@ -16,56 +16,56 @@
 
 ## 1. Migración 008 y modelos SQLAlchemy
 
-- [ ] 1.1 Escribir el test de migración (rojo):
+- [x] 1.1 Escribir el test de migración (rojo):
   `tests/test_migracion_008.py::test_upgrade_head_crea_tablas_de_caja`
   (`alembic upgrade head` ⇒ existen `movimientos_caja`, `cierres_diarios`,
   `cobros_pendientes`, `ajustes_post_cierre` y `cuentas_por_cobrar_os`;
   `down_revision="007_odontograma_presupuesto"`).
-- [ ] 1.2 Implementar `backend/alembic/versions/008_caja_cierre_diario.py` con las 5 tablas,
+- [x] 1.2 Implementar `backend/alembic/versions/008_caja_cierre_diario.py` con las 5 tablas,
   FKs, índices, CHECKs, UNIQUE del cierre, UNIQUE por `(tenant_id, linea_id, tramo)`, UNIQUE de
   pendientes por `(tenant_id, linea_id)` sin condición de resolución y RLS forzada fail-closed
   (D7/D8) hasta que 1.1 pase.
-- [ ] 1.3 Escribir y hacer pasar
+- [x] 1.3 Escribir y hacer pasar
   `tests/test_migracion_008.py::test_downgrade_elimina_solo_008`
   (`alembic downgrade 007_odontograma_presupuesto` ⇒ las 5 tablas fuera, 001–007 intactas y
   re-upgrade limpio).
-- [ ] 1.4 Escribir y hacer pasar
+- [x] 1.4 Escribir y hacer pasar
   `tests/test_migracion_008.py::test_008_no_toca_aceptaciones`
   (las columnas de `aceptaciones` son las de la 007 y no se le agrega ninguna columna nueva, M7).
-- [ ] 1.5 Escribir y hacer pasar
+- [x] 1.5 Escribir y hacer pasar
   `tests/test_migracion_008.py::test_check_monto_anulacion_y_diferencia_en_db`
   (`monto=0` y negativo rechazados; `anulado=true` sin motivo/actor/instante rechazado;
   `diferencia <> efectivo_contado - total_efectivo` rechazada; `efectivo_contado=-1` rechazado;
   `medio='CHEQUE'` y `tipo='AJUSTE'` rechazados; `origen='COMPENSACION'` sin `compensa_a_id`
   rechazado; `origen='IMPUTACION'` con `tramo=NULL` o `tramo='OTRO'` rechazado).
-- [ ] 1.6 Escribir y hacer pasar
+- [x] 1.6 Escribir y hacer pasar
   `tests/test_migracion_008.py::test_check_diferencia_solo_exige_motivo`
   (`diferencia≠0` con `motivo_diferencia` y sin `observacion` aceptado; `diferencia≠0` sin motivo
   rechazado por el CHECK; `motivo_diferencia=""` rechazado; `observacion=""` rechazada, M2).
-- [ ] 1.7 Escribir y hacer pasar
+- [x] 1.7 Escribir y hacer pasar
   `tests/test_migracion_008.py::test_unique_cierre_e_idempotencia_por_tramo`
   (`UNIQUE (tenant_id, fecha)` rechaza el segundo cierre de T1 y acepta el mismo día en T2; el
   UNIQUE parcial `(tenant_id, linea_id, tramo)` rechaza el segundo movimiento de imputación de T1
   aunque cambie el `medio`, acepta `tramo='OS'` junto a `tramo='PACIENTE'` de la misma línea y
   acepta el de T2; una fila `MANUAL` con la misma línea no colisiona).
-- [ ] 1.8 Escribir y hacer pasar
+- [x] 1.8 Escribir y hacer pasar
   `tests/test_migracion_008.py::test_unique_pendiente_y_cuenta_por_cobrar_os`
   (`cobros_pendientes` rechaza un segundo pendiente de la misma línea **aunque el primero esté
   resuelto**; `cuentas_por_cobrar_os` rechaza el segundo devengado de la misma línea; ambos
   aceptan la misma línea en T2).
-- [ ] 1.9 Escribir y hacer pasar
+- [x] 1.9 Escribir y hacer pasar
   `tests/test_migracion_008.py::test_check_ajuste_post_cierre`
   (`AJUSTE_ANULACION` sin `movimiento_original_id` rechazado; `COBRO_PENDIENTE` sin
   `cobro_pendiente_id` rechazado; `monto=0` rechazado; `motivo` vacío en `AJUSTE_ANULACION`
   rechazado; segundo ajuste para el mismo original rechazado por el UNIQUE parcial).
-- [ ] 1.10 Escribir y hacer pasar
+- [x] 1.10 Escribir y hacer pasar
   `tests/test_migracion_008.py::test_rls_fail_closed_y_grants_caja` (integración; como
   `turnos_app` sin `app.tenant_id` **o con cadena vacía** ⇒ 0 filas sin error `42704` en las 5
   tablas; `DELETE` de movimientos rechazado; `UPDATE` de `monto`/`medio`/`tramo`/`fecha`
   rechazado; `UPDATE` de las 4 columnas de anulación permitido; `UPDATE`/`DELETE` de
   `cierres_diarios`, `ajustes_post_cierre` y `cuentas_por_cobrar_os` rechazados;
   `UPDATE (resuelto_en, movimiento_id)` de pendientes permitido y `DELETE` rechazado, N1).
-- [ ] 1.11 Escribir el test de modelos (rojo):
+- [x] 1.11 Escribir el test de modelos (rojo):
   `tests/test_migracion_008.py::test_modelos_sqlalchemy_caja_cargan_sin_errores`; implementar
   `backend/app/models/caja.py` (`MovimientoCaja`, `CierreDiario`, `CobroPendiente`,
   `AjustePostCierre`, `CuentaPorCobrarOS`) con `Mapped[...]`, `Date` para la fecha operativa,
@@ -73,119 +73,119 @@
 
 ## 2. Dominio de caja (movimientos)
 
-- [ ] 2.1 Escribir el test de puertos en memoria (rojo):
+- [x] 2.1 Escribir el test de puertos en memoria (rojo):
   `tests/test_caja_puertos.py::test_repositorios_scoped_por_tenant`; implementar
   `backend/app/caja/puertos.py` con entidades (`Movimiento`, `Cierre`, `CobroPendiente`,
   `Ajuste`, `CuentaPorCobrarOS`), los protocolos de §Seams, `TotalesCajaPort`, `AuditoriaPort`,
   `UnidadDeTrabajo` y adaptadores en memoria. `MedioPago` se **importa** de
   `app.presupuesto.puertos` (M11).
-- [ ] 2.2 Escribir el test (rojo) y hacerlo pasar:
+- [x] 2.2 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_caja.py::test_registrar_ingreso_efectivo`
   (`INGRESO` de `150000` con `medio=EFECTIVO`, `fecha=2026-11-10`, `turno_id=TUR-1`,
   `usuario_id=U1`, `anulado=false`, `origen=MANUAL`, `tramo=NULL`).
-- [ ] 2.3 Escribir y hacer pasar `tests/test_caja.py::test_registrar_egreso`
+- [x] 2.3 Escribir y hacer pasar `tests/test_caja.py::test_registrar_egreso`
   (`EGRESO` de `20000` con `medio=TRANSFERENCIA` y total del medio con signo negativo).
-- [ ] 2.4 Escribir y hacer pasar `tests/test_caja.py::test_cuatro_medios_validos`
+- [x] 2.4 Escribir y hacer pasar `tests/test_caja.py::test_cuatro_medios_validos`
   (un ingreso por cada medio ⇒ 4 movimientos y 4 totales por medio).
-- [ ] 2.5 Escribir y hacer pasar `tests/test_caja.py::test_monto_invalido_422`
+- [x] 2.5 Escribir y hacer pasar `tests/test_caja.py::test_monto_invalido_422`
   (`monto=0`, `-100`, `1000.5`, `"1000"` ⇒ `422` y 0 movimientos).
-- [ ] 2.6 Escribir y hacer pasar `tests/test_caja.py::test_medio_o_tipo_invalido_422`
+- [x] 2.6 Escribir y hacer pasar `tests/test_caja.py::test_medio_o_tipo_invalido_422`
   (`medio="CHEQUE"`, `tipo="AJUSTE"` ⇒ `422` y 0 movimientos).
-- [ ] 2.7 Escribir y hacer pasar `tests/test_caja.py::test_fecha_mal_formada_422`
+- [x] 2.7 Escribir y hacer pasar `tests/test_caja.py::test_fecha_mal_formada_422`
   (`fecha="10/11/2026"` y `fecha="2026-11-10T10:00:00-03:00"` ⇒ `422`).
-- [ ] 2.8 Escribir y hacer pasar `tests/test_caja.py::test_sin_fecha_usa_reloj_servidor`
+- [x] 2.8 Escribir y hacer pasar `tests/test_caja.py::test_sin_fecha_usa_reloj_servidor`
   (`ahora=2026-11-10T22:00:00-03:00` ⇒ `fecha=2026-11-10`).
-- [ ] 2.9 Escribir y hacer pasar `tests/test_caja.py::test_dia_operativo_offset_menos_03`
+- [x] 2.9 Escribir y hacer pasar `tests/test_caja.py::test_dia_operativo_offset_menos_03`
   (`ahora=2026-11-11T01:30:00Z` ⇒ `fecha=2026-11-10`; documenta C10-OQ-8).
-- [ ] 2.10 Escribir y hacer pasar `tests/test_caja.py::test_turno_otro_tenant_404`
+- [x] 2.10 Escribir y hacer pasar `tests/test_caja.py::test_turno_otro_tenant_404`
   (`turno_id` de T2 ⇒ `404`, movimiento no persistido).
-- [ ] 2.11 Escribir y hacer pasar `tests/test_caja.py::test_movimiento_sin_patch_ni_delete`
+- [x] 2.11 Escribir y hacer pasar `tests/test_caja.py::test_movimiento_sin_patch_ni_delete`
   (`PATCH`/`DELETE` de movimiento ⇒ `405`/`403`/`404`, nunca `200`; el movimiento sigue intacto).
 
 ## 3. Anulación, compensación y ajustes post-cierre
 
-- [ ] 3.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 3.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_anulacion_caja.py::test_anular_dia_abierto_excluye_de_totales`
   (ingreso de `150000` anulado con motivo ⇒ `anulado=true` con actor e instante, sin
   compensatorio ni ajuste, total de efectivo en `0`).
-- [ ] 3.2 Escribir y hacer pasar `tests/test_anulacion_caja.py::test_anular_sin_motivo_422`
+- [x] 3.2 Escribir y hacer pasar `tests/test_anulacion_caja.py::test_anular_sin_motivo_422`
   (sin `motivo` y con `motivo=""` ⇒ `422`, el movimiento sigue vigente).
-- [ ] 3.3 Escribir y hacer pasar `tests/test_anulacion_caja.py::test_segunda_anulacion_409`
+- [x] 3.3 Escribir y hacer pasar `tests/test_anulacion_caja.py::test_segunda_anulacion_409`
   (`409 ANULADO`, la anulación original no cambia, sin segundo compensatorio ni segundo ajuste).
-- [ ] 3.4 Escribir y hacer pasar
+- [x] 3.4 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_anulacion_conserva_monto_y_medio`
   (el movimiento anulado devuelve `monto`, `medio` y `tipo` originales).
-- [ ] 3.5 Escribir y hacer pasar
+- [x] 3.5 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_post_movimiento_en_dia_cerrado_409`
   (`409 CIERRE_CERRADO`, nada persistido, cierre sin cambios).
-- [ ] 3.6 Escribir y hacer pasar
+- [x] 3.6 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_anular_post_cierre_crea_compensatorio`
   (`ahora=2026-11-11T09:00:00-03:00` ⇒ `EGRESO` de `150000` `EFECTIVO`,
   `origen=COMPENSACION`, `compensa_a_id=M1`, mismo motivo y `fecha=2026-11-11`).
-- [ ] 3.7 Escribir y hacer pasar
+- [x] 3.7 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_anular_post_cierre_asienta_ajuste`
   (`ajustes_post_cierre` con `tipo=AJUSTE_ANULACION`, `cierre_id` del día cerrado,
   `movimiento_original_id=M1`, `monto=150000`, `medio=EFECTIVO`, el motivo, el actor y
   `compensatorio_id` del compensatorio; D1).
-- [ ] 3.8 Escribir y hacer pasar
+- [x] 3.8 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_anulacion_post_cierre_no_inserta_en_la_fecha_cerrada`
   (la cantidad de movimientos con `fecha=2026-11-10` no cambia; ningún movimiento de ese día
   cambia `monto`/`medio`; el compensatorio sólo existe en `2026-11-11`).
-- [ ] 3.9 Escribir y hacer pasar
+- [x] 3.9 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_compensatorio_no_edita_el_cierre`
   (totales, `efectivo_contado`, `diferencia` y `cerrado_at` del cierre sin cambios y 0
   `UPDATE` sobre `cierres_diarios`).
-- [ ] 3.10 Escribir y hacer pasar
+- [x] 3.10 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_compensatorio_de_egreso_es_ingreso`
   (`EGRESO` de `20000` `TRANSFERENCIA` anulado post-cierre ⇒ `INGRESO` compensatorio del mismo
   monto y medio, y suma al total de transferencia del día del registro, N3).
-- [ ] 3.11 Escribir y hacer pasar
+- [x] 3.11 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_compensatorio_cuenta_en_dia_del_registro`
   (el compensatorio descuenta del total del `2026-11-11`, no del `2026-11-10`).
-- [ ] 3.12 Escribir y hacer pasar
+- [x] 3.12 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_anular_un_compensatorio`
   (un compensatorio de un día abierto se anula con motivo ⇒ `200`, sin segundo compensatorio, N7).
-- [ ] 3.13 Escribir y hacer pasar
+- [x] 3.13 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_dia_del_registro_cerrado_409`
   (`2026-11-10` y `2026-11-11` cerrados ⇒ anular el movimiento de `2026-11-10` responde
   `409 CIERRE_CERRADO`, no anula y no crea compensatorio ni ajuste).
-- [ ] 3.14 Escribir y hacer pasar
+- [x] 3.14 Escribir y hacer pasar
   `tests/test_anulacion_caja.py::test_ajuste_no_suma_en_totales`
   (el ajuste no aparece como movimiento ni suma en los totales del día cerrado ni del día del
   registro).
-- [ ] 3.15 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**)
+- [x] 3.15 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**)
   `tests/test_anulacion_concurrente_pg.py::test_dos_anulaciones_dejan_un_compensatorio`
   (una `200`, una `409`, exactamente un compensatorio y un ajuste, sin `500`).
 
 ## 4. Cobros pendientes (`medio=NULL` de C-09)
 
-- [ ] 4.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 4.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_cobros_pendientes.py::test_imputacion_sin_medio_crea_pendiente_sin_movimiento`
   (L1 de `a_cargo_paciente=60000` y `cobertura_os=0` ⇒ 1 pendiente de `60000` con
   `fecha=2026-11-10`, 0 movimientos y total del día sin cambios).
-- [ ] 4.2 Escribir y hacer pasar
+- [x] 4.2 Escribir y hacer pasar
   `tests/test_cobros_pendientes.py::test_cobrar_pendiente_crea_movimiento_y_audita`
   (`medio=TRANSFERENCIA` y día abierto ⇒ `INGRESO` de `60000` con trazabilidad de L1,
   `tramo=PACIENTE`, `resuelto_en` y `movimiento_id`, más `COBRO_PENDIENTE_RESUELTO`).
-- [ ] 4.3 Escribir y hacer pasar
+- [x] 4.3 Escribir y hacer pasar
   `tests/test_cobros_pendientes.py::test_pendiente_resuelto_no_se_cobra_dos_veces`
   (`409 COBRO_YA_RESUELTO`, un solo movimiento).
-- [ ] 4.4 Escribir y hacer pasar
+- [x] 4.4 Escribir y hacer pasar
   `tests/test_cobros_pendientes.py::test_replay_sin_medio_no_crea_segundo_pendiente`
   (el replay de la imputación sin medio con el pendiente **abierto** y **resuelto** no crea un
   segundo pendiente; la misma línea en T2 sí puede tener el suyo; H1).
-- [ ] 4.5 Escribir y hacer pasar
+- [x] 4.5 Escribir y hacer pasar
   `tests/test_cobros_pendientes.py::test_replay_con_otro_medio_409`
   (`409 IMPUTACION_DUPLICADA` y un solo movimiento en el día, aunque el `medio` cambie; H1).
-- [ ] 4.6 Escribir y hacer pasar
+- [x] 4.6 Escribir y hacer pasar
   `tests/test_cobros_pendientes.py::test_cobro_con_fecha_cerrada_asienta_ajuste_201`
   (`fecha` del pendiente cerrada y `ahora=2026-11-11T09:00:00-03:00` ⇒ `201`, `INGRESO` con
   `fecha=2026-11-11`, pendiente resuelto, ajuste `COBRO_PENDIENTE` con el `cierre_id` del día
   cerrado y el cierre con sus totales intactos; H4).
-- [ ] 4.7 Escribir y hacer pasar
+- [x] 4.7 Escribir y hacer pasar
   `tests/test_cobros_pendientes.py::test_imputacion_sin_medio_en_dia_cerrado_409`
   (`409 CIERRE_CERRADO`, 0 pendientes y 0 movimientos).
-- [ ] 4.8 Escribir y hacer pasar
+- [x] 4.8 Escribir y hacer pasar
   `tests/test_cobros_pendientes.py::test_tramo_cero_no_crea_pendiente`
   (`a_cargo_paciente=0` y `medio=NULL` ⇒ 0 pendientes, 0 movimientos, sin error).
 

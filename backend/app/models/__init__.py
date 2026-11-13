@@ -1,6 +1,13 @@
 """SQLAlchemy models for the project."""
 from app.models.auditoria import Auditoria
 from app.models.base import Base
+from app.models.caja import (
+    AjustePostCierre,
+    CierreDiario,
+    CobroPendiente,
+    CuentaPorCobrarOS,
+    MovimientoCaja,
+)
 from app.models.catalogos import (
     Bloqueo,
     HorarioSemanal,
@@ -22,14 +29,19 @@ from app.models.usuario import Usuario
 __all__ = [
     "Aceptacion",
     "Adjunto",
+    "AjustePostCierre",
     "Auditoria",
     "Base",
     "Bloqueo",
+    "CierreDiario",
+    "CobroPendiente",
     "Consentimiento",
+    "CuentaPorCobrarOS",
     "Evolucion",
     "Ficha",
     "HorarioSemanal",
     "ListaEspera",
+    "MovimientoCaja",
     "OdontogramaHallazgo",
     "Oferta",
     "Paciente",
