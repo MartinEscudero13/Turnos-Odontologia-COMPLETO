@@ -300,12 +300,15 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 > `C-10`, `C-12` y `C-14` pueden proponerse en paralelo tras `C-05`. `C-11` requiere `C-07` + `C-10` archivados.
 
 ### [C-10] `caja-cierre-diario`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-13; backend + contratos + migración 008 + delta specs alineadas; 552 passed + 27 skipped en suite local, 579 passed + 0 skipped con PostgreSQL real `C02_DATABASE_URL`, `mypy` (84 archivos) / `ruff check .` / `openspec validate --all --strict` en verde) + archivado en `openspec/changes/archive/2026-11-13-c-10-caja-cierre-diario/`
+  - **Migración 008 aplicada y reversible**: `movimientos_caja`, `cierres_diarios`, `cobros_pendientes`, `ajustes_post_cierre`, `cuentas_por_cobrar_os` (RLS forzada fail-closed), verificada contra PostgreSQL real.
+  - **Diferido a `C-10-UI`**: la UI SPA `/caja` (tasks §12 `D.1–D.8`) no se implementó; C-10 no declara requirements de UI.
+  - **Limitación declarada**: la prohibición de escribir en un día cerrado es de aplicación (servicio + `pg_advisory_xact_lock` por `(tenant, fecha)`), **no** un trigger de base que bloquee un `INSERT` SQL directo; sólo `UPDATE`/`DELETE` de cierres y movimientos están bloqueados en la base.
 - **Scope**: Caja multi-medio con cierre diario obligatorio y reportes base (US-040; RN-CJ-01/02/03)
   - Modelos: `MovimientoCaja(tenant, fecha, medio EFECTIVO/TRANSFERENCIA/MP/OS, monto centavos, tipo INGRESO/EGRESO, turno_id?, usuario_id, anulado + motivo)`, `CierreDiario UNIQUE(tenant, fecha)` con totales por medio, diferencia, responsable, cerrado_at
   - Endpoints: `GET /api/caja/movimientos?fecha=`, `POST /api/caja/movimientos`, `POST /api/caja/cierre` (diferencia 0 o motivo con observación auditable), anulación con motivo + movimiento compensatorio (nunca borrado; post-cierre exige compensatorio)
-  - UI SPA `/caja`: movimientos por medio + señas aplicadas, carga de efectivo real vs sistema, reportes base (ocupación, ausentismo, facturación por profesional)
-  - Migración 008: movimientos_caja, cierres_diarios + RLS
+  - UI SPA `/caja` (**diferida a `C-10-UI`**): movimientos por medio, carga de efectivo real vs sistema, reportes base
+  - Migración 008: movimientos_caja, cierres_diarios, cobros_pendientes, ajustes_post_cierre, cuentas_por_cobrar_os + RLS
   - Tests: cierre con diferencia exige motivo, día sin responsable no cierra, anulación post-cierre crea compensatorio sin editar cierre
 - **Dependencias**: C-03, C-05
 - **Governance**: ALTO

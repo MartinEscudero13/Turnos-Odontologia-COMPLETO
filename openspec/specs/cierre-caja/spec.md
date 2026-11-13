@@ -1,10 +1,9 @@
-# Spec Delta — cierre-caja
+# cierre-caja Specification
 
 ## Purpose
-
 Cerrar la caja de cada día operativo del tenant con los totales por medio del sistema, el efectivo contado por el responsable y una diferencia explicada cuando no cuadra, dejando el cierre inmutable, el día cerrado sin altas posteriores y el devengado de obras sociales como información separada de la caja. La pantalla de cierre queda diferida a `C-10-UI` (ver `proposal.md` §Diferido a C-10-UI) y este change no declara requirements de UI.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Cierre diario con totales por medio y diferencia
 
@@ -206,6 +205,34 @@ El sistema SHALL NOT bloquear la operación del día por un día anterior sin ce
 - **WHEN** U1 intenta registrar un movimiento con `fecha=2026-11-09`
 - **THEN** el sistema responde `409 CIERRE_CERRADO`
 
+### Requirement: Fecha opcional del cierre
+
+`POST /api/caja/cierre` SHALL aceptar `fecha` opcional como día operativo (`YYYY-MM-DD`); sin `fecha` SHALL cerrar el día del reloj y con una `fecha` anterior SHALL habilitar el cierre atrasado de C10-OQ-3. El cliente SHALL NOT enviar totales —se calculan en el servidor— y un campo extra SHALL responder `422`.
+
+#### Scenario: Sin fecha se cierra el día del reloj
+
+- **GIVEN** T1, el usuario U1 y `ahora=2026-11-10T22:00:00-03:00` inyectado
+- **WHEN** U1 hace `POST /api/caja/cierre` con `efectivo_contado` y `responsable_id`, sin `fecha`
+- **THEN** el sistema responde `201` y el cierre se persiste con `fecha=2026-11-10`
+
+#### Scenario: La fecha del cierre permite el cierre atrasado
+
+- **GIVEN** T1 con el `2026-11-09` sin cierre y el reloj en `2026-11-10T10:00:00-03:00`
+- **WHEN** U1 hace `POST /api/caja/cierre` con `fecha=2026-11-09`, `efectivo_contado` y `responsable_id`
+- **THEN** el sistema responde `201` y el cierre se persiste con `fecha=2026-11-09`
+
+#### Scenario: Una fecha de cierre mal formada se rechaza
+
+- **GIVEN** T1 con el usuario U1
+- **WHEN** U1 hace `POST /api/caja/cierre` con `fecha="09/11/2026"` o `fecha="2026-11-09T10:00:00-03:00"`
+- **THEN** el sistema responde `422` y no persiste el cierre
+
+#### Scenario: El cliente no puede imponer los totales
+
+- **GIVEN** T1 con el usuario U1
+- **WHEN** el payload del cierre incluye `total_efectivo`, `diferencia` o `tenant_id`
+- **THEN** el sistema responde `422` por el schema `extra="forbid"` y no persiste el cierre, porque los totales sólo los calcula el servidor
+
 ### Requirement: La reapertura de un cierre no existe en v1
 
 v1 SHALL NOT exponer la reapertura de un cierre; un día cerrado queda final y la reapertura queda como `C10-OQ-1` sin implementar; ninguna ruta SHALL permitir volver un cierre a abierto.
@@ -265,6 +292,34 @@ El sistema SHALL exponer el cierre de una fecha y el estado `abierto`/`cerrado` 
 - **GIVEN** T1 y el cierre del `2026-11-10` del tenant T2
 - **WHEN** un actor de T1 consulta el cierre del `2026-11-10`
 - **THEN** el sistema responde `404` y no expone datos de T2
+
+### Requirement: Consulta del cierre separada del estado del día
+
+El sistema SHALL separar la consulta del cierre persistido de la del estado del día: `GET /api/caja/cierre?fecha=` SHALL devolver el cierre y `404` si no existe; `GET /api/caja/cierre/estado?fecha=` SHALL devolver `abierto`/`cerrado` con `200` en ambos casos. Un solo endpoint no puede reportar día abierto y ocultar con `404` el cierre de otro tenant a la vez.
+
+#### Scenario: El cierre inexistente responde 404 y no un día abierto
+
+- **GIVEN** T1 sin cierre el `2026-11-09`
+- **WHEN** se llama `GET /api/caja/cierre?fecha=2026-11-09`
+- **THEN** el sistema responde `404` y no devuelve un cierre vacío ni infiere totales
+
+#### Scenario: El estado de un día abierto responde 200
+
+- **GIVEN** T1 sin cierre el `2026-11-09`
+- **WHEN** se llama `GET /api/caja/cierre/estado?fecha=2026-11-09`
+- **THEN** el sistema responde `200` con `estado=abierto`, `cierre=null` y los totales vigentes del día
+
+#### Scenario: El estado de un día cerrado responde 200 con su cierre
+
+- **GIVEN** T1 con el cierre del `2026-11-10`
+- **WHEN** se llama `GET /api/caja/cierre/estado?fecha=2026-11-10`
+- **THEN** el sistema responde `200` con `estado=cerrado` y el mismo cierre que devuelve `GET /api/caja/cierre?fecha=2026-11-10`
+
+#### Scenario: T1 no distingue un cierre ajeno de un día abierto con el endpoint del cierre
+
+- **GIVEN** T1 y el cierre del `2026-11-10` del tenant T2
+- **WHEN** un actor de T1 llama `GET /api/caja/cierre?fecha=2026-11-10` y luego `GET /api/caja/cierre/estado?fecha=2026-11-10`
+- **THEN** la primera consulta responde `404` y la segunda `200` con `estado=abierto`, sin revelar que T2 tiene cierre
 
 ### Requirement: RBAC del cierre
 

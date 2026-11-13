@@ -360,6 +360,34 @@ El adaptador SHALL exponer sus errores como excepciones de dominio con `codigo` 
 - **WHEN** se llama `GET /api/caja/movimientos` sin `fecha`
 - **THEN** el sistema responde `422` y no devuelve movimientos de ningún día
 
+### Requirement: Ajustes visibles en la consulta diaria
+
+La consulta diaria SHALL incluir los `ajustes` del cierre de la fecha consultada en el mismo payload, como lista vacía cuando el día está abierto; los ajustes SHALL NOT sumarse a `totales_vigentes` ni a `totales_cierre` y SHALL NOT exponer datos personales.
+
+#### Scenario: Un día cerrado con anulación posterior lista su ajuste
+
+- **GIVEN** T1 con el `2026-11-10` cerrado y un movimiento de ese día anulado el `2026-11-11`
+- **WHEN** se consultan los movimientos del `2026-11-10`
+- **THEN** la respuesta incluye un `AJUSTE_ANULACION` con `cierre_id` del `2026-11-10`, `monto`, `medio`, actor y `compensatorio_id`
+
+#### Scenario: Un día abierto devuelve la lista de ajustes vacía
+
+- **GIVEN** T1 sin cierre el `2026-11-11` y un ajuste referido al cierre del `2026-11-10`
+- **WHEN** se consultan los movimientos del `2026-11-11`
+- **THEN** la respuesta devuelve `ajustes=[]` y el ajuste del `2026-11-10` no aparece
+
+#### Scenario: Los ajustes no alteran los totales del día
+
+- **GIVEN** T1 con el `2026-11-10` cerrado con `total_efectivo=150000` y un `AJUSTE_ANULACION` de `150000`
+- **WHEN** se consultan los movimientos del `2026-11-10`
+- **THEN** `totales_cierre.total_efectivo` sigue en `150000`, el ajuste no se suma a `totales_vigentes` ni a `totales_cierre` y el cierre no se recalcula
+
+#### Scenario: El ajuste de la consulta no expone PHI
+
+- **GIVEN** T1 con un ajuste cuyo movimiento original pertenece a un paciente con datos personales
+- **WHEN** se consultan los movimientos del día ajustado
+- **THEN** el ajuste sólo devuelve ids, tipo, monto, medio, motivo y actor, sin nombre, DNI ni teléfono
+
 ### Requirement: Reportes base de caja
 
 El sistema SHALL exponer la facturación neta por medio y por día sobre movimientos vigentes, declarando `fuente: "movimientos_vigentes"`, y el listado de cierres del período; SHALL NOT exponer ocupación, ausentismo ni facturación por profesional (C-15).
