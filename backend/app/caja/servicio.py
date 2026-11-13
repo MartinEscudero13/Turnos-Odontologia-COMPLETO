@@ -57,6 +57,7 @@ logger = get_logger("app.caja")
 __all__ = [
     "TZ_OPERATIVA",
     "ConflictoCaja",
+    "InvalidoCaja",
     "ResultadoCobro",
     "ServicioCaja",
     "dia_operativo",
@@ -79,6 +80,18 @@ class ConflictoCaja(Conflicto):
     Los códigos son los del design (D9): `CIERRE_CERRADO`, `ANULADO`,
     `IMPUTACION_DUPLICADA` y `COBRO_YA_RESUELTO`. El borde de §9 los expone;
     el dominio los hace verificables sin acoplarse al transporte.
+    """
+
+    def __init__(self, codigo_dominio: str, mensaje: str) -> None:
+        super().__init__(mensaje)
+        self.codigo_dominio: str = codigo_dominio
+
+
+class InvalidoCaja(Invalido):
+    """`422` de caja con el código de dominio (`MEDIO_OS_RESERVADO`, …).
+
+    C10-OQ-5: el copago del paciente con medio `OS` no existe en v1 y se
+    observa como `422 MEDIO_OS_RESERVADO` al invocar el adaptador directo.
     """
 
     def __init__(self, codigo_dominio: str, mensaje: str) -> None:

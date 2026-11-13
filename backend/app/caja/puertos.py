@@ -71,6 +71,8 @@ __all__ = [
     "CuentaPorCobrarDuplicada",
     "EntradaAuditoria",
     "ImputacionDuplicada",
+    "LineaPresupuestoMemoria",
+    "LineaPresupuestoPort",
     "MEDIOS",
     "MedioPago",
     "Movimiento",
@@ -358,6 +360,16 @@ class CuentaPorCobrarOSRepositorio(Protocol):
 
 class TotalesCajaPort(Protocol):
     def totales_por_medio(self, *, tenant_id: str, fecha: date) -> dict[MedioPago, int]: ...
+
+
+class LineaPresupuestoPort(Protocol):
+    """Existencia de la línea dentro del tenant y del presupuesto (D6.8).
+
+    El adaptador de C-09 valida contra esta pieza que `linea_id` pertenece a
+    `presupuesto_id` y al tenant: un id de T2 nunca resuelve en T1 (`404`).
+    """
+
+    def pertenece(self, *, tenant_id: str, presupuesto_id: str, linea_id: str) -> bool: ...
 
 
 class TurnoPort(Protocol):
@@ -888,6 +900,22 @@ class TurnoMemoria:
 
     def existe(self, *, tenant_id: str, turno_id: str) -> bool:
         return (tenant_id, turno_id) in self._turnos
+
+    def total(self, tenant_id: str) -> int:
+        return sum(1 for dueño, _ in self._turnos if dueño == tenant_id)
+
+
+class LineaPresupuestoMemoria:
+    """Pertenencia de líneas por `(tenant, presupuesto, línea)` en memoria."""
+
+    def __init__(self, lineas: Iterable[tuple[str, str, str]] = ()) -> None:
+        self._lineas: set[tuple[str, str, str]] = set(lineas)
+
+    def agregar(self, tenant_id: str, presupuesto_id: str, linea_id: str) -> None:
+        self._lineas.add((tenant_id, presupuesto_id, linea_id))
+
+    def pertenece(self, *, tenant_id: str, presupuesto_id: str, linea_id: str) -> bool:
+        return (tenant_id, presupuesto_id, linea_id) in self._lineas
 
 
 class AuditoriaMemoria:

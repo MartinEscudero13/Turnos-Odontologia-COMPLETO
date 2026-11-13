@@ -191,66 +191,66 @@
 
 ## 5. Adaptador real del puerto de C-09 (contrato intacto)
 
-- [ ] 5.1 Escribir el test de contrato (rojo) y hacerlo pasar:
+- [x] 5.1 Escribir el test de contrato (rojo) y hacerlo pasar:
   `tests/test_contrato_imputacion_caja.py::test_firma_del_puerto_es_la_de_c09`
   (inspección de `ImputacionPort.imputar_caja`: mismos nombres y orden de parámetros, todos
   keyword-only; el adaptador de C-10 satisface el protocolo; `imputar_agenda` sigue siendo no-op
   y no crea turnos).
-- [ ] 5.2 Escribir el test (rojo) y hacerlo pasar:
+- [x] 5.2 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_contrato_imputacion_caja.py::test_medio_pago_se_importa_no_se_redeclara`
   (`app.caja` y `app.caja.adaptador_imputacion` usan exactamente
   `app.presupuesto.puertos.MedioPago` (`__module__`/identidad), no un `Literal` propio, y la
   anotación del parámetro `medio` del adaptador coincide con la del protocolo; M11).
-- [ ] 5.3 Escribir el test (rojo) y hacerlo pasar:
+- [x] 5.3 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_imputacion_caja.py::test_solo_tramo_paciente_crea_un_movimiento`
   (`monto=100000`, `cobertura_os=0`, `a_cargo_paciente=100000`, `medio=EFECTIVO` ⇒ 1 `INGRESO`
   con `tramo=PACIENTE`, `usuario_id=U1`, `presupuesto_id` y `linea_id`).
-- [ ] 5.4 Escribir y hacer pasar
+- [x] 5.4 Escribir y hacer pasar
   `tests/test_imputacion_caja.py::test_tramo_os_crea_cuenta_por_cobrar`
   (`cobertura_os=40000`, `a_cargo_paciente=0` ⇒ 1 cuenta por cobrar OS de `40000`, 0 movimientos
   y total del día sin cambios; D4).
-- [ ] 5.5 Escribir y hacer pasar
+- [x] 5.5 Escribir y hacer pasar
   `tests/test_imputacion_caja.py::test_dos_tramos_crean_movimiento_y_cuenta_por_cobrar`
   (`60000` `EFECTIVO` + `40000` OS ⇒ 1 `INGRESO` de `60000` `tramo=PACIENTE`, 1 cuenta por cobrar
   OS de `40000`, 0 `INGRESO` con `medio=OS`, y la suma de movimientos del día es `60000`).
-- [ ] 5.6 Escribir y hacer pasar
+- [x] 5.6 Escribir y hacer pasar
   `tests/test_imputacion_caja.py::test_os_no_genera_dos_ingresos_por_la_misma_linea`
   (repetir la imputación de L1 no crea otro devengado ni un `INGRESO` de OS; después de la
   acreditación de C-12 el UNIQUE por `(linea, tramo='OS')` sigue impidiendo un segundo ingreso;
   D4).
-- [ ] 5.7 Escribir y hacer pasar
+- [x] 5.7 Escribir y hacer pasar
   `tests/test_imputacion_caja.py::test_medio_os_en_tramo_paciente_422`
   (adaptador invocado directamente ⇒ `422 MEDIO_OS_RESERVADO`, 0 movimientos y 0 cuentas por
   cobrar; documenta C10-OQ-5 y el punto de observación).
-- [ ] 5.8 Escribir y hacer pasar `tests/test_imputacion_caja.py::test_turno_se_persiste`
+- [x] 5.8 Escribir y hacer pasar `tests/test_imputacion_caja.py::test_turno_se_persiste`
   (`turno_id=TUR-1`, `medio=MP` ⇒ el movimiento guarda `turno_id` y `medio`).
-- [ ] 5.9 Escribir y hacer pasar `tests/test_imputacion_caja.py::test_replay_identico_no_duplica`
+- [x] 5.9 Escribir y hacer pasar `tests/test_imputacion_caja.py::test_replay_identico_no_duplica`
   (misma línea/tramo/medio/monto ⇒ un solo movimiento, sin excepción).
-- [ ] 5.10 Escribir y hacer pasar
+- [x] 5.10 Escribir y hacer pasar
   `tests/test_imputacion_caja.py::test_replay_con_otro_medio_409`
   (`409 IMPUTACION_DUPLICADA`, un solo `INGRESO` y el existente no se modifica; H1).
-- [ ] 5.11 Escribir y hacer pasar
+- [x] 5.11 Escribir y hacer pasar
   `tests/test_imputacion_caja.py::test_replay_con_monto_distinto_409`
   (`409 IMPUTACION_DUPLICADA`, el movimiento existente no se modifica).
-- [ ] 5.12 Escribir y hacer pasar
+- [x] 5.12 Escribir y hacer pasar
   `tests/test_imputacion_caja.py::test_imputacion_no_crea_turno`
   (integración: la tabla `turnos` no cambia al imputar; `imputar_agenda` sigue sin efectos).
-- [ ] 5.13 Escribir y hacer pasar
+- [x] 5.13 Escribir y hacer pasar
   `tests/test_imputacion_caja.py::test_imputacion_en_dia_cerrado_409`
   (el adaptador invocado directamente con una fecha cerrada ⇒ `409 CIERRE_CERRADO` y 0 escrituras).
-- [ ] 5.14 Escribir y hacer pasar
+- [x] 5.14 Escribir y hacer pasar
   `tests/test_imputacion_caja.py::test_imputacion_de_otra_linea_tenant_404`
   (`linea_id` de T2 con `tenant_id=T1` ⇒ `404`, 0 movimientos, 0 pendientes y 0 cuentas por
   cobrar en T1).
-- [ ] 5.15 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**)
+- [x] 5.15 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**)
   `tests/test_imputacion_concurrente_pg.py::test_dos_imputaciones_crean_un_solo_movimiento`
   (una inspección real del UNIQUE por `(linea, tramo)`; ninguna conexión responde `500`).
-- [ ] 5.16 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**, M4)
+- [x] 5.16 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**, M4)
   `tests/test_imputacion_atomica_pg.py::test_fallo_de_caja_revierte_la_aceptacion_de_c09`
   (aceptación real de C-09 con la 007 y la 008 aplicadas: cuando la escritura de caja falla, la
   transacción revierte `aceptaciones`, `presupuesto_lineas`/estado y no deja movimientos; se
   verifica en la misma unidad de trabajo, **no** con adaptadores en memoria).
-- [ ] 5.17 Escribir y hacer pasar (integración)
+- [x] 5.17 Escribir y hacer pasar (integración)
   `tests/test_imputacion_caja.py::test_aceptacion_con_dia_cerrado_responde_503`
   (`POST /api/presupuestos/{id}/aceptar` con el día cerrado ⇒ `503`, 0 aceptaciones, presupuesto
   `VIGENTE` y 0 movimientos; H5/D2).

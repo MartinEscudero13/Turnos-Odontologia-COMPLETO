@@ -13,6 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from conftest import T1, T2
 
+from app.caja.adaptador_imputacion import AdaptadorCaja
 from app.caja.puertos import (
     AjustePostCierreMemoria,
     AuditoriaMemoria,
@@ -21,6 +22,7 @@ from app.caja.puertos import (
     CobroPendiente,
     CobroPendienteMemoria,
     CuentaPorCobrarOSMemoria,
+    LineaPresupuestoMemoria,
     Movimiento,
     MovimientoMemoria,
     TurnoMemoria,
@@ -99,12 +101,15 @@ class HarnessCaja:
         self.pendientes = CobroPendienteMemoria()
         self.ajustes = AjustePostCierreMemoria()
         self.turnos = TurnoMemoria()
+        self.lineas_presupuesto = LineaPresupuestoMemoria()
         self.auditoria = AuditoriaMemoria()
         self.ahora = d3()
         self.uow = self.nueva_uow()
         self.svc = self._servicio(self.nueva_uow)
+        self.adaptador = self._adaptador(self.nueva_uow)
         self.turnos.agregar(T1, TUR1)
         self.turnos.agregar(T2, TUR9)
+        self.lineas_presupuesto.agregar(T1, PRESU1, LINEA1)
 
     # -- cableado -------------------------------------------------------
 
@@ -147,6 +152,17 @@ class HarnessCaja:
 
     def cablear_uow(self, factory: Callable[[], UnidadDeTrabajo]) -> None:
         self.svc = self._servicio(factory)
+        self.adaptador = self._adaptador(factory)
+
+    def _adaptador(self, factory: Callable[[], UnidadDeTrabajo]) -> AdaptadorCaja:
+        """Adaptador real del puerto de C-09 sobre el mismo cableado (§5)."""
+        return AdaptadorCaja(
+            servicio=self.svc,
+            cuentas=self.cuentas,
+            lineas=self.lineas_presupuesto,
+            uow_factory=factory,
+            reloj=lambda: self.ahora,
+        )
 
     # -- casos de uso ---------------------------------------------------
 
@@ -243,4 +259,34 @@ class HarnessCaja:
             actor() if actor_ is None else actor_,
             pendiente_id=pendiente_id,
             medio=medio,  # type: ignore[arg-type]
+        )
+
+    # -- adaptador de C-09 (§5) -----------------------------------------
+
+    def imputar(
+        self,
+        *,
+        monto_paciente: int = 60000,
+        monto_os: int = 0,
+        medio: object = "EFECTIVO",
+        linea_id: str = LINEA1,
+        presupuesto_id: str = PRESU1,
+        paciente_id: str = PAC1,
+        prestacion_id: str = "prestacion-1",
+        tenant_id: str = T1,
+        actor_id: str = U1,
+        turno_id: str | None = None,
+    ) -> None:
+        """Invoca el puerto de C-09 tal como lo hace `ServicioPresupuesto`."""
+        return self.adaptador.imputar_caja(
+            tenant_id=tenant_id,
+            presupuesto_id=presupuesto_id,
+            linea_id=linea_id,
+            paciente_id=paciente_id,
+            prestacion_id=prestacion_id,
+            monto_paciente_centavos=monto_paciente,
+            monto_os_centavos=monto_os,
+            actor_id=actor_id,
+            turno_id=turno_id,
+            medio=medio,  # type: ignore[arg-type]  # los tests pasan valores inválidos a propósito
         )

@@ -7,4 +7,5 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 def jsonb_type() -> Any:
     """Return JSONB on PostgreSQL and JSON on SQLite test databases."""
-    return JSON().with_variant(JSONB(), "postgresql")
+    # `JSONB.__init__` no está tipado en SQLAlchemy: el ignore es del call, no del tipo.
+    return JSON().with_variant(JSONB(), "postgresql")  # type: ignore[no-untyped-call]

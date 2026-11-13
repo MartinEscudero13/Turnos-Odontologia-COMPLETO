@@ -30,6 +30,7 @@ from app.presupuesto.puertos import (
     CoberturaConfigurada,
     CoberturaMemoria,
     ImputacionMemoria,
+    ImputacionPort,
     Linea,
     LineaMemoria,
     ModoCobertura,
@@ -58,7 +59,7 @@ class HarnessPresupuesto:
     def __init__(
         self,
         *,
-        imputacion: ImputacionMemoria | None = None,
+        imputacion: ImputacionPort | None = None,
         calculadora: CalculadoraCobertura | None = None,
     ) -> None:
         self.presupuestos = PresupuestoMemoria()
