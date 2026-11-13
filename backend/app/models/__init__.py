@@ -12,12 +12,15 @@ from app.models.catalogos import (
 )
 from app.models.ficha_clinica import Adjunto, Consentimiento, Evolucion, Ficha
 from app.models.lista_espera import ListaEspera, Oferta
+from app.models.odontograma import OdontogramaHallazgo
+from app.models.presupuesto import Aceptacion, Presupuesto, PresupuestoLinea
 from app.models.refresh_token import RefreshToken
 from app.models.tenant import ParametroTenant, Tenant
 from app.models.turno import Turno
 from app.models.usuario import Usuario
 
 __all__ = [
+    "Aceptacion",
     "Adjunto",
     "Auditoria",
     "Base",
@@ -27,10 +30,13 @@ __all__ = [
     "Ficha",
     "HorarioSemanal",
     "ListaEspera",
+    "OdontogramaHallazgo",
     "Oferta",
     "Paciente",
     "ParametroTenant",
     "Prestacion",
+    "Presupuesto",
+    "PresupuestoLinea",
     "Profesional",
     "ProfesionalPrestacion",
     "RefreshToken",

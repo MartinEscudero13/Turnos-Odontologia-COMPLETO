@@ -96,6 +96,17 @@ class NoEncontrado(TurnoError):
     codigo = 404
 
 
+class NoAutenticado(TurnoError):
+    """401 — no hay sesión interna que autentique la petición.
+
+    En v1 el paciente no accede al sistema (DD-06/DD-07, D13/C09-OQ-10): una
+    petición con identidad de paciente no tiene sesión interna y responde `401`,
+    nunca `403` (un rol interno sin permiso sí es `403`).
+    """
+
+    codigo = 401
+
+
 class ConflictoSolape(TurnoError):
     """409 — hueco ocupado + alternativas (RN-GL-02)."""
 
