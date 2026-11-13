@@ -190,6 +190,20 @@ class MovimientosSQL:
         ).all()
         return [_movimiento(fila) for fila in filas]
 
+    def listar_por_rango(
+        self, *, tenant_id: str, desde: date, hasta: date
+    ) -> list[Movimiento]:
+        filas = self._session.scalars(
+            select(MovimientoCaja)
+            .where(
+                MovimientoCaja.tenant_id == _uuid(tenant_id),
+                MovimientoCaja.fecha >= desde,
+                MovimientoCaja.fecha <= hasta,
+            )
+            .order_by(MovimientoCaja.fecha, MovimientoCaja.creado_en, MovimientoCaja.id)
+        ).all()
+        return [_movimiento(fila) for fila in filas]
+
     def buscar_imputacion(
         self, *, tenant_id: str, linea_id: str, tramo: TramoCaja
     ) -> Movimiento | None:

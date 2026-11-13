@@ -63,8 +63,11 @@ logger = get_logger("app.caja")
 __all__ = [
     "TZ_OPERATIVA",
     "ConflictoCaja",
+    "ConsultaDia",
+    "DiaReporte",
     "EstadoDia",
     "InvalidoCaja",
+    "ReporteCaja",
     "ResultadoCobro",
     "ServicioCaja",
     "dia_operativo",
@@ -129,6 +132,49 @@ class EstadoDia:
     estado: Literal["abierto", "cerrado"]
     totales: dict[MedioPago, int]
     cierre: Cierre | None
+
+
+@dataclass(frozen=True)
+class ConsultaDia:
+    """Consulta diaria completa: hechos, pendientes, ajustes y ambas cifras (H6).
+
+    `totales_vigentes` sale de los movimientos vigentes del día; `totales_cierre`
+    es el snapshot persistido (`None` si el día está abierto) y
+    `difieren_del_cierre` compara sólo los cuatro totales de caja (nunca el
+    devengado informativo `total_os`, D3/D4).
+    """
+
+    fecha: date
+    estado: Literal["abierto", "cerrado"]
+    movimientos: list[Movimiento]
+    pendientes: list[CobroPendiente]
+    ajustes: list[Ajuste]
+    totales_vigentes: dict[MedioPago, int]
+    totales_cierre: Cierre | None
+    difieren_del_cierre: bool
+
+
+@dataclass(frozen=True)
+class DiaReporte:
+    """Facturación neta de un día del período, sobre movimientos vigentes."""
+
+    fecha: date
+    totales: dict[MedioPago, int]
+    movimientos: int
+    anulados: int
+
+
+@dataclass(frozen=True)
+class ReporteCaja:
+    """Reporte base de caja por rango (D12): caja acá, KPIs de agenda en C-15."""
+
+    desde: date
+    hasta: date
+    fuente: Literal["movimientos_vigentes"]
+    totales: dict[MedioPago, int]
+    por_dia: list[DiaReporte]
+    cierres: int
+    movimientos_anulados: int
 
 
 def dia_operativo(ahora: datetime) -> date:
@@ -219,6 +265,56 @@ def _totales_en_cero() -> dict[MedioPago, int]:
         "OS": 0,
     }
     return totales
+
+
+def _validar_dia_obligatorio(valor: object, campo: str) -> date:
+    """Una consulta de caja siempre es de un día operativo explícito (D1).
+
+    Ausente, con forma de instante o mal formada ⇒ `422`, nunca un día
+    implícito: la fecha del reloj sólo vale para el alta de un movimiento.
+    """
+    if valor is None:
+        raise InvalidoCaja("FECHA_REQUERIDA", f"{campo} es obligatoria")
+    if isinstance(valor, datetime):
+        raise InvalidoCaja(
+            "FECHA_INVALIDA", f"{campo} inválida: la fecha operativa es YYYY-MM-DD"
+        )
+    if isinstance(valor, date):
+        return valor
+    if isinstance(valor, str):
+        try:
+            return date.fromisoformat(valor)
+        except ValueError:
+            raise InvalidoCaja(
+                "FECHA_INVALIDA", f"{campo} inválida: la fecha operativa es YYYY-MM-DD"
+            ) from None
+    raise InvalidoCaja(
+        "FECHA_INVALIDA", f"{campo} inválida: la fecha operativa es YYYY-MM-DD"
+    )
+
+
+def _validar_rango(desde: object, hasta: object) -> tuple[date, date]:
+    """Rango cerrado de días operativos; `desde > hasta` ⇒ `422` (D12)."""
+    inicio = _validar_dia_obligatorio(desde, "desde")
+    fin = _validar_dia_obligatorio(hasta, "hasta")
+    if inicio > fin:
+        raise InvalidoCaja("RANGO_INVALIDO", "el rango de fechas es inválido")
+    return inicio, fin
+
+
+def _difieren(totales: dict[MedioPago, int], cierre: Cierre | None) -> bool:
+    """Compara los cuatro totales de caja contra el snapshot (H6).
+
+    El devengado informativo `total_os` queda fuera de la comparación (D3/D4).
+    """
+    if cierre is None:
+        return False
+    return (
+        totales["EFECTIVO"] != cierre.total_efectivo
+        or totales["TRANSFERENCIA"] != cierre.total_transferencia
+        or totales["MP"] != cierre.total_mp
+        or totales["OS"] != cierre.total_os_cobrado
+    )
 
 
 def _validar_monto_tramo(monto: object) -> int | None:
@@ -856,6 +952,107 @@ class ServicioCaja:
             estado="cerrado" if cierre is not None else "abierto",
             totales=totales,
             cierre=cierre,
+        )
+
+    # ------------------------------------------------------------------
+    # Consulta diaria y reportes (§7)
+    # ------------------------------------------------------------------
+
+    def consultar_dia(self, actor: Actor, *, fecha: object) -> ConsultaDia:
+        """Consulta del día: movimientos, pendientes, ajustes y ambas cifras.
+
+        `totales_vigentes` excluye anulados; `totales_cierre` es el snapshot
+        persistido (`None` si el día está abierto) y `difieren_del_cierre`
+        informa que una anulación posterior cambió los vigentes (H6). El cierre
+        nunca se recalcula.
+        """
+        self._exigir_lectura(actor)
+        dia = _validar_dia_obligatorio(fecha, "fecha")
+        cierre = self._cierres.obtener(tenant_id=actor.tenant_id, fecha=dia)
+        totales = self._totales_vigentes(tenant_id=actor.tenant_id, fecha=dia)
+        ajustes = (
+            []
+            if cierre is None
+            else self._ajustes.listar_por_cierre(
+                tenant_id=actor.tenant_id, cierre_id=cierre.id
+            )
+        )
+        return ConsultaDia(
+            fecha=dia,
+            estado="cerrado" if cierre is not None else "abierto",
+            movimientos=self._movimientos.listar_por_fecha(
+                tenant_id=actor.tenant_id, fecha=dia
+            ),
+            pendientes=self._cobros.listar(tenant_id=actor.tenant_id, fecha=dia),
+            ajustes=ajustes,
+            totales_vigentes=totales,
+            totales_cierre=cierre,
+            difieren_del_cierre=_difieren(totales, cierre),
+        )
+
+    def listar_pendientes(
+        self, actor: Actor, *, fecha: object = None
+    ) -> list[CobroPendiente]:
+        """Cobros pendientes del tenant, opcionalmente filtrados por día."""
+        self._exigir_lectura(actor)
+        dia = None if fecha is None else _validar_dia_obligatorio(fecha, "fecha")
+        return self._cobros.listar(tenant_id=actor.tenant_id, fecha=dia)
+
+    def listar_cierres(self, actor: Actor, *, desde: object, hasta: object) -> list[Cierre]:
+        """Listado de cierres del período (D12); rango inválido ⇒ `422`."""
+        self._exigir_lectura(actor)
+        inicio, fin = _validar_rango(desde, hasta)
+        return self._cierres.listar(tenant_id=actor.tenant_id, desde=inicio, hasta=fin)
+
+    def reporte_caja(self, actor: Actor, *, desde: object, hasta: object) -> ReporteCaja:
+        """Facturación neta por medio y por día **sobre movimientos vigentes**.
+
+        `fuente="movimientos_vigentes"` hace explícito que el reporte no usa el
+        snapshot del cierre: si un día cerrado tuvo una anulación posterior, se
+        informa el valor vigente (H6/D12). No expone ocupación, ausentismo ni
+        facturación por profesional (C-15) y no incluye datos personales.
+        """
+        self._exigir_lectura(actor)
+        inicio, fin = _validar_rango(desde, hasta)
+        movimientos = self._movimientos.listar_por_rango(
+            tenant_id=actor.tenant_id, desde=inicio, hasta=fin
+        )
+        totales = _totales_en_cero()
+        por_dia: dict[date, dict[MedioPago, int]] = {}
+        conteo: dict[date, int] = {}
+        anulados_dia: dict[date, int] = {}
+        anulados = 0
+        for movimiento in movimientos:
+            dia = movimiento.fecha
+            por_dia.setdefault(dia, _totales_en_cero())
+            conteo[dia] = conteo.get(dia, 0) + 1
+            if movimiento.anulado:
+                anulados += 1
+                anulados_dia[dia] = anulados_dia.get(dia, 0) + 1
+                continue
+            signo = 1 if movimiento.tipo == "INGRESO" else -1
+            por_dia[dia][movimiento.medio] += signo * movimiento.monto
+            totales[movimiento.medio] += signo * movimiento.monto
+        return ReporteCaja(
+            desde=inicio,
+            hasta=fin,
+            fuente="movimientos_vigentes",
+            totales=totales,
+            por_dia=[
+                DiaReporte(
+                    fecha=dia,
+                    totales=por_dia[dia],
+                    movimientos=conteo[dia],
+                    anulados=anulados_dia.get(dia, 0),
+                )
+                for dia in sorted(por_dia)
+            ],
+            cierres=len(
+                self._cierres.listar(
+                    tenant_id=actor.tenant_id, desde=inicio, hasta=fin
+                )
+            ),
+            movimientos_anulados=anulados,
         )
 
     # ------------------------------------------------------------------

@@ -256,6 +256,10 @@ class MovimientoRepositorio(Protocol):
 
     def listar_por_fecha(self, *, tenant_id: str, fecha: date) -> list[Movimiento]: ...
 
+    def listar_por_rango(
+        self, *, tenant_id: str, desde: date, hasta: date
+    ) -> list[Movimiento]: ...
+
     def buscar_imputacion(
         self, *, tenant_id: str, linea_id: str, tramo: TramoCaja
     ) -> Movimiento | None: ...
@@ -507,6 +511,18 @@ class MovimientoMemoria:
                 if m.tenant_id == tenant_id and m.fecha == fecha
             ),
             key=lambda m: (m.creado_en, m.id),
+        )
+
+    def listar_por_rango(
+        self, *, tenant_id: str, desde: date, hasta: date
+    ) -> list[Movimiento]:
+        return sorted(
+            (
+                m
+                for m in self._movimientos.values()
+                if m.tenant_id == tenant_id and desde <= m.fecha <= hasta
+            ),
+            key=lambda m: (m.fecha, m.creado_en, m.id),
         )
 
     def buscar_imputacion(

@@ -359,168 +359,168 @@
 
 ## 7. Consulta diaria y reportes base
 
-- [ ] 7.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 7.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_consulta_caja.py::test_totales_por_medio_del_dia`
   (`efectivo=130000`, `transferencia=0`, `mp=30000`, `os=40000` en `totales_vigentes`).
-- [ ] 7.2 Escribir y hacer pasar `tests/test_consulta_caja.py::test_anulados_no_suman`
+- [x] 7.2 Escribir y hacer pasar `tests/test_consulta_caja.py::test_anulados_no_suman`
   (total `100000`; el anulado aparece listado como anulado).
-- [ ] 7.3 Escribir y hacer pasar
+- [x] 7.3 Escribir y hacer pasar
   `tests/test_consulta_caja.py::test_dia_sin_movimientos_totales_cero`
   (cuatro totales en `0`, lista vacía, `estado=abierto`, `totales_cierre=null`,
   `difieren_del_cierre=false`).
-- [ ] 7.4 Escribir y hacer pasar
+- [x] 7.4 Escribir y hacer pasar
   `tests/test_consulta_caja.py::test_consulta_informa_estado_cierre`
   (`2026-11-10` cerrado con `totales_cierre` y `2026-11-11` abierto con `null`).
-- [ ] 7.5 Escribir y hacer pasar
+- [x] 7.5 Escribir y hacer pasar
   `tests/test_consulta_caja.py::test_dia_cerrado_con_anulacion_posterior_difiere`
   (`total_efectivo` del cierre `150000`, `totales_vigentes.efectivo=0` y
   `difieren_del_cierre=true` con las dos cifras; H6).
-- [ ] 7.6 Escribir y hacer pasar `tests/test_consulta_caja.py::test_fecha_obligatoria_422`
+- [x] 7.6 Escribir y hacer pasar `tests/test_consulta_caja.py::test_fecha_obligatoria_422`
   (`GET /api/caja/movimientos` sin `fecha` ⇒ `422`).
-- [ ] 7.7 Escribir y hacer pasar
+- [x] 7.7 Escribir y hacer pasar
   `tests/test_reportes_caja.py::test_facturacion_por_medio_en_rango`
   (rango `2026-11-09..2026-11-10` ⇒ netos por día y medio, `fuente="movimientos_vigentes"`, sin
   datos personales).
-- [ ] 7.8 Escribir y hacer pasar
+- [x] 7.8 Escribir y hacer pasar
   `tests/test_reportes_caja.py::test_reporte_excluye_anulados`
   (ingreso vigente `100000` y anulado `50000` ⇒ total `100000`).
-- [ ] 7.9 Escribir y hacer pasar
+- [x] 7.9 Escribir y hacer pasar
   `tests/test_reportes_caja.py::test_reporte_no_incluye_t2`
   (T1 `100000` y T2 `900000` el mismo día ⇒ total de T1 `100000`, sin filas de T2; M6).
-- [ ] 7.10 Escribir y hacer pasar `tests/test_reportes_caja.py::test_listado_de_cierres`
+- [x] 7.10 Escribir y hacer pasar `tests/test_reportes_caja.py::test_listado_de_cierres`
   (dos cierres con fecha, totales, `efectivo_contado`, `diferencia` y `responsable_id`).
-- [ ] 7.11 Escribir y hacer pasar
+- [x] 7.11 Escribir y hacer pasar
   `tests/test_reportes_caja.py::test_listado_de_cierres_no_incluye_t2`
   (un cierre en T1 y dos en T2 ⇒ devuelve sólo el de T1; M6).
-- [ ] 7.12 Escribir y hacer pasar `tests/test_reportes_caja.py::test_rango_invalido_422`
+- [x] 7.12 Escribir y hacer pasar `tests/test_reportes_caja.py::test_rango_invalido_422`
   (`desde > hasta` ⇒ `422` en reportes y en cierres).
-- [ ] 7.13 Escribir y hacer pasar
+- [x] 7.13 Escribir y hacer pasar
   `tests/test_reportes_caja.py::test_kpis_de_agenda_no_expuestos`
   (`/api/caja/reportes/ocupacion` y `/api/caja/reportes/facturacion-profesional` ⇒ `404` o
   `405`, nunca `200`; documenta D12/C-15).
 
 ## 8. RBAC y aislamiento multi-tenant
 
-- [ ] 8.1 Escribir y hacer pasar `tests/test_caja_rbac.py::test_recepcion_registra_y_cobra`
+- [x] 8.1 Escribir y hacer pasar `tests/test_caja_rbac.py::test_recepcion_registra_y_cobra`
   (`201`/`200`, `usuario_id=U1`).
-- [ ] 8.2 Escribir y hacer pasar `tests/test_caja_rbac.py::test_odontologo_lee_pero_no_escribe`
+- [x] 8.2 Escribir y hacer pasar `tests/test_caja_rbac.py::test_odontologo_lee_pero_no_escribe`
   (lectura `200`, alta `403`, nada persistido).
-- [ ] 8.3 Escribir y hacer pasar `tests/test_caja_rbac.py::test_recepcion_no_anula_403`
+- [x] 8.3 Escribir y hacer pasar `tests/test_caja_rbac.py::test_recepcion_no_anula_403`
   (`403`, el movimiento sigue vigente y no hay compensatorio ni ajuste; documenta C10-OQ-9).
-- [ ] 8.4 Escribir y hacer pasar `tests/test_caja_rbac.py::test_admin_anula_con_motivo`
+- [x] 8.4 Escribir y hacer pasar `tests/test_caja_rbac.py::test_admin_anula_con_motivo`
   (`200`, `anulado_por=U2`).
-- [ ] 8.5 Escribir y hacer pasar `tests/test_caja_rbac.py::test_recepcion_lee_reportes`
+- [x] 8.5 Escribir y hacer pasar `tests/test_caja_rbac.py::test_recepcion_lee_reportes`
   (`GET /api/caja/reportes` y `GET /api/caja/cierres` ⇒ `200` para U1; M5).
-- [ ] 8.6 Escribir y hacer pasar `tests/test_caja_rbac.py::test_exportacion_de_caja_no_existe`
+- [x] 8.6 Escribir y hacer pasar `tests/test_caja_rbac.py::test_exportacion_de_caja_no_existe`
   (`GET /api/caja/reportes/export` con U1 y U2 ⇒ `404`/`405`, nunca `200`; la exportación es de
   ADMIN y vive en C-15; M5).
-- [ ] 8.7 Escribir y hacer pasar `tests/test_caja_rbac.py::test_paciente_sin_sesion_401`
+- [x] 8.7 Escribir y hacer pasar `tests/test_caja_rbac.py::test_paciente_sin_sesion_401`
   (lectura y alta con identidad de paciente ⇒ `401`, nada expuesto ni persistido).
-- [ ] 8.8 Escribir y hacer pasar `tests/test_caja_rbac.py::test_recepcion_cierra` (`201`).
-- [ ] 8.9 Escribir y hacer pasar `tests/test_caja_rbac.py::test_admin_cierra`
+- [x] 8.8 Escribir y hacer pasar `tests/test_caja_rbac.py::test_recepcion_cierra` (`201`).
+- [x] 8.9 Escribir y hacer pasar `tests/test_caja_rbac.py::test_admin_cierra`
   (`201`, `responsable_id=U2`).
-- [ ] 8.10 Escribir y hacer pasar `tests/test_caja_rbac.py::test_odontologo_no_cierra_403`
+- [x] 8.10 Escribir y hacer pasar `tests/test_caja_rbac.py::test_odontologo_no_cierra_403`
   (`403`, día abierto, sin cierre).
-- [ ] 8.11 Escribir y hacer pasar `tests/test_caja_rbac.py::test_odontologo_lee_cierre`
+- [x] 8.11 Escribir y hacer pasar `tests/test_caja_rbac.py::test_odontologo_lee_cierre`
   (cierre y estado del día `200` con los mismos totales que recepción).
-- [ ] 8.12 Escribir y hacer pasar
+- [x] 8.12 Escribir y hacer pasar
   `tests/test_caja_rbac.py::test_paciente_no_accede_al_cierre_401`
   (`401`, nada expuesto ni registrado).
-- [ ] 8.13 Escribir y hacer pasar
+- [x] 8.13 Escribir y hacer pasar
   `tests/test_aislamiento_caja.py::test_movimiento_t1_no_visible_en_t2`
   (no aparece en la lista de T2 y el `GET` por id responde `404`).
-- [ ] 8.14 Escribir y hacer pasar
+- [x] 8.14 Escribir y hacer pasar
   `tests/test_aislamiento_caja.py::test_anular_desde_otro_tenant_404`
   (M1 sigue vigente y no hay compensatorio ni ajuste).
-- [ ] 8.15 Escribir y hacer pasar
+- [x] 8.15 Escribir y hacer pasar
   `tests/test_aislamiento_caja.py::test_cobrar_pendiente_otro_tenant_404`
   (sin movimientos en T2).
-- [ ] 8.16 Escribir y hacer pasar
+- [x] 8.16 Escribir y hacer pasar
   `tests/test_aislamiento_caja.py::test_ajuste_no_visible_desde_otro_tenant`
   (el cierre y los ajustes de T1 no se leen desde T2).
-- [ ] 8.17 Escribir y hacer pasar
+- [x] 8.17 Escribir y hacer pasar
   `tests/test_aislamiento_caja.py::test_imputacion_de_otro_tenant_no_escribe_en_t1`
   (`404`, 0 movimientos, 0 pendientes y 0 cuentas por cobrar en T1).
 
 ## 9. Borde API (schemas y routers)
 
-- [ ] 9.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 9.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_api_caja.py::test_payload_con_campo_extra_422`; crear
   `backend/app/schemas/caja.py` con `extra="forbid"`, `monto` entero estricto, `date` para la
   fecha operativa, `AwareDatetime` para instantes y allow-list de salida.
-- [ ] 9.2 Escribir y hacer pasar `tests/test_api_caja.py::test_crud_http_movimientos_201_200`
+- [x] 9.2 Escribir y hacer pasar `tests/test_api_caja.py::test_crud_http_movimientos_201_200`
   (`POST/GET /api/caja/movimientos`, `POST /api/caja/movimientos/{id}/anular`,
   `GET/POST /api/caja/cierre`, `GET /api/caja/cierres`, `GET /api/caja/pendientes`,
   `POST /api/caja/pendientes/{id}/cobrar`, `GET /api/caja/reportes`) con `crear_router(svc)` y
   `actor_desde_headers`.
-- [ ] 9.3 Escribir y hacer pasar `tests/test_api_caja.py::test_errores_mapean_404_403_409_422`
+- [x] 9.3 Escribir y hacer pasar `tests/test_api_caja.py::test_errores_mapean_404_403_409_422`
   (`404` cross-tenant, `403` RBAC, `409 CIERRE_CERRADO`/`ANULADO`/`IMPUTACION_DUPLICADA`/
   `COBRO_YA_RESUELTO`/`CIERRE_EXISTENTE`, `422` montos/medio/fecha/responsable/motivo,
   `401` identidad de paciente). No debe existir `MOVIMIENTOS_SIN_RESPONSABLE`.
-- [ ] 9.4 Escribir y hacer pasar `tests/test_api_caja.py::test_cierre_http_201_200_409_422`
+- [x] 9.4 Escribir y hacer pasar `tests/test_api_caja.py::test_cierre_http_201_200_409_422`
   (cierre `201`, consulta `200`, segundo cierre `409`, diferencia sin motivo `422`, diferencia
   con motivo sin observación `201`).
-- [ ] 9.5 Escribir y hacer pasar `tests/test_api_caja.py::test_rutas_inexistentes_404_405`
+- [x] 9.5 Escribir y hacer pasar `tests/test_api_caja.py::test_rutas_inexistentes_404_405`
   (reapertura, KPIs de agenda y exportación de caja ⇒ `404`/`405`, nunca `200`).
-- [ ] 9.6 Escribir y hacer pasar `tests/test_api_caja.py::test_ajuste_expuesto_en_la_consulta`
+- [x] 9.6 Escribir y hacer pasar `tests/test_api_caja.py::test_ajuste_expuesto_en_la_consulta`
   (el día cerrado con anulación posterior devuelve `totales_vigentes`, `totales_cierre` y
   `difieren_del_cierre=true`, y los ajustes asociados al cierre son consultables sin PHI).
 
 ## 10. Auditoría y PHI
 
-- [ ] 10.1 Escribir y hacer pasar
+- [x] 10.1 Escribir y hacer pasar
   `tests/test_auditoria_caja.py::test_movimiento_registrado_auditado`
   (`MOVIMIENTO_CAJA_REGISTRADO` con `tenant_id`, actor, `movimiento_id`, `fecha`, `medio`,
   `tipo` y `monto`).
-- [ ] 10.2 Escribir y hacer pasar
+- [x] 10.2 Escribir y hacer pasar
   `tests/test_auditoria_caja.py::test_anulacion_auditada_con_antes_y_despues`
   (`MOVIMIENTO_CAJA_ANULADO` con `movimiento_id`, motivo, actor, `antes={"anulado": false}` y
   `después={"anulado": true, ...}`; N8).
-- [ ] 10.3 Escribir y hacer pasar
+- [x] 10.3 Escribir y hacer pasar
   `tests/test_auditoria_caja.py::test_compensatorio_auditado_con_referencia`
   (`MOVIMIENTO_COMPENSATORIO_REGISTRADO` con `compensa_a_id`, `medio`, `tipo`, `monto` y
   `fecha`).
-- [ ] 10.4 Escribir y hacer pasar
+- [x] 10.4 Escribir y hacer pasar
   `tests/test_auditoria_caja.py::test_ajuste_post_cierre_auditado`
   (`AJUSTE_POST_CIERRE_REGISTRADO` con `ajuste_id`, `cierre_id`, `tipo`, `monto`, `medio` y
   `compensatorio_id`).
-- [ ] 10.5 Escribir y hacer pasar
+- [x] 10.5 Escribir y hacer pasar
   `tests/test_auditoria_caja.py::test_pendientes_auditados`
   (`COBRO_PENDIENTE_REGISTRADO` y `COBRO_PENDIENTE_RESUELTO` con ids y montos, sin PHI).
-- [ ] 10.6 Escribir y hacer pasar
+- [x] 10.6 Escribir y hacer pasar
   `tests/test_auditoria_caja.py::test_cierre_auditado_y_motivo`
   (`CIERRE_DIARIO_REGISTRADO` con `cierre_id`, `fecha`, totales, `efectivo_contado`,
   `diferencia`, `responsable_id`, `antes=null` y `después`; motivo cuando aplica).
-- [ ] 10.7 Escribir y hacer pasar
+- [x] 10.7 Escribir y hacer pasar
   `tests/test_auditoria_caja.py::test_auditoria_no_copia_observacion`
   (la entrada indica `observacion_cargada` sin copiar su contenido ni datos personales).
-- [ ] 10.8 Escribir y hacer pasar
+- [x] 10.8 Escribir y hacer pasar
   `tests/test_auditoria_caja.py::test_auditoria_append_only`
   (`UPDATE`/`DELETE` de la entrada rechazados, original intacto).
-- [ ] 10.9 Escribir y hacer pasar `tests/test_privacidad_caja.py::test_error_no_vuelca_phi`
+- [x] 10.9 Escribir y hacer pasar `tests/test_privacidad_caja.py::test_error_no_vuelca_phi`
   (error de dominio sin nombre, DNI ni teléfono).
-- [ ] 10.10 Escribir y hacer pasar
+- [x] 10.10 Escribir y hacer pasar
   `tests/test_privacidad_caja.py::test_logs_solo_llevan_ids_y_montos`
   (`tenant_id`, `movimiento_id`, `fecha`, `medio`, `monto`; sin PHI ni texto clínico).
 
 ## 11. Regresión y gate final del change
 
-- [ ] 11.1 Escribir y hacer pasar
+- [x] 11.1 Escribir y hacer pasar
   `tests/test_regresion_caja.py::test_c03_c05_c09_siguen_en_verde`
   (la 008 no toca tablas de C-03/C-05/C-09 ni `aceptaciones`; el gate de consentimiento y el
   anti-solape intactos; la aceptación de C-09 sigue respondiendo `200` con `medio=NULL` porque
   ahora existe el cobro pendiente).
-- [ ] 11.2 **Gate de suite (M8)**: correr `py -m pytest tests/ -q` con `C02_DATABASE_URL`
+- [x] 11.2 **Gate de suite (M8)**: correr `py -m pytest tests/ -q` con `C02_DATABASE_URL`
   apuntando a PostgreSQL migrado y verificar que el resumen tenga **`skipped == 0`**. Si la
   variable no está configurada, el gate **falla explícitamente** con el mensaje
   "C02_DATABASE_URL no configurada: el gate no se acepta con skips"; no se acepta verde con tests
   de integración salteados.
-- [ ] 11.3 **Gate de tipos (M11)**: correr `py -m mypy backend/app/caja` con la configuración
+- [x] 11.3 **Gate de tipos (M11)**: correr `py -m mypy backend/app/caja` con la configuración
   `strict` de `pyproject.toml` y 0 errores.
-- [ ] 11.4 Correr `openspec validate c-10-caja-cierre-diario --strict` (exit 0, sin warnings).
-- [ ] 11.5 Verificar que no hay env var nueva, secretos ni tablas de C-11/C-12 en la 008;
+- [x] 11.4 Correr `openspec validate c-10-caja-cierre-diario --strict` (exit 0, sin warnings).
+- [x] 11.5 Verificar que no hay env var nueva, secretos ni tablas de C-11/C-12 en la 008;
   `.env.example` intacto.
-- [ ] 11.6 Verificar que C-10 **no** toca `frontend/` ni C-09: el diff no contiene archivos de
+- [x] 11.6 Verificar que C-10 **no** toca `frontend/` ni C-09: el diff no contiene archivos de
   `frontend/`, `app.presupuesto` ni columnas nuevas en `aceptaciones`, y no hay requirements de UI en
   `## ADDED Requirements`.
 
