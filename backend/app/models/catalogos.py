@@ -37,6 +37,22 @@ class Prestacion(Base):
         UniqueConstraint("tenant_id", "nombre", name="prestaciones_tenant_nombre_unique"),
         CheckConstraint("duracion_min > 0", name="prestaciones_duracion_positiva"),
         CheckConstraint("precio_base >= 0", name="prestaciones_precio_no_negativo"),
+        CheckConstraint(
+            "sena_modo IS NULL OR sena_modo IN ('SIN_SENA','PORCENTAJE','MONTO_FIJO')",
+            name="prestaciones_sena_modo_valido",
+        ),
+        CheckConstraint(
+            "sena_valor IS NULL OR sena_valor >= 0",
+            name="prestaciones_sena_valor_no_negativo",
+        ),
+        CheckConstraint(
+            "sena_modo <> 'SIN_SENA' OR sena_valor IS NULL",
+            name="prestaciones_sin_sena_sin_valor",
+        ),
+        CheckConstraint(
+            "sena_modo IS NULL OR sena_modo = 'SIN_SENA' OR sena_valor IS NOT NULL",
+            name="prestaciones_sena_valor_requerido",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -48,6 +64,9 @@ class Prestacion(Base):
     precio_base: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     requiere_sena: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     monto_sena: Mapped[int] = mapped_column(Integer, nullable=True)
+    # C-11 (D1/D14): override de la regla de seña; NULL = hereda del tenant.
+    sena_modo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sena_valor: Mapped[int | None] = mapped_column(Integer, nullable=True)
     activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 

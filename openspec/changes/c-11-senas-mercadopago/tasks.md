@@ -33,92 +33,92 @@
 
 ## 1. Migración 009 y modelos SQLAlchemy
 
-- [ ] 1.1 Escribir el test de migración (rojo):
+- [x] 1.1 Escribir el test de migración (rojo):
   `tests/test_migracion_009.py::test_upgrade_head_crea_tablas_de_senas`
   (`alembic upgrade head` ⇒ existen `senas` y `pagos_mp` con RLS forzada, `prestaciones` tiene
   `sena_modo`/`sena_valor`, `down_revision="008_caja_cierre_diario"` y la versión vigente es 009).
-- [ ] 1.2 Implementar `backend/alembic/versions/009_senas_mercadopago.py` con las dos tablas, FKs,
+- [x] 1.2 Implementar `backend/alembic/versions/009_senas_mercadopago.py` con las dos tablas, FKs,
   índices, CHECKs de estado↔instante de D2, CHECKs de D3, UNIQUE de `(tenant_id, turno_id)`,
   `mp_payment_id`, `token_hash`, `(tenant_id, movimiento_caja_id)` y `(tenant_id, mp_preference_id)`,
   RLS forzada fail-closed y grants por columna (D14) hasta que 1.1 pase.
-- [ ] 1.3 Escribir y hacer pasar
+- [x] 1.3 Escribir y hacer pasar
   `tests/test_migracion_009.py::test_downgrade_elimina_solo_009`
   (`alembic downgrade 008_caja_cierre_diario` ⇒ las dos tablas y las cuatro constraints/columnas
   nuevas de `prestaciones` desaparecen, 001–008 intactas y re-upgrade limpio).
-- [ ] 1.4 Escribir y hacer pasar
+- [x] 1.4 Escribir y hacer pasar
   `tests/test_migracion_009.py::test_009_no_toca_caja_ni_legacy`
   (`movimientos_caja`, `cierres_diarios`, `tenant_parametros`, `turnos` y
   `prestaciones.requiere_sena`/`monto_sena` quedan exactamente como en 008).
-- [ ] 1.5 Escribir y hacer pasar
+- [x] 1.5 Escribir y hacer pasar
   `tests/test_migracion_009.py::test_check_estado_e_instantes_en_db`
   (`estado='PAGADA'` rechazado; `monto_centavos=0` rechazado; `DEVUELTA` sin `devuelta_en` o sin
   motivo rechazada; `APLICADA` sin `movimiento_caja_id` o sin `concepto_aplicacion` rechazada;
   `LIBERADA` sin `motivo_liberacion` rechazada; `preferencia_estado='CREADA'` sin
   `mp_preference_id`/`mp_init_point` rechazada).
-- [ ] 1.6 Escribir y hacer pasar
+- [x] 1.6 Escribir y hacer pasar
   `tests/test_migracion_009.py::test_unique_turno_pago_token_y_movimiento`
   (segunda seña del mismo turno rechazada **en el mismo tenant**; segundo `PagoMP` del mismo
   `mp_payment_id` rechazado **en cualquier tenant**; mismo `token_hash` rechazado **en cualquier
   tenant**; dos señas apuntando al mismo `movimiento_caja_id` rechazadas; una seña de un turno
   homónimo en otro tenant se acepta si el pago y el token son distintos, F-04).
-- [ ] 1.7 Escribir y hacer pasar
+- [x] 1.7 Escribir y hacer pasar
   `tests/test_migracion_009.py::test_rls_fail_closed_y_grants_senas`
   (como `turnos_app` sin `app.tenant_id` **o con cadena vacía** ⇒ 0 filas sin error `42704` en las
   dos tablas; `DELETE` rechazado en ambas; `UPDATE` de `monto_centavos`/`turno_id`/`expira_at`/
   `token_hash` rechazado; `UPDATE` de las columnas de estado/preferencia permitido).
-- [ ] 1.8 Escribir y hacer pasar
+- [x] 1.8 Escribir y hacer pasar
   `tests/test_migracion_009.py::test_backfill_legacy_conservador`
   (`requiere_sena=true` + `monto_sena=5000` ⇒ `MONTO_FIJO`/`5000`; `requiere_sena=true` +
   `monto_sena=NULL` ⇒ `NULL` + aviso de revisión; `requiere_sena=false` ⇒ `NULL`, sin inventar
   monto ni modo).
-- [ ] 1.9 Escribir el test de modelos (rojo):
+- [x] 1.9 Escribir el test de modelos (rojo):
   `tests/test_migracion_009.py::test_modelos_sqlalchemy_senas_cargan`; implementar
   `backend/app/models/sena.py` (`Sena`, `PagoMP`) con `Mapped[...]`, `timestamptz`, PK uuid y
   CHECKs espejo, y agregar `sena_modo`/`sena_valor` a `Prestacion` en
   `backend/app/models/catalogos.py` sin tocar las legacy.
-- [ ] 1.10 Escribir y hacer pasar
+- [x] 1.10 Escribir y hacer pasar
   `tests/test_migracion_009.py::test_check_prestacion_sena_modo_valor`
   (modo `'MITAD'` rechazado; `SIN_SENA` con `sena_valor` rechazado; `PORCENTAJE`/`MONTO_FIJO` sin
   `sena_valor` rechazados; `sena_valor` negativo rechazado).
 
 ## 2. Regla efectiva de la seña (PO-01 / RN-SE-05)
 
-- [ ] 2.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 2.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_senas_regla.py::test_override_monto_fijo_gana_al_tenant`
   (tenant `PORCENTAJE=30`, prestación `MONTO_FIJO=5000` ⇒ regla `MONTO_FIJO`, monto `5000`).
-- [ ] 2.2 Escribir y hacer pasar `tests/test_senas_regla.py::test_sin_sena_es_override_valido`
+- [x] 2.2 Escribir y hacer pasar `tests/test_senas_regla.py::test_sin_sena_es_override_valido`
   (tenant `PORCENTAJE=30`, prestación `SIN_SENA` ⇒ no se cobra, aunque el tenant cobre).
-- [ ] 2.3 Escribir y hacer pasar `tests/test_senas_regla.py::test_herencia_del_tenant_porcentaje`
+- [x] 2.3 Escribir y hacer pasar `tests/test_senas_regla.py::test_herencia_del_tenant_porcentaje`
   (`sena_modo` nulo en la prestación, tenant `PORCENTAJE=30`, `precio_base=10000` ⇒ `3000`).
-- [ ] 2.4 Escribir y hacer pasar `tests/test_senas_regla.py::test_sin_configuracion_no_cobra`
+- [x] 2.4 Escribir y hacer pasar `tests/test_senas_regla.py::test_sin_configuracion_no_cobra`
   (sin claves en `tenant_parametros` y sin override ⇒ `SIN_SENA`, cero señas creadas).
-- [ ] 2.5 Escribir y hacer pasar `tests/test_senas_regla.py::test_configuracion_invalida_fail_open`
+- [x] 2.5 Escribir y hacer pasar `tests/test_senas_regla.py::test_configuracion_invalida_fail_open`
   (modo desconocido, `PORCENTAJE=0` o valor faltante ⇒ `SIN_SENA`, reserva `201` y log
   `REGLA_SENA_INVALIDA` con `tenant_id`/`prestacion_id`, sin datos del paciente).
-- [ ] 2.6 Escribir y hacer pasar `tests/test_senas_regla.py::test_monto_cero_no_genera_sena`
+- [x] 2.6 Escribir y hacer pasar `tests/test_senas_regla.py::test_monto_cero_no_genera_sena`
   (`precio_base=0` con `PORCENTAJE` ⇒ no se crea la seña de `0` centavos y la reserva responde
   `201` sin bloque `sena`).
-- [ ] 2.7 Escribir y hacer pasar `tests/test_senas_regla.py::test_truncado_al_centavo`
+- [x] 2.7 Escribir y hacer pasar `tests/test_senas_regla.py::test_truncado_al_centavo`
   (`precio_base=10000`, `PORCENTAJE=33` ⇒ `3300`; `precio_base=333`, `PORCENTAJE=50` ⇒ `166`, nunca
   `167`, C11-OQ-01).
 
 ## 3. Puertos, entidades y pasarela fake
 
-- [ ] 3.1 Escribir el test de puertos (rojo):
+- [x] 3.1 Escribir el test de puertos (rojo):
   `tests/test_senas_puertos.py::test_repositorios_scoped_por_tenant`; implementar
   `backend/app/senas/puertos.py` con `Sena`, `PagoMP`, `Preferencia`, `PagoExterno`, los protocolos
   de §Seams del design y adaptadores en memoria.
-- [ ] 3.2 Escribir y hacer pasar
+- [x] 3.2 Escribir y hacer pasar
   `tests/test_senas_puertos.py::test_transicionar_solo_desde_el_estado_esperado`
   (`transicionar(desde='PENDIENTE', hacia='ACREDITADA')` una sola vez; el segundo intento devuelve
   `None` y no cambia el estado).
-- [ ] 3.3 Escribir y hacer pasar `tests/test_senas_puertos.py::test_bloquear_y_buscar_por_hash`
+- [x] 3.3 Escribir y hacer pasar `tests/test_senas_puertos.py::test_bloquear_y_buscar_por_hash`
   (`bloquear` devuelve la fila y `por_token` sólo resuelve el `token_hash` correcto y del tenant).
-- [ ] 3.4 Escribir y hacer pasar
+- [x] 3.4 Escribir y hacer pasar
   `tests/test_senas_puertos.py::test_pasarela_fake_sin_red`
   (`AdaptadorPasarelaFake.crear_preferencia` devuelve id e `init_point` deterministas y
   `obtener_pago` responde según lo programado con `aprobar`/`rechazar`/`demorar`/`fallar`).
-- [ ] 3.5 Escribir y hacer pasar
+- [x] 3.5 Escribir y hacer pasar
   `tests/test_senas_puertos.py::test_ningun_test_abre_sockets`
   (con `socket.socket` parcheado para fallar, corren los caminos de alta, preferencia, webhook y
   aplicación sin excepción: la frontera de red es sólo `AdaptadorPasarelaHTTP`).

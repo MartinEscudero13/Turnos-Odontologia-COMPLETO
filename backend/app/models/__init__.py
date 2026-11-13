@@ -22,6 +22,7 @@ from app.models.lista_espera import ListaEspera, Oferta
 from app.models.odontograma import OdontogramaHallazgo
 from app.models.presupuesto import Aceptacion, Presupuesto, PresupuestoLinea
 from app.models.refresh_token import RefreshToken
+from app.models.sena import PagoMP, Sena
 from app.models.tenant import ParametroTenant, Tenant
 from app.models.turno import Turno
 from app.models.usuario import Usuario
@@ -45,6 +46,7 @@ __all__ = [
     "OdontogramaHallazgo",
     "Oferta",
     "Paciente",
+    "PagoMP",
     "ParametroTenant",
     "Prestacion",
     "Presupuesto",
@@ -52,6 +54,7 @@ __all__ = [
     "Profesional",
     "ProfesionalPrestacion",
     "RefreshToken",
+    "Sena",
     "Sillon",
     "Tenant",
     "Turno",
