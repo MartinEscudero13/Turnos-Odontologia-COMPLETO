@@ -1,8 +1,8 @@
-# Decisiones PO-01 y PO-03 — producto (señas y WhatsApp)
+# Decisiones PO-01, PO-03, PO-06 y C-10 — producto (señas, WhatsApp, paciente y caja)
 
-> Fecha: 2026-11-06 · Resolución de dos preguntas abiertas de `knowledge-base/10_preguntas_abiertas.md`.
+> Fecha: 2026-11-06 (PO-01, PO-03) · 2026-11-12 (PO-06, C-10) · Registro de decisiones y preguntas abiertas de `knowledge-base/10_preguntas_abiertas.md`.
 > Dueño de producto: Martin Escudero · Registradas por el orquestador a pedido del dueño.
-> Clasificación: **Resuelta** (decisión cerrada) · **Provisional** (default del equipo, confirmar con el dueño) · **Diferida** (no se decide todavía).
+> Clasificación: **Resuelta** (decisión cerrada) · **Provisional** (default del equipo, confirmar con el dueño) · **Diferida** (no se decide todavía) · **Abierta** (documentada, sin decisión).
 
 ## Resumen
 
@@ -10,6 +10,8 @@
 |---|---|---|---|
 | PO-01 | Seña: **default por tenant + override opcional por prestación** | Resuelta (estructura) | C-11, migración 009 |
 | PO-03 | WhatsApp: **diferida**, sin proveedor/BSP definido | Diferida | C-13 (bloqueado para implementar) |
+| PO-06 | Acceso/identidad del paciente: **sigue abierta**; C-09 v1 excluye al paciente como actor | Abierta | C-09, C-09-UI, C-11 |
+| C-10-OQ-01…10 | Caja y cierre diario: las 10 preguntas abiertas del design quedan **resueltas** (v1) | Resuelta | C-10, C-11, C-12, C-15 |
 
 ---
 
@@ -83,8 +85,69 @@ Reglas de resolución:
 
 ---
 
+## PO-06 — Acceso e identidad del paciente — **sigue abierta**
+
+**Estado: abierta (2026-11-12).** Documentada, **no resuelta**: no hay decisión final sobre
+si el paciente tendrá acceso propio (portal/login) en una etapa posterior.
+
+### Decisión de alcance para C-09 v1
+
+- En v1 **el paciente no accede al sistema**: sin login, sin JWT de paciente y sin link
+  público (DD-06/DD-07).
+- La aceptación del presupuesto la registran `RECEPCION` y `ADMIN` **en nombre del
+  paciente**, con `canal=CONSULTORIO`; el `ODONTOLOGO` no acepta.
+- Consecuencia: C-09 no tiene escenarios con el paciente como actor. El acceso del
+  paciente queda como `C09-OQ-10` y no se testea en C-09.
+- El desvío respecto de `knowledge-base/03_actores_y_roles.md:22-23` —que hoy le da al
+  paciente lectura propia y "aceptar parcial/total"— queda **registrado en el design del
+  change**; la KB no se modifica desde acá.
+
+### Qué sigue abierto
+
+- Si v1.1/post-v1 habilita portal o login de paciente, con qué identidad (teléfono + OTP,
+  magic link, usuario/contraseña) y qué puede ver y aceptar.
+- Relación con el link público de aceptación (token propio estilo C-06) y con C-11.
+
+**No bloquea C-09 v1**: el alcance de arriba es suficiente para implementar y verificar el
+change.
+
+---
+
+## C-10 — Caja y cierre diario: resolución de las 10 preguntas abiertas
+
+**Estado: resueltas para v1 (2026-11-12, por el dueño).** Aplican al change
+`c-10-caja-cierre-diario`. No modifican la KB: donde la KB no se pronuncia, la decisión
+queda acá y el design del change la cita.
+
+| OQ | Pregunta | Decisión v1 | Clasificación |
+|---|---|---|---|
+| C10-OQ-01 | ¿Se reabre un cierre? | **No.** Si en el futuro hace falta, se emite un **cierre de ajuste** que no borra ni edita el original. Ningún rol reabre en v1. | Resuelta |
+| C10-OQ-02 | ¿La diferencia se mide solo contra efectivo? | **Sí.** `diferencia = efectivo_contado − total_efectivo`. Transferencia, MP y OS quedan informativos. | Resuelta |
+| C10-OQ-03 | ¿Movimientos retro-fechados? | **Sí**, mientras el día destino no esté cerrado y sin límite de antigüedad. **No** se bloquea la carga porque un día anterior quedó abierto. | Resuelta |
+| C10-OQ-04 | ¿Un día sin movimientos se cierra? | **Sí**, cierre en cero. | Resuelta |
+| C10-OQ-05 | ¿El paciente puede pagar su copago con medio `OS`? | **No**: `422 MEDIO_OS_RESERVADO`. `OS` es exclusivamente el medio del tramo de cobertura, no un medio de pago del paciente. | Resuelta |
+| C10-OQ-06 | ¿La seña de C-11 entra como movimiento `MP`? | **Sí, pero la crea C-11** al aplicar la seña, usando el alta de movimientos de C-10. C-10 no modela señas ni conoce Mercado Pago. | Resuelta |
+| C10-OQ-07 | ¿Un cobro pendiente se puede cancelar sin movimiento? | **No en v1.** Queda visible como impago; no se borra ni se anula sin el movimiento correspondiente. | Resuelta |
+| C10-OQ-08 | ¿Timezone configurable por tenant? | **No en v1**: offset fijo `-03:00`. Configurable por tenant queda para post-v1. | Provisional |
+| C10-OQ-09 | ¿Recepción puede anular movimientos? | **No: solo `ADMIN`.** Lectura literal de la matriz de `03_actores_y_roles.md`; si el piloto pide otra cosa, se amplía el rol sin cambiar el modelo. | Provisional |
+| C10-OQ-10 | ¿El tramo OS del cierre es cuenta por cobrar o informativo? | **Informativo.** El cobro real a la obra social es C-12 (liquidaciones); C-10 no lleva cuenta corriente de OS. | Resuelta |
+
+### Consecuencias
+
+- **C-10** implementa el adaptador real del puerto `imputar_caja` que dejó C-09, con
+  `medio` opcional: `NULL` no rompe la aceptación, cae en `cobros_pendientes`.
+- **C-11** no necesita cambios de contrato: crea el movimiento `MP` al aplicar la seña.
+- **C-12** es dueño de la cuenta corriente de obras sociales; C-10 solo informa el tramo.
+- **C-15** es dueño de los reportes de ocupación, ausentismo y facturación por profesional
+  (el `CHANGES.md` los ubica ahí, no en C-10).
+
+---
+
 ## Referencias
 
-- `knowledge-base/10_preguntas_abiertas.md` — PO-01 y PO-03 (prioridad Alta).
+- `knowledge-base/10_preguntas_abiertas.md` — PO-01, PO-03 y PO-06 (PO-06 sigue
+  abierta; DD-06 asume paciente sin login).
 - `knowledge-base/11_integraciones.md` §WhatsApp — alcance v1 y guion de demo.
-- `CHANGES.md` — C-11 (señas) y C-13 (WhatsApp).
+- `CHANGES.md` — C-10 (caja), C-11 (señas) y C-13 (WhatsApp).
+- `openspec/changes/c-10-caja-cierre-diario/design.md` — estas 10 decisiones se citan
+  como `C10-OQ-N` en el diseño y en los escenarios.
