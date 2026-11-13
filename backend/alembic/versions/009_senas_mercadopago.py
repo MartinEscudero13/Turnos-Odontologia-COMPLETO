@@ -195,14 +195,17 @@ def upgrade() -> None:
     # ------------------------------------------------------------------
     op.execute("GRANT SELECT, INSERT ON senas TO turnos_app")
     op.execute("REVOKE UPDATE, DELETE ON senas FROM turnos_app")
-    # Superficie mutable: estado e instantes, preferencia y rotación de token.
-    # `monto_centavos`, `turno_id`, `regla_*`, `precio_base_centavos` y
-    # `expira_at` quedan fuera: el monto cobrado no se reescribe (D2).
+    # Superficie mutable: estado e instantes, preferencia, rotación de token y
+    # **transferencia de reprogramación** (`turno_id`, `expira_at`, D12/F-16: la
+    # seña acompaña al turno nuevo con la expiración recalculada). El resto
+    # —`monto_centavos`, `regla_*`, `precio_base_centavos`— queda fuera: el monto
+    # cobrado no se reescribe (D2).
     op.execute(
-        "GRANT UPDATE (estado, acreditada_en, aplicada_en, liberada_en, devuelta_en,"
-        " motivo_liberacion, concepto_aplicacion, devuelta_por, motivo_devolucion,"
-        " movimiento_caja_id, mp_preference_id, mp_init_point, preferencia_estado,"
-        " intentos_preferencia, proximo_reintento_at, token_hash, token_rotado_en)"
+        "GRANT UPDATE (estado, turno_id, expira_at, acreditada_en, aplicada_en,"
+        " liberada_en, devuelta_en, motivo_liberacion, concepto_aplicacion,"
+        " devuelta_por, motivo_devolucion, movimiento_caja_id, mp_preference_id,"
+        " mp_init_point, preferencia_estado, intentos_preferencia,"
+        " proximo_reintento_at, token_hash, token_rotado_en)"
         " ON senas TO turnos_app"
     )
 

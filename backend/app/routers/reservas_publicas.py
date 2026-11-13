@@ -33,7 +33,7 @@ from app.schemas.reserva import (
     VerificacionOut,
 )
 from app.schemas.senas import PoliticaOut, SenaReservaOut
-from app.senas.puertos import SenaCreada
+from app.senas.puertos import SenaCreada, SenaTransferida
 from app.turnos.servicio import ConflictoSolape, TurnoError
 
 ACCIONES: tuple[str, ...] = ("reservar", "cancelar", "reprogramar")
@@ -68,6 +68,27 @@ def _sena_out(sena: SenaCreada | None) -> SenaReservaOut | None:
             anticipacion_cancelacion_h=sena.politica.anticipacion_cancelacion_h,
             reembolsable=sena.politica.reembolsable,
             hay_pago_acreditado=sena.politica.hay_pago_acreditado,
+        ),
+    )
+
+
+def _sena_transferida_out(sena: SenaTransferida | None) -> SenaReservaOut | None:
+    """Token reemitido al reprogramar: se entrega una sola vez (F-16)."""
+    if sena is None or sena.token_sena is None:
+        return None
+    return SenaReservaOut(
+        sena_id=sena.sena.id,
+        estado=sena.sena.estado,
+        monto_centavos=sena.sena.monto_centavos,
+        expira_at=sena.sena.expira_at,
+        token_sena=sena.token_sena,
+        preferencia_estado=sena.sena.preferencia_estado,
+        init_point=sena.sena.mp_init_point,
+        politica=PoliticaOut(
+            anticipacion_cancelacion_h=sena.sena.anticipacion_cancelacion_h,
+            # La promesa no depende del estado (D12/F-01).
+            reembolsable=True,
+            hay_pago_acreditado=sena.sena.estado == "ACREDITADA",
         ),
     )
 
@@ -213,6 +234,12 @@ def crear_router_publico(svc: ServicioReservasPublicas) -> APIRouter:
                 prestacion=res.nuevo.prestacion_id,
                 token_publico=token,
             ).model_dump(mode="json"),
+            # Sólo aparece si el token de la seña venció y se reemitió (F-16).
+            "sena": (
+                None
+                if (sena_out := _sena_transferida_out(res.sena)) is None
+                else sena_out.model_dump(mode="json")
+            ),
         }
 
     return r

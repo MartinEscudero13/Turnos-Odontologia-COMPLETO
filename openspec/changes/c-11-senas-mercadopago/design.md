@@ -162,10 +162,12 @@ CHECK (estado <> 'DEVUELTA'   OR (devuelta_en IS NOT NULL AND motivo_devolucion 
 CHECK (preferencia_estado <> 'CREADA' OR (mp_preference_id IS NOT NULL AND mp_init_point IS NOT NULL))
 ```
 
-`monto_centavos`, `turno_id`, `regla_*`, `precio_base_centavos`, `expira_at` y `token_hash` son
-**inmutables** después del alta (sin endpoint que los edite; `REVOKE UPDATE` por columna deja
-sólo las columnas de estado, preferencia y token). `REVOKE DELETE`: nunca se borra una seña
-(RN-AU-02/RN-CJ-03 por analogía).
+`monto_centavos`, `regla_*`, `precio_base_centavos` y `token_hash` son **inmutables**
+después del alta (sin endpoint que los edite; `REVOKE UPDATE` por columna deja sólo las
+columnas de estado, preferencia, token y la **transferencia de reprogramación**). `turno_id`
+y `expira_at` son mutables **sólo** por `transferir_a_turno` (D12/F-16): la seña acompaña al
+turno nuevo con la expiración recalculada y nunca se cobra dos veces. `REVOKE DELETE`: nunca
+se borra una seña (RN-AU-02/RN-CJ-03 por analogía).
 
 Alternativas: (a) un único `estado` sin instantes → imposible auditar cuándo se liberó o devolvió
 sin leer la auditoría; (b) recalcular el monto desde la prestación al leer → el monto cambia si
@@ -500,6 +502,9 @@ Consecuencias declaradas:
   presupuesto deje de estar vigente.
 - **C-10 no se toca**: no se agregan columnas ni valores a `movimientos_caja`; la trazabilidad
   seña↔movimiento vive en `senas.movimiento_caja_id`. `specs/caja` y `specs/cierre-caja` no cambian.
+  El `INGRESO` es un alta manual de C-10 (`origen='MANUAL'`): `registrar_movimiento` no expone
+  `tramo`, así que queda `NULL`. Distinguir la seña en la caja exigiría un origen/columna nuevo en
+  C-10 (change aparte), y C-11 no escribe `movimientos_caja` por su cuenta.
 - **Orden de locks**: siempre seña → día. Ningún camino toma el día antes de la seña, así que no
   hay ciclo de deadlock con las altas manuales de caja (que sólo toman el día).
 - **Un `APLICADA` por seña**; una seña aplicada no se devuelve (si hay que devolver plata después
@@ -676,10 +681,11 @@ devolución a recepción → mueve plata sin el rol que la matriz reserva para "
   `USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)` y el mismo
   predicado en `WITH CHECK`. `NULLIF` evita el `42704` y devuelve 0 filas sin excepción.
 - **Grants**: `senas` `SELECT, INSERT`; `REVOKE DELETE`; `GRANT UPDATE` sólo de
-  (`estado`,`acreditada_en`,`aplicada_en`,`liberada_en`,`devuelta_en`,`motivo_liberacion`,
-  `concepto_aplicacion`,`devuelta_por`,`motivo_devolucion`,`movimiento_caja_id`,
+  (`estado`,`turno_id`,`expira_at`,`acreditada_en`,`aplicada_en`,`liberada_en`,`devuelta_en`,
+  `motivo_liberacion`,`concepto_aplicacion`,`devuelta_por`,`motivo_devolucion`,`movimiento_caja_id`,
   `mp_preference_id`,`mp_init_point`,`preferencia_estado`,`intentos_preferencia`,
-  `proximo_reintento_at`,`token_hash`,`token_rotado_en`). `pagos_mp` `SELECT, INSERT` y `GRANT
+  `proximo_reintento_at`,`token_hash`,`token_rotado_en`). `turno_id`/`expira_at` se habilitan
+  **sólo** para la transferencia de reprogramación (D12/F-16). `pagos_mp` `SELECT, INSERT` y `GRANT
   UPDATE (estado, resultado, raw_json, actualizado_en, aprobado_en)`; `REVOKE DELETE` en ambas.
 - **Backfill conservador de las columnas legacy** (no se inventa configuración):
   `prestaciones.sena_modo='MONTO_FIJO', sena_valor=monto_sena` **sólo** donde

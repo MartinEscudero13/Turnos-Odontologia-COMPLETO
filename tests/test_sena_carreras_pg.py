@@ -28,6 +28,7 @@ from _senas_pg import (
     PAYMENT_ID,
     REQUEST_ID,
     SECRETO,
+    cablear_aplicacion,
     cablear_senas,
     correr_en_paralelo,
     limpiar,
@@ -43,10 +44,13 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
-from app.caja.servicio import ConflictoCaja
+from app.caja.repositorios import AuditoriaSQL
 from app.core.transaccion import TransaccionSQL
 from app.routers.webhooks_mp import crear_app_webhooks
-from app.turnos.servicio import Actor
+from app.senas.puertos import AdaptadorPasarelaFake, ConfiguracionSenaMemoria
+from app.senas.repositorios import SenaRepositorioSQL
+from app.senas.servicio import ConflictoSena, ServicioSenas
+from app.turnos.servicio import Actor, TurnoError
 
 pytestmark = requiere_pg
 
@@ -326,9 +330,13 @@ def test_el_perdedor_no_pisa() -> None:
 def test_dos_reservas_del_mismo_hueco_una_sena() -> None:
     """8.4 — dos reservas al mismo hueco: una gana (201) y una es 409, sin huérfanas.
 
-    El anti-solape de C-05 es un `EXCLUDE` de la 003: la segunda transacción
-    espera a la primera y falla con `23P01`. Como turno y seña viven en la misma
-    transacción, la perdedora no deja una seña apuntando a un turno inexistente.
+    Este es el único caso que conserva SQL crudo a propósito: la garantía es el
+    `EXCLUDE` de la 003 sobre `turnos`, y el alta pública de C-06 corre sobre
+    adaptadores en memoria (su wiring a PostgreSQL es un follow-up declarado de
+    C-06), así que no existe un caso de uso con el que ejercerla contra la base.
+    Se observa la única forma de ver el UNIQUE/EXCLUDE real: insertar el turno y
+    la seña en dos conexiones y comprobar que la perdedora no deja una seña
+    apuntando a un turno inexistente.
     """
     engine = motor()
     ids: dict[str, str] = {}
@@ -432,28 +440,18 @@ def test_dos_reservas_del_mismo_hueco_una_sena() -> None:
 # 8.5 — dos `aplicar` sobre la misma seña
 # ---------------------------------------------------------------------------
 
-_LOCK_SENA = text(
-    "SELECT estado FROM senas WHERE tenant_id = :t AND id = :s FOR UPDATE"
-)
-_INSERT_MOVIMIENTO = text(
-    "INSERT INTO movimientos_caja"
-    " (tenant_id, fecha, medio, monto, tipo, usuario_id, origen, turno_id, creado_en)"
-    " VALUES (:t, :fecha, 'MP', :monto, 'INGRESO', :usuario, 'MANUAL', :turno, :ahora)"
-    " RETURNING id"
-)
-_APLICAR_SENA = text(
-    "UPDATE senas SET estado = 'APLICADA', aplicada_en = :ahora,"
-    " movimiento_caja_id = :mov, concepto_aplicacion = 'TRATAMIENTO'"
-    " WHERE tenant_id = :t AND id = :s AND estado = 'ACREDITADA'"
-)
+
+def _actor(ids: dict[str, str]) -> Actor:
+    return Actor(tenant_id=ids["tenant"], rol="RECEPCION", user_id=ids["usuario"])
 
 
 def test_dos_aplicar_un_movimiento() -> None:
-    """8.5 — contrato SQL de §9: una seña aplicada, un solo `INGRESO MP`.
+    """8.5 — caso de uso real de §9: una seña aplicada, un solo `INGRESO MP`.
 
-    La seña `APLICADA` (y su `movimiento_caja_id` UNIQUE) es el contrato que §9
-    implementará: acá se verifica que la base, con el lock de fila y la
-    transición condicional, garantiza un único movimiento.
+    Ya no se prueba el contrato SQL: corre `ServicioSenasAplicacion.aplicar`
+    (C-11) con la persistencia real y el alta de C-10 sobre la **misma**
+    `Session`. El `FOR UPDATE` de la seña es el punto de serialización; la
+    perdedora ve `APLICADA` y no crea un segundo movimiento.
     """
     engine = motor()
     ids: dict[str, str] = {}
@@ -468,43 +466,20 @@ def test_dos_aplicar_un_movimiento() -> None:
             tx.commit()
 
         def aplicar(session: Session, hook: Callable[[], None] | None) -> str:
+            caja = cablear_caja(session, ahora=AHORA).servicio
+            servicio = cablear_aplicacion(
+                session, caja=caja, al_bloquear=hook, ahora=AHORA
+            )
             try:
-                with TransaccionSQL(session):
-                    estado = session.execute(
-                        _LOCK_SENA, {"t": ids["tenant"], "s": ids["sena"]}
-                    ).scalar_one()
-                    if estado != "ACREDITADA":
-                        return "409:SENA_YA_APLICADA"
-                    if hook is not None:
-                        hook()
-                    movimiento = session.execute(
-                        _INSERT_MOVIMIENTO,
-                        {
-                            "t": ids["tenant"],
-                            "fecha": AHORA.date(),
-                            "monto": MONTO,
-                            "usuario": ids["usuario"],
-                            "turno": ids["turno"],
-                            "ahora": AHORA,
-                        },
-                    ).scalar_one()
-                    aplicada = session.execute(
-                        _APLICAR_SENA,
-                        {
-                            "t": ids["tenant"],
-                            "s": ids["sena"],
-                            "mov": movimiento,
-                            "ahora": AHORA,
-                        },
-                    )
-                    if aplicada.rowcount != 1:
-                        raise ConflictoCaja(
-                            "SENA_YA_APLICADA", "la seña ya fue aplicada"
-                        )
+                servicio.aplicar(
+                    tenant_id=ids["tenant"],
+                    sena_id=ids["sena"],
+                    actor=_actor(ids),
+                    ahora=AHORA,
+                )
                 return "200"
-            except ConflictoCaja:
-                session.rollback()
-                return "409:SENA_YA_APLICADA"
+            except ConflictoSena as exc:
+                return f"409:{exc.codigo_dominio}"
 
         resultados, esperas, errores = correr_en_paralelo(
             engine,
@@ -539,16 +514,12 @@ def test_dos_aplicar_un_movimiento() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _actor(ids: dict[str, str]) -> Actor:
-    return Actor(tenant_id=ids["tenant"], rol="RECEPCION", user_id=ids["usuario"])
-
-
 def test_aplicar_vs_cierre() -> None:
     """8.6 — o el movimiento entra y el cierre lo cuenta, o el cierre gana (409).
 
-    Nunca un movimiento del día fuera del cierre (D9): el alta de caja de C-10 es
-    la única puerta (`ServicioCaja.registrar_movimiento`) y toma el mismo advisory
-    lock por `(tenant, fecha)` que el cierre.
+    `aplicar` es el caso de uso de §9: delega el hecho de caja en C-10, que toma
+    el mismo advisory lock por `(tenant, fecha)` que el cierre, dentro de la
+    misma transacción. La seña y el movimiento commitean o revierten juntos.
     """
     engine = motor()
     ids: dict[str, str] = {}
@@ -572,42 +543,23 @@ def test_aplicar_vs_cierre() -> None:
                 if hook is not None:
                     hook()
 
-            cableado = cablear_caja(
+            caja = cablear_caja(
                 session,
                 ahora=AHORA,
                 uow_factory=lambda: UowObservada(
                     session, al_bloquear=al_bloquear_dia
                 ),
-            )
+            ).servicio
+            servicio = cablear_aplicacion(session, caja=caja, ahora=AHORA)
             try:
-                with TransaccionSQL(session):
-                    estado = session.execute(
-                        _LOCK_SENA, {"t": ids["tenant"], "s": ids["sena"]}
-                    ).scalar_one()
-                    if estado != "ACREDITADA":
-                        return "409:SENA_YA_APLICADA"
-                    movimiento = cableado.servicio.registrar_movimiento(
-                        _actor(ids),
-                        monto=MONTO,
-                        medio="MP",
-                        tipo="INGRESO",
-                        fecha=dia,
-                        turno_id=ids["turno"],
-                    )
-                    aplicada = session.execute(
-                        _APLICAR_SENA,
-                        {
-                            "t": ids["tenant"],
-                            "s": ids["sena"],
-                            "mov": movimiento.id,
-                            "ahora": AHORA,
-                        },
-                    )
-                    if aplicada.rowcount != 1:
-                        raise ConflictoCaja("SENA_YA_APLICADA", "ya aplicada")
+                servicio.aplicar(
+                    tenant_id=ids["tenant"],
+                    sena_id=ids["sena"],
+                    actor=_actor(ids),
+                    ahora=AHORA,
+                )
                 return "200"
-            except ConflictoCaja as exc:
-                session.rollback()
+            except TurnoError as exc:
                 return f"409:{exc.codigo_dominio}"
 
         def cerrar(session: Session, hook: Callable[[], None] | None) -> str:
@@ -738,10 +690,18 @@ def test_reprogramacion_vs_webhook() -> None:
             ids["sena"] = sena
 
             def reprogramar(session: Session, hook: Callable[[], None] | None, ids: dict[str, str] = ids) -> str:
+                servicio = ServicioSenas(
+                    SenaRepositorioSQL(session),
+                    ConfiguracionSenaMemoria(),
+                    AdaptadorPasarelaFake(),
+                    AuditoriaSQL(session),
+                    reloj=lambda: AHORA,
+                    uow_factory=lambda: TransaccionSQL(session),
+                )
                 with TransaccionSQL(session):
-                    session.execute(
-                        _LOCK_SENA, {"t": ids["tenant"], "s": ids["sena"]}
-                    ).scalar_one()
+                    SenaRepositorioSQL(session).bloquear(
+                        tenant_id=ids["tenant"], sena_id=ids["sena"]
+                    )
                     if hook is not None:
                         hook()
                     session.execute(
@@ -750,20 +710,15 @@ def test_reprogramacion_vs_webhook() -> None:
                         ),
                         {"id": ids["turno"]},
                     )
-                    session.execute(
-                        text(
-                            "UPDATE senas SET turno_id = :nuevo,"
-                            " expira_at = :expira WHERE tenant_id = :t AND id = :s"
-                        ),
-                        {
-                            "nuevo": ids["nuevo"],
-                            "expira": min(
-                                AHORA + timedelta(hours=24), INICIO_NUEVO
-                            ),
-                            "t": ids["tenant"],
-                            "s": ids["sena"],
-                        },
+                    # Caso de uso real de §10: transfiere la seña al turno nuevo.
+                    transferida = servicio.transferir_a_turno(
+                        tenant_id=ids["tenant"],
+                        turno_anterior=ids["turno"],
+                        turno_nuevo=ids["nuevo"],
+                        turno_inicio=INICIO_NUEVO,
+                        ahora=AHORA,
                     )
+                    assert transferida is not None
                 return "200"
 
             eventos: dict[str, Any] = {}

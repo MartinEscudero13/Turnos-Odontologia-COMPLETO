@@ -281,6 +281,9 @@ class SenaRepositorioSQL:
         datos = dict(campos)
         if "estado" in datos:
             raise SenaInvalida("usá transicionar para cambiar el estado")
+        # Metadatos de proyección del adaptador en memoria: no son columnas.
+        for proyeccion in ("turno_inicio", "turno_fin", "turno_prestacion"):
+            datos.pop(proyeccion, None)
         _fijar_tenant(self._session, tenant_id)
         condiciones = [
             SenaModel.tenant_id == _uuid(tenant_id),
@@ -486,6 +489,7 @@ class TurnosSenaSQL:
             estado=fila.estado,
             inicio=fila.inicio,
             fin=fila.fin,
+            paciente_id=str(fila.paciente_id),
         )
 
     def confirmar_por_sena(

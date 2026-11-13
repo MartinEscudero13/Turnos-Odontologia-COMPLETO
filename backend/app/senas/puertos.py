@@ -31,7 +31,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from types import TracebackType
-from typing import Any, Literal, Protocol, cast
+from typing import Any, Literal, Protocol, cast, runtime_checkable
 
 from app.senas.regla import ModoSena, PrestacionSena
 from app.turnos.servicio import NoEncontrado, TurnoError
@@ -52,6 +52,7 @@ __all__ = [
     "EstadoPreferencia",
     "EstadoSena",
     "MedioPagoMP",
+    "MedioPagoMP",
     "MovimientoRef",
     "PagoExterno",
     "PagoMP",
@@ -64,6 +65,8 @@ __all__ = [
     "Preferencia",
     "PresupuestosMemoria",
     "PresupuestosPort",
+    "MOTIVO_CANCELACION",
+    "MOTIVO_POLITICA_CANCELACION",
     "Reloj",
     "ResolutorTenantPort",
     "ResultadoPagoMP",
@@ -74,6 +77,9 @@ __all__ = [
     "SenaMemoria",
     "SenaPort",
     "SenaRepositorio",
+    "SenaCancelacionPort",
+    "SenaReprogramacionPort",
+    "SenaTransferida",
     "TokenDuplicado",
     "TransaccionNula",
     "TransicionTurnoInvalida",
@@ -105,6 +111,10 @@ ResultadoPagoMP = Literal[
 ConceptoAplicacion = Literal["TRATAMIENTO", "CANCELACION_TARDIA"]
 MedioPagoMP = Literal["MP"]
 
+# D12: motivos fijos de la devolución/liberación ordenada por la política.
+MOTIVO_POLITICA_CANCELACION = "POLITICA_CANCELACION"
+MOTIVO_CANCELACION = "CANCELACION"
+
 AccionSena = Literal[
     "SENA_CREADA",
     "SENA_PREFERENCIA_CREADA",
@@ -115,6 +125,7 @@ AccionSena = Literal[
     "SENA_DEVUELTA",
     "SENA_REEMBOLSO_MP",
     "SENA_TRANSFERIDA",
+    "SENA_NO_TRANSFERIDA",
     "SENA_WEBHOOK_RECHAZADO",
 ]
 
@@ -222,13 +233,18 @@ class PagoExterno:
 
 @dataclass(frozen=True)
 class TurnoRef:
-    """Vista mínima del turno que C-11 necesita (C-05 es el dueño)."""
+    """Vista mínima del turno que C-11 necesita (C-05 es el dueño).
+
+    `paciente_id` sólo se usa para el guard de presupuesto aceptado vigente de
+    C-09 (C11-OQ-13): no se expone en ninguna vista pública ni se loguea.
+    """
 
     id: str
     tenant_id: str
     estado: str
     inicio: datetime
     fin: datetime
+    paciente_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -279,6 +295,19 @@ class SenaCreada:
     sena: Sena
     token_sena: str
     politica: PoliticaSena
+
+
+@dataclass(frozen=True)
+class SenaTransferida:
+    """Resultado de una reprogramación sobre la seña (C11-OQ-04, F-16).
+
+    `token_sena` sólo trae valor cuando el token anterior había vencido y se
+    reemitió uno nuevo; el token anterior deja de resolver (`404`).
+    """
+
+    sena: Sena
+    token_sena: str | None = None
+    token_reemitido: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -360,6 +389,39 @@ class SenaPort(Protocol):
         turno_fin: datetime | None = None,
         ahora: datetime | None = None,
     ) -> SenaCreada | None: ...
+
+
+@runtime_checkable
+class SenaCancelacionPort(Protocol):
+    """Efecto de C-11 en la cancelación de C-06 (RN-SE-04, D12).
+
+    C-06 decide si la cancelación procede; C-11 sólo aplica el efecto sobre la
+    seña con el **snapshot** de la política. `anticipacion_de_sena` devuelve el
+    snapshot guardado (`None` si el turno no tiene seña) para que C-06 autorice
+    con la misma regla que después ejecuta la devolución (`F-19`).
+    """
+
+    def anticipacion_de_sena(self, *, tenant_id: str, turno_id: str) -> int | None: ...
+
+    def cancelar_con_sena(
+        self, *, tenant_id: str, turno_id: str, ahora: datetime | None = None
+    ) -> Sena | None: ...
+
+
+@runtime_checkable
+class SenaReprogramacionPort(Protocol):
+    """Transferencia de la seña al turno nuevo (C11-OQ-04, F-16)."""
+
+    def transferir_a_turno(
+        self,
+        *,
+        tenant_id: str,
+        turno_anterior: str,
+        turno_nuevo: str,
+        turno_inicio: datetime,
+        turno_fin: datetime | None = None,
+        ahora: datetime | None = None,
+    ) -> SenaTransferida | None: ...
 
 
 class SenaRepositorio(Protocol):
@@ -1092,6 +1154,7 @@ class TurnoMemoriaSena:
         turno_id: str,
         inicio: datetime,
         estado: str = "PENDIENTE",
+        paciente_id: str | None = None,
     ) -> TurnoRef:
         turno = TurnoRef(
             id=turno_id,
@@ -1099,6 +1162,7 @@ class TurnoMemoriaSena:
             estado=estado,
             inicio=inicio,
             fin=inicio + timedelta(minutes=30),
+            paciente_id=paciente_id,
         )
         self._turnos[(tenant_id, turno_id)] = turno
         return turno

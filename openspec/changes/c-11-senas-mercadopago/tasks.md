@@ -64,8 +64,10 @@
 - [x] 1.7 Escribir y hacer pasar
   `tests/test_migracion_009.py::test_rls_fail_closed_y_grants_senas`
   (como `turnos_app` sin `app.tenant_id` **o con cadena vacía** ⇒ 0 filas sin error `42704` en las
-  dos tablas; `DELETE` rechazado en ambas; `UPDATE` de `monto_centavos`/`turno_id`/`expira_at`/
-  `token_hash` rechazado; `UPDATE` de las columnas de estado/preferencia permitido).
+  dos tablas; `DELETE` rechazado en ambas; `UPDATE` de `monto_centavos`/`regla_valor`/
+  `regla_modo`/`precio_base_centavos`/`token_hash` rechazado; `UPDATE` de las columnas de
+  estado/preferencia y de la transferencia de reprogramación (`turno_id`/`expira_at`, D12/F-16)
+  permitido).
 - [x] 1.8 Escribir y hacer pasar
   `tests/test_migracion_009.py::test_backfill_legacy_conservador`
   (`requiere_sena=true` + `monto_sena=5000` ⇒ `MONTO_FIJO`/`5000`; `requiere_sena=true` +
@@ -300,61 +302,68 @@
   (dos conexiones, acreditación commiteada primero ⇒ seña `ACREDITADA`, turno `CONFIRMADO`, sin
   auto-oferta).
 - [x] 8.2 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_expiracion_gana_la_carrera`
-  (expiación primero ⇒ seña `LIBERADA`, turno `CANCELADO` y el webhook responde `200` con
-  `resultado=FUERA_DE_TIEMPO`, nunca `DUPLICADO` y nunca `500`, sin segundo evento de hueco).
+  (expiración primero ⇒ la seña queda `LIBERADA`, el turno `CANCELADO` y el webhook responde `200`
+  con `resultado=FUERA_DE_TIEMPO`, nunca `DUPLICADO` y nunca `500`, sin segundo evento de hueco.
+  Cuando llega ese pago tardío la seña pasa de `LIBERADA` a `DEVUELTA` —la plata no puede quedar
+  retenida— y el estado final observado es `DEVUELTA` con `liberada_en` del barrido: son **dos
+  momentos**, no una contradicción con 7.5 ni con D4/D8).
 - [x] 8.3 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_el_perdedor_no_pisa`
   (una sola transición registrada, un solo instante del estado ganador y ninguna escritura posterior
   que lo cambie).
 - [x] 8.4 Escribir y hacer pasar
   `tests/test_sena_carreras_pg.py::test_dos_reservas_del_mismo_hueco_una_sena`
-  (una `201` y una `409` con alternativas; un turno y una seña, sin seña huérfana).
+  (una `201` y una `409` con alternativas; un turno y una seña, sin seña huérfana. Es el único
+  caso con SQL crudo: la garantía es el `EXCLUDE` de C-05 y el alta pública de C-06 no tiene
+  wiring a PostgreSQL).
 - [x] 8.5 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_dos_aplicar_un_movimiento`
-  (dos conexiones aplicando la misma seña ⇒ un `INGRESO MP`, la otra `409 SENA_YA_APLICADA`).
+  (dos conexiones aplicando la misma seña ⇒ un `INGRESO MP`, la otra `409 SENA_YA_APLICADA`;
+  corre el **caso de uso real** `ServicioSenasAplicacion.aplicar` de §9, no un contrato SQL).
 - [x] 8.6 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_aplicar_vs_cierre`
   (o el movimiento entra antes y el cierre lo cuenta, o el cierre gana y `aplicar` da
-  `409 CIERRE_CERRADO`; nunca un movimiento del día fuera del cierre, D9).
+  `409 CIERRE_CERRADO`; nunca un movimiento del día fuera del cierre, D9. También usa el caso de
+  uso real de §9 sobre la misma transacción que C-10).
 - [x] 8.7 Escribir y hacer pasar
   `tests/test_sena_carreras_pg.py::test_reprogramacion_vs_webhook`
   (la seña queda atada al turno nuevo y el turno confirmado es ese, nunca el original).
 
 ## 9. Aplicación al cobro a través de C-10 (C10-OQ-6)
 
-- [ ] 9.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 9.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_sena_aplicacion.py::test_aplicar_crea_movimiento_mp`
   (seña `ACREDITADA` de `3000` del turno TUR-1 y U1 ⇒ `INGRESO` de `3000` `medio=MP`
   `turno_id=TUR-1`, seña `APLICADA` con `movimiento_caja_id` y
   `concepto_aplicacion=TRATAMIENTO`).
-- [ ] 9.2 Escribir y hacer pasar
+- [x] 9.2 Escribir y hacer pasar
   `tests/test_sena_aplicacion.py::test_segundo_aplicar_409_sin_movimiento`
   (⇒ `409 SENA_YA_APLICADA` y un solo movimiento para la seña).
-- [ ] 9.3 Escribir y hacer pasar
+- [x] 9.3 Escribir y hacer pasar
   `tests/test_sena_aplicacion.py::test_dia_cerrado_409_y_sigue_acreditada`
   (día cerrado ⇒ `409 CIERRE_CERRADO`, sin movimiento y la seña sigue `ACREDITADA`).
-- [ ] 9.4 Escribir y hacer pasar
+- [x] 9.4 Escribir y hacer pasar
   `tests/test_sena_aplicacion.py::test_aplicar_desde_pendiente_409`
   (seña `PENDIENTE` ⇒ `409 ESTADO_INVALIDO`, sin movimiento).
-- [ ] 9.5 Escribir y hacer pasar
+- [x] 9.5 Escribir y hacer pasar
   `tests/test_sena_aplicacion.py::test_movimiento_suma_en_totales_del_dia`
   (el `INGRESO MP` aparece en `GET /api/caja/movimientos?fecha=` y suma en
   `totales_vigentes.mp` según el contrato de C-10).
-- [ ] 9.6 Escribir y hacer pasar
+- [x] 9.6 Escribir y hacer pasar
   `tests/test_sena_aplicacion.py::test_no_escribe_caja_directo`
   (con el puerto espía, `app/senas` no instancia repositorios de `app/caja` ni escribe
   `movimientos_caja`: el único camino es `AplicacionCajaPort`).
-- [ ] 9.7 Escribir y hacer pasar
+- [x] 9.7 Escribir y hacer pasar
   `tests/test_sena_caja_contrato.py::test_contrato_con_el_alta_de_c10`
   (el adaptador llama a `ServicioCaja.registrar_movimiento` con la firma real —incluida `fecha` del
   día de la aplicación en `-03:00`—, propaga `404` de turno ajeno y `409 CIERRE_CERRADO`, y comparte
   la transacción `TransaccionSQL(session)`; F-13).
-- [ ] 9.8 Escribir y hacer pasar
+- [x] 9.8 Escribir y hacer pasar
   `tests/test_sena_aplicacion.py::test_cancelacion_tardia_solo_admin`
   (turno cancelado bajo el umbral: U1 con `concepto=CANCELACION_TARDIA` ⇒ `403` sin movimiento;
   U2 ⇒ `APLICADA` con `concepto_aplicacion=CANCELACION_TARDIA` y movimiento `MP`, C11-OQ-03).
-- [ ] 9.9 Escribir y hacer pasar
+- [x] 9.9 Escribir y hacer pasar
   `tests/test_sena_aplicacion.py::test_presupuesto_aceptado_vigente_409`
   (paciente con presupuesto `ACEPTADO` vigente en C-09 ⇒ `409 PRESUPUESTO_CON_SENA`, sin
   movimiento, la seña sigue `ACREDITADA` y la pasarela de caja no se invoca, C11-OQ-13).
-- [ ] 9.10 Escribir y hacer pasar
+- [x] 9.10 Escribir y hacer pasar
   `tests/test_sena_aplicacion.py::test_ingreso_usa_el_dia_de_la_aplicacion`
   (seña acreditada el `2026-11-10` y aplicada el `2026-11-13` ⇒ el `INGRESO` queda con
   `fecha=2026-11-13`, no con la de acreditación ni la del turno; ese día cerrado ⇒
@@ -362,42 +371,42 @@
 
 ## 10. Devolución, política y reprogramación (RN-SE-04)
 
-- [ ] 10.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 10.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_sena_devolucion.py::test_cancelar_con_anticipacion_deja_devuelta`
   (reloj `2026-11-20T09:00:00-03:00`, turno del `2026-11-22`, `anticipacion_cancelacion_h=24` ⇒
   turno `CANCELADO`, seña `DEVUELTA` con `motivo_devolucion=POLITICA_CANCELACION` y
   `devuelta_por=null`).
-- [ ] 10.2 Escribir y hacer pasar
+- [x] 10.2 Escribir y hacer pasar
   `tests/test_sena_devolucion.py::test_cancelar_bajo_umbral_no_devuelve_sola`
   (`403` público como hoy, turno intacto y seña `ACREDITADA` hasta la decisión de `ADMIN`,
   C11-OQ-03).
-- [ ] 10.3 Escribir y hacer pasar `tests/test_sena_devolucion.py::test_admin_devuelve_con_motivo`
+- [x] 10.3 Escribir y hacer pasar `tests/test_sena_devolucion.py::test_admin_devuelve_con_motivo`
   (U2 ADMIN ⇒ `DEVUELTA` con `devuelta_por=U2`, `devuelta_en`, motivo y auditoría
   `SENA_DEVUELTA`).
-- [ ] 10.4 Escribir y hacer pasar `tests/test_sena_devolucion.py::test_recepcion_no_devuelve`
+- [x] 10.4 Escribir y hacer pasar `tests/test_sena_devolucion.py::test_recepcion_no_devuelve`
   (U1 ⇒ `403` y la seña sigue `ACREDITADA`).
-- [ ] 10.5 Escribir y hacer pasar `tests/test_sena_devolucion.py::test_sin_motivo_422`
+- [x] 10.5 Escribir y hacer pasar `tests/test_sena_devolucion.py::test_sin_motivo_422`
   (`motivo` ausente o `""` ⇒ `422`, sin cambio de estado).
-- [ ] 10.6 Escribir y hacer pasar `tests/test_sena_devolucion.py::test_aplicada_no_se_devuelve`
+- [x] 10.6 Escribir y hacer pasar `tests/test_sena_devolucion.py::test_aplicada_no_se_devuelve`
   (seña `APLICADA` ⇒ `409`, sigue `APLICADA`).
-- [ ] 10.7 Escribir y hacer pasar
+- [x] 10.7 Escribir y hacer pasar
   `tests/test_sena_devolucion.py::test_politica_visible_en_reserva_y_token`
   (`politica={anticipacion_cancelacion_h:24, reembolsable:true, hay_pago_acreditado:false}` al
   reservar, `reembolsable:true` también con la seña `PENDIENTE` o `LIBERADA`, y
   `hay_pago_acreditado:true` sólo con la seña `ACREDITADA`; sin PHI, F-01).
-- [ ] 10.8 Escribir el test (rojo) y hacerlo pasar:
+- [x] 10.8 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_sena_reprogramacion.py::test_pendiente_acompana_al_turno_nuevo`
   (seña `PENDIENTE` ⇒ apunta al turno nuevo, `expira_at` recalculado con el tope del inicio, mismo
   token y sin segunda seña).
-- [ ] 10.9 Escribir y hacer pasar
+- [x] 10.9 Escribir y hacer pasar
   `tests/test_sena_reprogramacion.py::test_acreditada_se_transfiere`
   (seña `ACREDITADA` ⇒ sigue `ACREDITADA` en el turno nuevo, sin segunda seña y con auditoría
   `SENA_TRANSFERIDA`).
-- [ ] 10.10 Escribir y hacer pasar
+- [x] 10.10 Escribir y hacer pasar
   `tests/test_sena_reprogramacion.py::test_aplicada_no_se_transfiere`
   (seña `APLICADA` ⇒ no cambia de turno, el turno nuevo no crea seña y se audita
   `SENA_NO_TRANSFERIDA`).
-- [ ] 10.11 Escribir y hacer pasar
+- [x] 10.11 Escribir y hacer pasar
   `tests/test_sena_reprogramacion.py::test_token_vencido_se_reemite`
   (seña `PENDIENTE` con token vencido + reprogramación válida ⇒ `expira_at` recalculado, el token
   anterior responde `404`, se entrega uno nuevo y se audita `SENA_TRANSFERIDA` con

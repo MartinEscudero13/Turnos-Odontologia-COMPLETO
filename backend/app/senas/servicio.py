@@ -21,7 +21,7 @@ token de otro tenant, uno inexistente y uno rotado responden el mismo `404`
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal
@@ -29,6 +29,7 @@ from typing import Any, Literal
 from app.core.logging import get_logger
 from app.reservas.servicio import DemasiadasSolicitudes
 from app.senas.puertos import (
+    MOTIVO_CANCELACION,
     AccionSena,
     AuditoriaPort,
     ConfiguracionSenaPort,
@@ -45,7 +46,10 @@ from app.senas.puertos import (
     SenaDuplicada,
     SenaInvalida,
     SenaRepositorio,
+    SenaTransferida,
     TokenDuplicado,
+    TransaccionNula,
+    UnidadDeTrabajoPort,
 )
 from app.senas.regla import resolver_regla
 from app.senas.token import generar_token, hash_token
@@ -162,6 +166,7 @@ class ServicioSenas:
         url_pago_base: str = "",
         url_webhook: str = "",
         reloj: Reloj | None = None,
+        uow_factory: Callable[[], UnidadDeTrabajoPort] | None = None,
     ) -> None:
         self._senas = senas
         self._configuracion = configuracion
@@ -176,6 +181,9 @@ class ServicioSenas:
         self._url_pago_base = url_pago_base.rstrip("/")
         self._url_webhook = url_webhook
         self._reloj = reloj
+        self._uow_factory: Callable[[], UnidadDeTrabajoPort] = (
+            uow_factory if uow_factory is not None else TransaccionNula
+        )
 
     # -- alta -----------------------------------------------------------
 
@@ -335,6 +343,184 @@ class ServicioSenas:
             despues={"intento": intentos, "motivo": "pasarela_no_disponible"},
         )
         return actual
+
+    # -- §10: cancelación y reprogramación (D12) --------------------------
+
+    def anticipacion_de_sena(self, *, tenant_id: str, turno_id: str) -> int | None:
+        """Snapshot de la política que firmó la seña de ese turno (`F-19`).
+
+        C-06 autoriza la cancelación/reprogramación con este valor y no con la
+        configuración viva: un cambio de parámetro no reescribe lo prometido.
+        """
+        sena = self._senas.por_turno(tenant_id=tenant_id, turno_id=turno_id)
+        return None if sena is None else sena.anticipacion_cancelacion_h
+
+    def cancelar_con_sena(
+        self, *, tenant_id: str, turno_id: str, ahora: datetime | None = None
+    ) -> Sena | None:
+        """Efecto de una cancelación con anticipación suficiente (D12).
+
+        `PENDIENTE` ⇒ `LIBERADA` (no se cobró nada); `ACREDITADA` ⇒ `DEVUELTA`
+        con `motivo_devolucion='POLITICA_CANCELACION'` y `devuelta_por=NULL`.
+        `APLICADA`/`DEVUELTA`/`LIBERADA` no cambian: la plata ya está en caja o
+        la seña ya está resuelta.
+        """
+        momento = self._momento(ahora)
+        with self._uow_factory():
+            sena = self._senas.por_turno(tenant_id=tenant_id, turno_id=turno_id)
+            if sena is None:
+                return None
+            if sena.estado == "PENDIENTE":
+                liberada = self._senas.transicionar(
+                    tenant_id=tenant_id,
+                    sena_id=sena.id,
+                    desde="PENDIENTE",
+                    hacia="LIBERADA",
+                    campos={
+                        "liberada_en": momento,
+                        "motivo_liberacion": MOTIVO_CANCELACION,
+                    },
+                )
+                if liberada is None:
+                    return None
+                self._auditar(
+                    tenant_id=tenant_id,
+                    accion="SENA_LIBERADA",
+                    sena=liberada,
+                    antes={"estado": "PENDIENTE"},
+                    despues={
+                        "estado": "LIBERADA",
+                        "motivo_liberacion": MOTIVO_CANCELACION,
+                        "turno_id": liberada.turno_id,
+                    },
+                )
+                return liberada
+            if sena.estado == "ACREDITADA":
+                devuelta = self._senas.transicionar(
+                    tenant_id=tenant_id,
+                    sena_id=sena.id,
+                    desde="ACREDITADA",
+                    hacia="DEVUELTA",
+                    campos={
+                        "devuelta_en": momento,
+                        "motivo_devolucion": "POLITICA_CANCELACION",
+                        "devuelta_por": None,
+                    },
+                )
+                if devuelta is None:
+                    return None
+                self._auditar(
+                    tenant_id=tenant_id,
+                    accion="SENA_DEVUELTA",
+                    sena=devuelta,
+                    antes={"estado": "ACREDITADA"},
+                    despues={
+                        "estado": "DEVUELTA",
+                        "motivo_devolucion": "POLITICA_CANCELACION",
+                        "devuelta_por": None,
+                    },
+                )
+                return devuelta
+            return None
+
+    def transferir_a_turno(
+        self,
+        *,
+        tenant_id: str,
+        turno_anterior: str,
+        turno_nuevo: str,
+        turno_inicio: datetime,
+        turno_fin: datetime | None = None,
+        ahora: datetime | None = None,
+    ) -> SenaTransferida | None:
+        """Mueve la seña al turno nuevo sin cobrar dos veces (C11-OQ-04).
+
+        `PENDIENTE` recalcula `expira_at = min(ahora + SENA_TTL_H, nuevo.inicio)`;
+        el token se conserva si no venció y se reemite si venció (`F-16`).
+        `ACREDITADA` se transfiere igual y sin cambiar de estado. `APLICADA`,
+        `DEVUELTA` y `LIBERADA` no se transfieren y se audita el motivo.
+        """
+        momento = self._momento(ahora)
+        with self._uow_factory():
+            sena = self._senas.por_turno(
+                tenant_id=tenant_id, turno_id=turno_anterior
+            )
+            if sena is None:
+                return None
+
+            if sena.estado in ("APLICADA", "DEVUELTA", "LIBERADA"):
+                self._auditar(
+                    tenant_id=tenant_id,
+                    accion="SENA_NO_TRANSFERIDA",
+                    sena=sena,
+                    antes={"turno_id": turno_anterior, "estado": sena.estado},
+                    despues={
+                        "turno_id": turno_anterior,
+                        "turno_nuevo": turno_nuevo,
+                        "motivo": f"ESTADO_{sena.estado}",
+                    },
+                )
+                return None
+
+            expira_nueva = min(
+                momento + timedelta(hours=self._sena_ttl_h), turno_inicio
+            )
+            campos: dict[str, Any] = {
+                "turno_id": turno_nuevo,
+                "expira_at": expira_nueva,
+                # Proyección del turno para la vista pública (memoria); en SQL el
+                # join de `listar` es la fuente y estas claves no son columnas.
+                "turno_inicio": turno_inicio,
+            }
+            if turno_fin is not None:
+                campos["turno_fin"] = turno_fin
+            actualizada = self._senas.actualizar(
+                tenant_id=tenant_id,
+                sena_id=sena.id,
+                campos=campos,
+            )
+            if actualizada is None:
+                return None
+
+            token: str | None = None
+            reemitido = False
+            if sena.estado == "PENDIENTE" and sena.expira_at <= momento:
+                token = generar_token()
+                actualizada = self._senas.reemitir_token(
+                    tenant_id=tenant_id,
+                    sena_id=sena.id,
+                    token_hash=hash_token(token),
+                    ahora=momento,
+                )
+                reemitido = True
+
+            self._auditar(
+                tenant_id=tenant_id,
+                accion="SENA_TRANSFERIDA",
+                sena=actualizada,
+                antes={
+                    "turno_id": turno_anterior,
+                    "expira_at": sena.expira_at.isoformat(),
+                },
+                despues={
+                    "turno_id": turno_nuevo,
+                    "expira_at": actualizada.expira_at.isoformat(),
+                    "estado": actualizada.estado,
+                    "token_reemitido": reemitido,
+                },
+            )
+            logger.info(
+                "sena_transferida tenant_id=%s sena_id=%s turno_anterior=%s"
+                " turno_nuevo=%s token_reemitido=%s",
+                tenant_id,
+                actualizada.id,
+                turno_anterior,
+                turno_nuevo,
+                reemitido,
+            )
+            return SenaTransferida(
+                sena=actualizada, token_sena=token, token_reemitido=reemitido
+            )
 
     # -- superficie pública --------------------------------------------
 

@@ -272,9 +272,12 @@ def test_rls_fail_closed_y_grants_senas() -> None:
     assert "GRANT SELECT, INSERT ON pagos_mp TO turnos_app" in sql
     assert "REVOKE UPDATE, DELETE ON senas FROM turnos_app" in sql
     assert "REVOKE UPDATE, DELETE ON pagos_mp FROM turnos_app" in sql
-    # Superficie mutable de la seña: estado, instantes, preferencia y token.
+    # Superficie mutable de la seña: estado, instantes, preferencia, token y la
+    # transferencia de reprogramación (`turno_id`/`expira_at`, D12/F-16).
     for columna in (
         "estado",
+        "turno_id",
+        "expira_at",
         "acreditada_en",
         "aplicada_en",
         "liberada_en",
@@ -293,8 +296,8 @@ def test_rls_fail_closed_y_grants_senas() -> None:
         "token_rotado_en",
     ):
         assert columna in sql.split("GRANT UPDATE (", 1)[1].split(") ON senas", 1)[0]
-    # Las columnas de plata y de identidad quedan fuera del UPDATE.
-    for inmutable in ("monto_centavos", "turno_id", "expira_at", "regla_valor"):
+    # Las columnas de plata y de la regla quedan fuera del UPDATE.
+    for inmutable in ("monto_centavos", "regla_valor"):
         assert inmutable not in sql.split("GRANT UPDATE (", 1)[1].split(") ON senas", 1)[0]
     assert (
         "GRANT UPDATE (estado, resultado, raw_json, actualizado_en, aprobado_en)"
@@ -897,12 +900,12 @@ def test_rls_fail_closed_y_grants_senas_en_pg(pg: Any) -> None:
         assert len(conn.execute(sql_text("SELECT id FROM pagos_mp")).all()) == 1
         sena_id = conn.execute(sql_text("SELECT id FROM senas")).scalar_one()
 
-    # Columnas de plata/identidad inmutables para el rol de aplicación.
+    # Columnas de plata y de la regla inmutables para el rol de aplicación.
     for columna, valor in (
         ("monto_centavos", "1"),
-        ("turno_id", "'00000000-0000-4000-8000-000000000000'"),
-        ("expira_at", "now()"),
         ("regla_valor", "99"),
+        ("regla_modo", "'MONTO_FIJO'"),
+        ("precio_base_centavos", "1"),
     ):
         with app(ids["t1"]) as conn:
             with pytest.raises(DBAPIError):
@@ -911,6 +914,18 @@ def test_rls_fail_closed_y_grants_senas_en_pg(pg: Any) -> None:
                     {"id": sena_id},
                 )
             conn.rollback()
+
+    # `turno_id`/`expira_at` son mutables **sólo** para la transferencia de
+    # reprogramación (D12/F-16): la seña acompaña al turno nuevo sin crear otra.
+    with app(ids["t1"]) as conn:
+        conn.execute(
+            sql_text(
+                "UPDATE senas SET turno_id = turno_id, expira_at = expira_at"
+                " WHERE id = :id"
+            ),
+            {"id": sena_id},
+        )
+        conn.commit()
 
     # El estado y sus instantes sí se escriben.
     with app(ids["t1"]) as conn:

@@ -239,14 +239,28 @@ class ServicioTurnos:
 
     # ---- 3.3 cancelar / reprogramar ----
 
-    def cancelar(self, actor: Actor, turno_id: str, *, ahora: datetime | None = None) -> Turno:
-        """Pasa a CANCELADO (audita). Bajo anticipación mínima: solo recepción."""
+    def cancelar(
+        self,
+        actor: Actor,
+        turno_id: str,
+        *,
+        ahora: datetime | None = None,
+        anticipacion_min_horas: float | None = None,
+    ) -> Turno:
+        """Pasa a CANCELADO (audita). Bajo anticipación mínima: solo recepción.
+
+        `anticipacion_min_horas` permite que C-06 use el **snapshot** de la
+        política guardado en la seña (D12/F-19) en vez de la configuración viva.
+        """
         actual = self.obtener(actor, turno_id)
         if not self._puede_escribir(actor, actual):
             raise Prohibido("sin permiso sobre este turno")
         if not transicion_valida(actual.estado, "CANCELADO"):
             raise Invalido(f"transición {actual.estado} → CANCELADO ilegal")
-        if self._bajo_anticipacion(actual, ahora) and not self._es_recepcion(actor):
+        if (
+            self._bajo_anticipacion(actual, ahora, anticipacion_min_horas)
+            and not self._es_recepcion(actor)
+        ):
             raise Prohibido("bajo anticipación mínima: solo recepción")
         cancelado = replace(actual, estado="CANCELADO")
         self._turnos[turno_id] = cancelado
@@ -268,6 +282,7 @@ class ServicioTurnos:
         nuevo_inicio: datetime,
         duracion_min: int | None = None,
         ahora: datetime | None = None,
+        anticipacion_min_horas: float | None = None,
     ) -> Reprogramacion:
         """Marca el original REPROGRAMADO y crea el nuevo revalidando solape.
 
@@ -280,7 +295,10 @@ class ServicioTurnos:
             raise Prohibido("sin permiso sobre este turno")
         if not transicion_valida(actual.estado, "REPROGRAMADO"):
             raise Invalido(f"transición {actual.estado} → REPROGRAMADO ilegal")
-        if self._bajo_anticipacion(actual, ahora) and not self._es_recepcion(actor):
+        if (
+            self._bajo_anticipacion(actual, ahora, anticipacion_min_horas)
+            and not self._es_recepcion(actor)
+        ):
             raise Prohibido("bajo anticipación mínima: solo recepción")
         duracion = duracion_min if duracion_min is not None else self._duracion_de(actual)
         try:
@@ -372,14 +390,24 @@ class ServicioTurnos:
     def _es_recepcion(actor: Actor) -> bool:
         return actor.rol in ("RECEPCION", "ADMIN")
 
-    def _bajo_anticipacion(self, turno: Turno, ahora: datetime | None) -> bool:
+    def _bajo_anticipacion(
+        self,
+        turno: Turno,
+        ahora: datetime | None,
+        anticipacion_min_horas: float | None = None,
+    ) -> bool:
         if ahora is None:
 
             ahora = datetime.now(UTC)
             if turno.inicio.tzinfo is None:
                 return False
+        minimo = (
+            self._anticipacion_min_horas
+            if anticipacion_min_horas is None
+            else anticipacion_min_horas
+        )
         delta_horas = (turno.inicio - ahora).total_seconds() / 3600
-        return delta_horas < self._anticipacion_min_horas
+        return delta_horas < minimo
 
     @staticmethod
     def _duracion_de(turno: Turno) -> int:

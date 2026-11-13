@@ -26,7 +26,10 @@ from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session
 
 from app.caja.repositorios import AuditoriaSQL
+from app.caja.servicio import ServicioCaja
 from app.core.transaccion import TransaccionSQL
+from app.senas.adaptadores import AplicacionCajaServicio, PresupuestosAceptadosSQL
+from app.senas.aplicacion import ServicioSenasAplicacion
 from app.senas.puertos import AdaptadorPasarelaFake
 from app.senas.repositorios import (
     PagoMPRepositorioSQL,
@@ -263,6 +266,32 @@ def cablear_senas(
         huecos=espia,
         webhook=webhook,
         worker=worker,
+    )
+
+
+def cablear_aplicacion(
+    session: Session,
+    *,
+    caja: ServicioCaja,
+    al_bloquear: Callable[[], None] | None = None,
+    ahora: datetime = AHORA,
+) -> ServicioSenasAplicacion:
+    """Aplicación real (§9) sobre persistencia: C-11 + C-10 en la misma sesión.
+
+    `al_bloquear` se dispara después del `FOR UPDATE` de la seña, así la otra
+    conexión espera de verdad (carreras de §8.5). La caja que se recibe debe
+    estar cableada con la **misma** `session`, de modo que la unidad externa de
+    C-11 commitea y la de C-10 sólo hace `flush` (transacción compartida).
+    """
+    senas = SenasObservadas(session, al_bloquear=al_bloquear)
+    return ServicioSenasAplicacion(
+        senas,
+        TurnosSenaSQL(session),
+        AplicacionCajaServicio(caja),
+        PresupuestosAceptadosSQL(session),
+        AuditoriaSQL(session),
+        reloj=lambda: ahora,
+        uow_factory=lambda: TransaccionSQL(session),
     )
 
 

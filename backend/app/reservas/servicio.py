@@ -36,7 +36,13 @@ from app.reservas.puertos import (
     VerificadorPort,
     normalizar_telefono_e164,
 )
-from app.senas.puertos import SenaCreada, SenaPort
+from app.senas.puertos import (
+    SenaCancelacionPort,
+    SenaCreada,
+    SenaPort,
+    SenaReprogramacionPort,
+    SenaTransferida,
+)
 from app.turnos.alternativas import Alternativa, HuecoOcupado, buscar_alternativas
 from app.turnos.servicio import (
     Actor,
@@ -74,6 +80,15 @@ class ReservaCreada:
     token_publico: str
     paciente_id: str
     sena: SenaCreada | None = None
+
+
+@dataclass(frozen=True)
+class ReprogramacionPublica:
+    """Resultado de reprogramar: original, nuevo y, si se reemitió, el token de la seña."""
+
+    original: Turno
+    nuevo: Turno
+    sena: SenaTransferida | None = None
 
 
 @dataclass(frozen=True)
@@ -459,8 +474,14 @@ class ServicioReservasPublicas:
         self._verificar(tenant_id, _ACCION_CANCELAR, verificacion_id, ip, momento)
 
         actor = Actor(tenant_id=tenant_id, rol="PACIENTE", user_id=turno.paciente_id)
+        anticipacion = self._anticipacion_de_sena(tenant_id, turno.id)
         try:
-            cancelado = self._servicio_turnos.cancelar(actor, turno.id, ahora=momento)
+            cancelado = self._servicio_turnos.cancelar(
+                actor,
+                turno.id,
+                ahora=momento,
+                anticipacion_min_horas=anticipacion,
+            )
         except Prohibido:
             self._auditar(
                 tenant_id,
@@ -472,6 +493,9 @@ class ServicioReservasPublicas:
             )
             raise
         self._auditar(tenant_id, turno.id, "CANCELADO", turno.estado, "CANCELADO")
+        # Con anticipación suficiente la seña se libera o se devuelve sola; bajo
+        # el umbral no llega hasta acá (ADMIN decide, C11-OQ-03).
+        self._cancelar_con_sena(tenant_id, turno.id, momento)
         if self._hueco_port is not None:
             self._hueco_port.emitir(tenant_id=tenant_id, turno_id=turno.id)
         return cancelado
@@ -485,7 +509,7 @@ class ServicioReservasPublicas:
         verificacion_id: str,
         ip: str,
         ahora: datetime | None = None,
-    ) -> ServicioTurnos.Reprogramacion:
+    ) -> ReprogramacionPublica:
         momento = self._momento(ahora)
         tenant_id = self._resolver_tenant(token_tenant)
         turno = self._turno_por_token(tenant_id, token, momento)
@@ -493,9 +517,14 @@ class ServicioReservasPublicas:
         self._verificar(tenant_id, _ACCION_REPROGRAMAR, verificacion_id, ip, momento)
 
         actor = Actor(tenant_id=tenant_id, rol="PACIENTE", user_id=turno.paciente_id)
+        anticipacion = self._anticipacion_de_sena(tenant_id, turno.id)
         try:
             res = self._servicio_turnos.reprogramar(
-                actor, turno.id, nuevo_inicio=nuevo_inicio, ahora=momento
+                actor,
+                turno.id,
+                nuevo_inicio=nuevo_inicio,
+                ahora=momento,
+                anticipacion_min_horas=anticipacion,
             )
         except Prohibido:
             self._auditar(
@@ -508,11 +537,62 @@ class ServicioReservasPublicas:
             )
             raise
         self._tokens.transferir(token, res.nuevo.id)
+        sena = self._transferir_sena(
+            tenant_id=tenant_id,
+            turno_anterior=turno.id,
+            turno_nuevo=res.nuevo.id,
+            turno_inicio=res.nuevo.inicio,
+            turno_fin=res.nuevo.fin,
+            momento=momento,
+        )
         self._auditar(tenant_id, turno.id, "REPROGRAMADO", turno.estado, "REPROGRAMADO")
         self._auditar(tenant_id, res.nuevo.id, "CREADO", None, "PENDIENTE")
         if self._hueco_port is not None:
             self._hueco_port.emitir(tenant_id=tenant_id, turno_id=turno.id)
-        return res
+        return ReprogramacionPublica(
+            original=res.original, nuevo=res.nuevo, sena=sena
+        )
+
+    # ---- enganche con C-11 (D12) ----
+
+    def _anticipacion_de_sena(self, tenant_id: str, turno_id: str) -> float | None:
+        """Snapshot de la política de la seña: una sola fuente de elegibilidad."""
+        if not isinstance(self._sena_port, SenaCancelacionPort):
+            return None
+        snapshot = self._sena_port.anticipacion_de_sena(
+            tenant_id=tenant_id, turno_id=turno_id
+        )
+        return None if snapshot is None else float(snapshot)
+
+    def _cancelar_con_sena(
+        self, tenant_id: str, turno_id: str, momento: datetime
+    ) -> None:
+        if not isinstance(self._sena_port, SenaCancelacionPort):
+            return
+        self._sena_port.cancelar_con_sena(
+            tenant_id=tenant_id, turno_id=turno_id, ahora=momento
+        )
+
+    def _transferir_sena(
+        self,
+        *,
+        tenant_id: str,
+        turno_anterior: str,
+        turno_nuevo: str,
+        turno_inicio: datetime,
+        turno_fin: datetime,
+        momento: datetime,
+    ) -> SenaTransferida | None:
+        if not isinstance(self._sena_port, SenaReprogramacionPort):
+            return None
+        return self._sena_port.transferir_a_turno(
+            tenant_id=tenant_id,
+            turno_anterior=turno_anterior,
+            turno_nuevo=turno_nuevo,
+            turno_inicio=turno_inicio,
+            turno_fin=turno_fin,
+            ahora=momento,
+        )
 
     # ---- auditoría ----
 

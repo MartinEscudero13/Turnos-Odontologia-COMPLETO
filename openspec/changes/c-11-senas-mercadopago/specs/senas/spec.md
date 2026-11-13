@@ -379,7 +379,7 @@ responder `500`.
 
 - **GIVEN** la misma situación con la expiración commiteada primero
 - **WHEN** ambas terminan
-- **THEN** la seña queda `LIBERADA`, el turno `CANCELADO` y el webhook responde `200` con `resultado=FUERA_DE_TIEMPO`, nunca `DUPLICADO` y nunca `500`, sin emitir un segundo evento de hueco
+- **THEN** tras la expiración la seña queda `LIBERADA` y el turno `CANCELADO`; cuando llega el pago tardío la seña pasa a `DEVUELTA` (la plata no puede quedar retenida) y el webhook responde `200` con `resultado=FUERA_DE_TIEMPO`, nunca `DUPLICADO` y nunca `500`, sin emitir un segundo evento de hueco
 
 #### Scenario: El perdedor no pisa el estado del ganador
 
