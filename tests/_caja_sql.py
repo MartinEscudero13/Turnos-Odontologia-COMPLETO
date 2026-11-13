@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import os
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -23,6 +24,7 @@ from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session
 
 from app.caja.adaptador_imputacion import AdaptadorCaja
+from app.caja.puertos import UnidadDeTrabajo
 from app.caja.repositorios import (
     AjustesSQL,
     AuditoriaSQL,
@@ -33,6 +35,7 @@ from app.caja.repositorios import (
     MovimientosSQL,
     TurnosSQL,
     UnidadDeTrabajoCajaSQL,
+    UsuariosSQL,
 )
 from app.caja.servicio import ServicioCaja
 from app.ficha_clinica.puertos import ConsentimientoMemoria
@@ -166,13 +169,23 @@ class CableadoCaja:
     cuentas: CuentasOSSQL
     turnos: TurnosSQL
     lineas: LineasPresupuestoSQL
+    usuarios: UsuariosSQL
     auditoria: AuditoriaSQL
     servicio: ServicioCaja
     adaptador: AdaptadorCaja
 
 
-def cablear_caja(session: Session, *, ahora: datetime = AHORA) -> CableadoCaja:
-    """Cablea el dominio de caja con persistencia real sobre `session`."""
+def cablear_caja(
+    session: Session,
+    *,
+    ahora: datetime = AHORA,
+    uow_factory: Callable[[], UnidadDeTrabajo] | None = None,
+) -> CableadoCaja:
+    """Cablea el dominio de caja con persistencia real sobre `session`.
+
+    `uow_factory` permite inyectar una unidad de trabajo observada en los tests
+    de carrera (`UowObservada`) sin cambiar el cableado de producción.
+    """
     movimientos = MovimientosSQL(session)
     cuentas = CuentasOSSQL(session)
     cierres = CierresSQL(session, movimientos, cuentas)
@@ -180,10 +193,13 @@ def cablear_caja(session: Session, *, ahora: datetime = AHORA) -> CableadoCaja:
     ajustes = AjustesSQL(session)
     turnos = TurnosSQL(session)
     lineas = LineasPresupuestoSQL(session)
+    usuarios = UsuariosSQL(session)
     auditoria = AuditoriaSQL(session)
 
-    def uow_factory() -> UnidadDeTrabajoCajaSQL:
+    def uow_por_defecto() -> UnidadDeTrabajo:
         return UnidadDeTrabajoCajaSQL(session)
+
+    fabrica = uow_factory if uow_factory is not None else uow_por_defecto
 
     servicio = ServicioCaja(
         movimientos,
@@ -193,14 +209,16 @@ def cablear_caja(session: Session, *, ahora: datetime = AHORA) -> CableadoCaja:
         cuentas,
         turnos,
         auditoria,
-        uow_factory=uow_factory,
+        usuarios=usuarios,
+        uow_factory=fabrica,
         reloj=lambda: ahora,
     )
     adaptador = AdaptadorCaja(
         servicio=servicio,
+        cierres=cierres,
         cuentas=cuentas,
         lineas=lineas,
-        uow_factory=uow_factory,
+        uow_factory=fabrica,
         reloj=lambda: ahora,
     )
     return CableadoCaja(
@@ -211,6 +229,7 @@ def cablear_caja(session: Session, *, ahora: datetime = AHORA) -> CableadoCaja:
         cuentas=cuentas,
         turnos=turnos,
         lineas=lineas,
+        usuarios=usuarios,
         auditoria=auditoria,
         servicio=servicio,
         adaptador=adaptador,
@@ -250,3 +269,26 @@ def limpiar(engine: Engine, ids: dict[str, str]) -> None:
             owner.execute(text("DELETE FROM tenants WHERE id = :id"), {"id": ids["tenant"]})
             tx.commit()
     engine.dispose()
+
+
+class UowObservada(UnidadDeTrabajoCajaSQL):
+    """UoW de caja que avisa después de tomar el advisory lock (tests de carrera).
+
+    Permite pausar la transacción ganadora con el lock del día ya tomado, para
+    que la otra conexión tenga que esperarlo de verdad y no se pruebe una
+    serialización accidental por tiempos de arranque.
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        *,
+        al_bloquear: Callable[[date], None] | None = None,
+    ) -> None:
+        super().__init__(session)
+        self._al_bloquear = al_bloquear
+
+    def bloquear_dia(self, *, tenant_id: str, fecha: date) -> None:
+        super().bloquear_dia(tenant_id=tenant_id, fecha=fecha)
+        if self._al_bloquear is not None:
+            self._al_bloquear(fecha)

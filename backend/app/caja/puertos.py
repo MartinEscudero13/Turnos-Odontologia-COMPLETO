@@ -88,6 +88,8 @@ __all__ = [
     "TurnoPort",
     "UnidadDeTrabajo",
     "UnidadDeTrabajoMemoria",
+    "UsuarioMemoria",
+    "UsuarioPort",
     "YaAnulado",
 ]
 
@@ -374,6 +376,16 @@ class LineaPresupuestoPort(Protocol):
 
 class TurnoPort(Protocol):
     def existe(self, *, tenant_id: str, turno_id: str) -> bool: ...
+
+
+class UsuarioPort(Protocol):
+    """Pertenencia de un usuario al tenant (D4: responsable del cierre).
+
+    El cierre exige un `responsable_id` de un usuario del tenant: un id de T2
+    nunca resuelve en T1 (`404`), igual que el resto de las referencias.
+    """
+
+    def existe(self, *, tenant_id: str, usuario_id: str) -> bool: ...
 
 
 class AuditoriaPort(Protocol):
@@ -903,6 +915,22 @@ class TurnoMemoria:
 
     def total(self, tenant_id: str) -> int:
         return sum(1 for dueño, _ in self._turnos if dueño == tenant_id)
+
+
+class UsuarioMemoria:
+    """Pertenencia de usuarios por `(tenant, usuario)`: `404` si no es del tenant."""
+
+    def __init__(self, usuarios: Iterable[tuple[str, str]] = ()) -> None:
+        self._usuarios: set[tuple[str, str]] = set(usuarios)
+
+    def agregar(self, tenant_id: str, usuario_id: str) -> None:
+        self._usuarios.add((tenant_id, usuario_id))
+
+    def existe(self, *, tenant_id: str, usuario_id: str) -> bool:
+        return (tenant_id, usuario_id) in self._usuarios
+
+    def total(self, tenant_id: str) -> int:
+        return sum(1 for dueño, _ in self._usuarios if dueño == tenant_id)
 
 
 class LineaPresupuestoMemoria:

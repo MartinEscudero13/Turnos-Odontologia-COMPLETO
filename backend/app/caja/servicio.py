@@ -22,20 +22,25 @@ Reglas duras aplicadas:
   pendiente está cerrada, asienta un ajuste `COBRO_PENDIENTE`.
 - RN-AU-02: toda mutación deja auditoría append-only con ids y montos, sin PHI.
 
-Fuera de esta tanda (capas siguientes): adaptador de imputación (§5), cierre
-(§6), consultas y reportes (§7), RBAC de borde (§8), auditoría HTTP (§10).
+Capas implementadas: §2 movimientos, §3 anulación/compensación, §4 pendientes y
+§6 cierre diario (snapshot inmutable, diferencia contra efectivo y responsable
+del tenant). El adaptador de imputación vive en `adaptador_imputacion.py` y el
+resto de las consultas en §7.
 """
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
+from typing import Literal
 
 from app.caja.puertos import (
     AccionCaja,
     Ajuste,
     AjustePostCierreRepositorio,
     AuditoriaPort,
+    Cierre,
+    CierreDuplicado,
     CierreRepositorio,
     CobroPendiente,
     CobroPendienteRepositorio,
@@ -47,6 +52,7 @@ from app.caja.puertos import (
     TipoMovimiento,
     TurnoPort,
     UnidadDeTrabajo,
+    UsuarioPort,
 )
 from app.core.logging import get_logger
 from app.presupuesto.servicio import Conflicto
@@ -57,6 +63,7 @@ logger = get_logger("app.caja")
 __all__ = [
     "TZ_OPERATIVA",
     "ConflictoCaja",
+    "EstadoDia",
     "InvalidoCaja",
     "ResultadoCobro",
     "ServicioCaja",
@@ -68,6 +75,7 @@ TZ_OPERATIVA = timezone(timedelta(hours=-3))
 
 _REGISTRA_MOVIMIENTO: frozenset[str] = frozenset({"ADMIN", "RECEPCION"})
 _ANULA: frozenset[str] = frozenset({"ADMIN"})
+_CIERRA: frozenset[str] = frozenset({"ADMIN", "RECEPCION"})
 _COBRA: frozenset[str] = frozenset({"ADMIN", "RECEPCION"})
 _LEE_CAJA: frozenset[str] = frozenset({"ADMIN", "ODONTOLOGO", "RECEPCION"})
 _MEDIOS: frozenset[str] = frozenset({"EFECTIVO", "TRANSFERENCIA", "MP", "OS"})
@@ -107,6 +115,20 @@ class ResultadoCobro:
     movimiento: Movimiento
     ajuste: Ajuste | None
 
+
+@dataclass(frozen=True)
+class EstadoDia:
+    """Estado consultable de un día operativo (spec "Consulta del cierre").
+
+    `totales` son los totales **vigentes** del sistema por medio (excluyen
+    anulados) y `cierre` es el snapshot persistido: en un día cerrado con
+    anulación posterior ambos difieren y el cierre nunca se recalcula (H6).
+    """
+
+    fecha: date
+    estado: Literal["abierto", "cerrado"]
+    totales: dict[MedioPago, int]
+    cierre: Cierre | None
 
 
 def dia_operativo(ahora: datetime) -> date:
@@ -161,6 +183,44 @@ def _validar_motivo(motivo: object) -> str:
     return motivo.strip()
 
 
+def _validar_contado(efectivo_contado: object) -> int:
+    """D4: el efectivo contado es un entero no negativo (`CHECK >= 0`)."""
+    if (
+        isinstance(efectivo_contado, bool)
+        or not isinstance(efectivo_contado, int)
+        or efectivo_contado < 0
+    ):
+        raise Invalido("efectivo_contado inválido: debe ser un entero no negativo")
+    return efectivo_contado
+
+
+def _texto_opcional(valor: object, campo: str) -> str | None:
+    """Normaliza `""`/espacios a `NULL` para que el CHECK no devuelva un `500`."""
+    if valor is None:
+        return None
+    if not isinstance(valor, str):
+        raise Invalido(f"{campo} inválido")
+    limpio = valor.strip()
+    return limpio or None
+
+
+def _validar_responsable(responsable_id: object) -> str:
+    """D4: no hay cierre sin responsable del tenant."""
+    if not isinstance(responsable_id, str) or not responsable_id.strip():
+        raise Invalido("responsable obligatorio: el cierre exige un usuario del tenant")
+    return responsable_id.strip()
+
+
+def _totales_en_cero() -> dict[MedioPago, int]:
+    totales: dict[MedioPago, int] = {
+        "EFECTIVO": 0,
+        "TRANSFERENCIA": 0,
+        "MP": 0,
+        "OS": 0,
+    }
+    return totales
+
+
 def _validar_monto_tramo(monto: object) -> int | None:
     """Tramo del paciente: `<= 0` no genera hecho de caja (ni pendiente)."""
     if isinstance(monto, bool) or not isinstance(monto, int):
@@ -186,6 +246,7 @@ class ServicioCaja:
         turnos: TurnoPort,
         auditoria: AuditoriaPort,
         *,
+        usuarios: UsuarioPort,
         uow_factory: Callable[[], UnidadDeTrabajo],
         reloj: Reloj | None = None,
     ) -> None:
@@ -196,6 +257,7 @@ class ServicioCaja:
         self._cuentas = cuentas
         self._turnos = turnos
         self._auditoria = auditoria
+        self._usuarios = usuarios
         self._uow_factory = uow_factory
         self._reloj: Reloj = reloj if reloj is not None else lambda: datetime.now(TZ_OPERATIVA)
 
@@ -277,20 +339,7 @@ class ServicioCaja:
 
     def totales_del_dia(self, actor: Actor, *, fecha: date) -> dict[MedioPago, int]:
         self._exigir_lectura(actor)
-        totales: dict[MedioPago, int] = {
-            "EFECTIVO": 0,
-            "TRANSFERENCIA": 0,
-            "MP": 0,
-            "OS": 0,
-        }
-        for movimiento in self._movimientos.listar_por_fecha(
-            tenant_id=actor.tenant_id, fecha=fecha
-        ):
-            if movimiento.anulado:
-                continue
-            signo = 1 if movimiento.tipo == "INGRESO" else -1
-            totales[movimiento.medio] += signo * movimiento.monto
-        return totales
+        return self._totales_vigentes(tenant_id=actor.tenant_id, fecha=fecha)
 
     # ------------------------------------------------------------------
     # Anulación y compensación (§3)
@@ -672,6 +721,144 @@ class ServicioCaja:
         return ResultadoCobro(pendiente=resuelto, movimiento=movimiento, ajuste=ajuste)
 
     # ------------------------------------------------------------------
+    # Cierre diario (§6)
+    # ------------------------------------------------------------------
+
+    def cerrar_dia(
+        self,
+        actor: Actor,
+        *,
+        fecha: str | date | None = None,
+        efectivo_contado: int,
+        responsable_id: str,
+        motivo_diferencia: str | None = None,
+        observacion: str | None = None,
+    ) -> Cierre:
+        """Cierra el día operativo con totales netos, diferencia y responsable (D4).
+
+        El cierre es un snapshot inmutable y único por `(tenant, fecha)`. El
+        cliente sólo envía lo contado: los totales por medio y el devengado OS se
+        calculan en el servidor dentro de la unidad de trabajo, **después** de
+        tomar el lock del día (D14) y antes de insertar. Un día futuro no se
+        cierra (`422`); uno atrasado sí (C10-OQ-3). Una diferencia distinta de
+        cero exige motivo no vacío (`422`), la observación es opcional y la
+        auditoría registra su presencia sin copiar su contenido (D11).
+        """
+        self._exigir_cierre(actor)
+        momento = self._reloj()
+        fecha_validada = _validar_fecha(fecha, momento)
+        contado = _validar_contado(efectivo_contado)
+        responsable = _validar_responsable(responsable_id)
+        motivo = _texto_opcional(motivo_diferencia, "motivo_diferencia")
+        observado = _texto_opcional(observacion, "observacion")
+        hoy = dia_operativo(momento)
+        if fecha_validada > hoy:
+            # Cerrar un día que todavía no ocurrió lo dejaría inmutable antes de
+            # operar (interpretación declarada, N9).
+            raise Invalido(
+                f"no se puede cerrar el día futuro {fecha_validada.isoformat()}"
+            )
+
+        with self._uow_factory() as uow:
+            # D14: lock por (tenant, día) antes de leer totales y de insertar.
+            # `bloquear_dia` también fija `app.tenant_id`, así que desde acá las
+            # consultas de referencia y del cierre ven la RLS del tenant.
+            uow.bloquear_dia(tenant_id=actor.tenant_id, fecha=fecha_validada)
+            if not self._usuarios.existe(
+                tenant_id=actor.tenant_id, usuario_id=responsable
+            ):
+                # Un responsable de otro tenant nunca resuelve en este (D4).
+                raise NoEncontrado("responsable no encontrado")
+            if self._cierres.obtener(tenant_id=actor.tenant_id, fecha=fecha_validada) is not None:
+                raise ConflictoCaja(
+                    "CIERRE_EXISTENTE",
+                    f"el día {fecha_validada.isoformat()} ya tiene cierre",
+                )
+            totales = self._totales_vigentes(
+                tenant_id=actor.tenant_id, fecha=fecha_validada
+            )
+            diferencia = contado - totales["EFECTIVO"]
+            if diferencia != 0 and motivo is None:
+                # M2/D3: una diferencia sin explicación no es auditable.
+                raise Invalido(
+                    "motivo_diferencia obligatorio cuando la diferencia no es cero"
+                )
+            try:
+                cierre = self._cierres.cerrar(
+                    tenant_id=actor.tenant_id,
+                    fecha=fecha_validada,
+                    efectivo_contado=contado,
+                    responsable_id=responsable,
+                    motivo_diferencia=motivo,
+                    observacion=observado,
+                    ahora=momento,
+                )
+            except CierreDuplicado:
+                # Red de seguridad del UNIQUE `(tenant, fecha)` si algo escribió
+                # fuera del lock: el contrato observable sigue siendo 409.
+                raise ConflictoCaja(
+                    "CIERRE_EXISTENTE",
+                    f"el día {fecha_validada.isoformat()} ya tiene cierre",
+                ) from None
+            self._auditoria.registrar(
+                tenant_id=actor.tenant_id,
+                accion="CIERRE_DIARIO_REGISTRADO",
+                actor=actor.user_id,
+                entidad="cierre_diario",
+                entidad_id=cierre.id,
+                antes=None,
+                despues={
+                    "fecha": cierre.fecha.isoformat(),
+                    "total_efectivo": cierre.total_efectivo,
+                    "total_transferencia": cierre.total_transferencia,
+                    "total_mp": cierre.total_mp,
+                    "total_os_cobrado": cierre.total_os_cobrado,
+                    "total_os": cierre.total_os,
+                    "efectivo_contado": cierre.efectivo_contado,
+                    "diferencia": cierre.diferencia,
+                    "responsable_id": cierre.responsable_id,
+                    "motivo_diferencia": cierre.motivo_diferencia,
+                    # D11: sólo la presencia; el texto libre no se copia a la auditoría.
+                    "observacion_cargada": cierre.observacion is not None,
+                },
+            )
+
+        logger.info(
+            "cierre_diario_registrado tenant_id=%s cierre_id=%s fecha=%s"
+            " total_efectivo=%s diferencia=%s responsable_id=%s",
+            cierre.tenant_id,
+            cierre.id,
+            cierre.fecha.isoformat(),
+            cierre.total_efectivo,
+            cierre.diferencia,
+            cierre.responsable_id,
+        )
+        return cierre
+
+    def obtener_cierre(self, actor: Actor, *, fecha: date) -> Cierre:
+        """Cierre de una fecha del tenant; otro tenant o día abierto ⇒ `404`."""
+        self._exigir_lectura(actor)
+        cierre = self._cierres.obtener(tenant_id=actor.tenant_id, fecha=fecha)
+        if cierre is None:
+            raise NoEncontrado("cierre diario no encontrado")
+        return cierre
+
+    def estado_dia(self, actor: Actor, *, fecha: date) -> EstadoDia:
+        """Estado `abierto`/`cerrado` del día con sus totales vigentes (D4).
+
+        Devuelve el snapshot persistido cuando hay cierre; no lo recalcula.
+        """
+        self._exigir_lectura(actor)
+        cierre = self._cierres.obtener(tenant_id=actor.tenant_id, fecha=fecha)
+        totales = self._totales_vigentes(tenant_id=actor.tenant_id, fecha=fecha)
+        return EstadoDia(
+            fecha=fecha,
+            estado="cerrado" if cierre is not None else "abierto",
+            totales=totales,
+            cierre=cierre,
+        )
+
+    # ------------------------------------------------------------------
     # RBAC mínimo (§2–§4; el RBAC de borde es §8)
     # ------------------------------------------------------------------
 
@@ -701,9 +888,29 @@ class ServicioCaja:
         if actor.rol not in _COBRA:
             raise Prohibido("el rol no puede cobrar pendientes de caja")
 
+    def _exigir_cierre(self, actor: Actor) -> None:
+        # D10: RECEPCION y ADMIN cierran; ODONTOLOGO sólo lee (§8).
+        self._exigir_interno(actor)
+        if actor.rol not in _CIERRA:
+            raise Prohibido("el rol no puede cerrar la caja del día")
+
     # ------------------------------------------------------------------
     # Internos
     # ------------------------------------------------------------------
+
+    def _totales_vigentes(
+        self, *, tenant_id: str, fecha: date
+    ) -> dict[MedioPago, int]:
+        """Neto por medio de los movimientos vigentes del día (D4)."""
+        totales = _totales_en_cero()
+        for movimiento in self._movimientos.listar_por_fecha(
+            tenant_id=tenant_id, fecha=fecha
+        ):
+            if movimiento.anulado:
+                continue
+            signo = 1 if movimiento.tipo == "INGRESO" else -1
+            totales[movimiento.medio] += signo * movimiento.monto
+        return totales
 
     def _auditar(
         self,

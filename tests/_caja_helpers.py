@@ -28,6 +28,7 @@ from app.caja.puertos import (
     TurnoMemoria,
     UnidadDeTrabajo,
     UnidadDeTrabajoMemoria,
+    UsuarioMemoria,
 )
 from app.caja.servicio import ResultadoCobro, ServicioCaja
 from app.turnos.servicio import Actor
@@ -37,6 +38,7 @@ TZ = timezone(timedelta(hours=-3))
 U1 = "usuario-1"
 U2 = "usuario-2"
 U3 = "usuario-3"
+U9 = "usuario-9"
 TUR1 = "turno-1"
 TUR9 = "turno-9"
 LINEA1 = "linea-1"
@@ -102,6 +104,7 @@ class HarnessCaja:
         self.ajustes = AjustePostCierreMemoria()
         self.turnos = TurnoMemoria()
         self.lineas_presupuesto = LineaPresupuestoMemoria()
+        self.usuarios = UsuarioMemoria()
         self.auditoria = AuditoriaMemoria()
         self.ahora = d3()
         self.uow = self.nueva_uow()
@@ -110,6 +113,11 @@ class HarnessCaja:
         self.turnos.agregar(T1, TUR1)
         self.turnos.agregar(T2, TUR9)
         self.lineas_presupuesto.agregar(T1, PRESU1, LINEA1)
+        # D4: el responsable del cierre tiene que ser un usuario del tenant.
+        self.usuarios.agregar(T1, U1)
+        self.usuarios.agregar(T1, U2)
+        self.usuarios.agregar(T1, U3)
+        self.usuarios.agregar(T2, U9)
 
     # -- cableado -------------------------------------------------------
 
@@ -146,6 +154,7 @@ class HarnessCaja:
             self.cuentas,
             self.turnos,
             self.auditoria,
+            usuarios=self.usuarios,
             uow_factory=factory_con_registro,
             reloj=lambda: self.ahora,
         )
@@ -158,6 +167,7 @@ class HarnessCaja:
         """Adaptador real del puerto de C-09 sobre el mismo cableado (§5)."""
         return AdaptadorCaja(
             servicio=self.svc,
+            cierres=self.cierres,
             cuentas=self.cuentas,
             lineas=self.lineas_presupuesto,
             uow_factory=factory,
@@ -218,6 +228,26 @@ class HarnessCaja:
             motivo_diferencia=motivo_diferencia,
             observacion=observacion,
             ahora=self.ahora,
+        )
+
+    def cerrar_dia(
+        self,
+        *,
+        fecha: object = "2026-11-10",
+        efectivo_contado: object = 0,
+        responsable_id: object = U2,
+        motivo_diferencia: object = None,
+        observacion: object = None,
+        actor_: Actor | None = None,
+    ) -> Cierre:
+        """Cierre por el caso de uso real (valida responsable, motivo y fecha)."""
+        return self.svc.cerrar_dia(
+            actor() if actor_ is None else actor_,  # type: ignore[arg-type]
+            fecha=fecha,  # type: ignore[arg-type]
+            efectivo_contado=efectivo_contado,  # type: ignore[arg-type]
+            responsable_id=responsable_id,  # type: ignore[arg-type]
+            motivo_diferencia=motivo_diferencia,  # type: ignore[arg-type]
+            observacion=observacion,  # type: ignore[arg-type]
         )
 
     def imputar_tramo(

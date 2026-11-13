@@ -300,6 +300,41 @@ def test_imputacion_en_dia_cerrado_409() -> None:
     assert h.auditoria.de_tenant(T1) == []
 
 
+def test_imputacion_solo_os_en_dia_cerrado_409() -> None:
+    """Sin tramo paciente el devengado OS tampoco entra en un día cerrado.
+
+    La regla del día cerrado (`409 CIERRE_CERRADO`, 0 escrituras) no depende de
+    que haya un `INGRESO`: un devengado OS fechado en el día cerrado también
+    quedaría fuera de su cierre.
+    """
+    h = HarnessCaja()
+    _cerrar_dia(h)
+
+    with pytest.raises(ConflictoCaja) as excinfo:
+        h.imputar(monto_paciente=0, monto_os=40000, medio="EFECTIVO")
+
+    assert excinfo.value.codigo == 409
+    assert excinfo.value.codigo_dominio == "CIERRE_CERRADO"
+    assert h.cuentas.total(T1) == 0
+    assert _del_dia(h) == []
+    assert h.pendientes.listar(tenant_id=T1) == []
+    assert h.auditoria.de_tenant(T1) == []
+
+
+def test_replay_os_posterior_al_cierre_es_noop() -> None:
+    """H1: el replay de un devengado ya registrado no falla por el cierre."""
+    h = HarnessCaja()
+    h.imputar(monto_paciente=0, monto_os=40000, medio="EFECTIVO")
+    cuenta = _cuenta(h)
+    _cerrar_dia(h)
+
+    h.imputar(monto_paciente=0, monto_os=40000, medio="EFECTIVO")
+
+    assert h.cuentas.total(T1) == 1
+    assert _cuenta(h) == cuenta
+    assert _del_dia(h) == []
+
+
 # ---------------------------------------------------------------------------
 # 5.14 — una línea de otro tenant no se imputa (404)
 # ---------------------------------------------------------------------------

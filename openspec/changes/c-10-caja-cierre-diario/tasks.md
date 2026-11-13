@@ -257,102 +257,102 @@
 
 ## 6. Cierre diario
 
-- [ ] 6.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 6.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_cierre_caja.py::test_cierre_diferencia_cero`
   (ingreso de `100000` en efectivo y `efectivo_contado=100000` ⇒ `diferencia=0` y `cerrado_at`).
-- [ ] 6.2 Escribir y hacer pasar `tests/test_cierre_caja.py::test_totales_por_medio_netos`
+- [x] 6.2 Escribir y hacer pasar `tests/test_cierre_caja.py::test_totales_por_medio_netos`
   (ingresos `150000` efectivo, `30000` transferencia, `20000` MP, `40000` OS y egreso `50000`
   efectivo ⇒ cuatro totales de caja correctos y `diferencia=0`).
-- [ ] 6.3 Escribir y hacer pasar
+- [x] 6.3 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_total_os_es_devengado_informativo`
   (L1 con `cobertura_os=40000` y `a_cargo_paciente=60000` en efectivo ⇒ `total_os=40000`,
   `total_os_cobrado=0`, `diferencia=0` y el devengado no cambia ningún total de caja; D4/M12).
-- [ ] 6.4 Escribir y hacer pasar `tests/test_cierre_caja.py::test_total_os_cobrado_es_caja`
+- [x] 6.4 Escribir y hacer pasar `tests/test_cierre_caja.py::test_total_os_cobrado_es_caja`
   (un `INGRESO` manual de `40000` con `medio=OS` ⇒ `total_os_cobrado=40000` y `total_os` sin
   cambios).
-- [ ] 6.5 Escribir y hacer pasar `tests/test_cierre_caja.py::test_diferencia_faltante`
+- [x] 6.5 Escribir y hacer pasar `tests/test_cierre_caja.py::test_diferencia_faltante`
   (`efectivo_contado=95000` con motivo ⇒ `diferencia=-5000`).
-- [ ] 6.6 Escribir y hacer pasar `tests/test_cierre_caja.py::test_diferencia_sobrante`
+- [x] 6.6 Escribir y hacer pasar `tests/test_cierre_caja.py::test_diferencia_sobrante`
   (`efectivo_contado=102000` con motivo ⇒ `diferencia=2000`).
-- [ ] 6.7 Escribir y hacer pasar
+- [x] 6.7 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_diferencia_solo_contra_efectivo`
   (`total_efectivo=100000`, `total_transferencia=30000`, `total_mp=20000` y
   `efectivo_contado=100000` ⇒ `diferencia=0`; C10-OQ-2).
-- [ ] 6.8 Escribir y hacer pasar
+- [x] 6.8 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_dia_sin_movimientos_cierra_en_cero`
   (totales en `0`, `diferencia=0`, con responsable; documenta C10-OQ-4).
-- [ ] 6.9 Escribir y hacer pasar `tests/test_cierre_caja.py::test_segundo_cierre_409`
+- [x] 6.9 Escribir y hacer pasar `tests/test_cierre_caja.py::test_segundo_cierre_409`
   (`409 CIERRE_EXISTENTE`, el cierre original intacto, una sola fila).
-- [ ] 6.10 Escribir y hacer pasar
+- [x] 6.10 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_cierre_con_diferencia_y_motivo`
   (motivo persistido y auditado; `observacion` opcional).
-- [ ] 6.11 Escribir y hacer pasar
+- [x] 6.11 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_cierre_con_diferencia_y_motivo_sin_observacion_201`
   (`201`, `diferencia=-5000`, `observacion` nula; D3/M2).
-- [ ] 6.12 Escribir y hacer pasar
+- [x] 6.12 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_cierre_con_diferencia_sin_motivo_422`
   (`422`, sin cierre persistido).
-- [ ] 6.13 Escribir y hacer pasar `tests/test_cierre_caja.py::test_motivo_vacio_422`
+- [x] 6.13 Escribir y hacer pasar `tests/test_cierre_caja.py::test_motivo_vacio_422`
   (`motivo_diferencia=""` con observación ⇒ `422`).
-- [ ] 6.14 Escribir y hacer pasar `tests/test_cierre_caja.py::test_sobrante_sin_motivo_422`
+- [x] 6.14 Escribir y hacer pasar `tests/test_cierre_caja.py::test_sobrante_sin_motivo_422`
   (`efectivo_contado=102000` sin motivo ⇒ `422`).
-- [ ] 6.15 Escribir y hacer pasar `tests/test_cierre_caja.py::test_diferencia_cero_sin_motivo_201`
+- [x] 6.15 Escribir y hacer pasar `tests/test_cierre_caja.py::test_diferencia_cero_sin_motivo_201`
   (`efectivo_contado=100000` y `total_efectivo=100000` sin motivo ⇒ `201`).
-- [ ] 6.16 Escribir y hacer pasar
+- [x] 6.16 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_dia_con_movimientos_sin_responsable_422`
   (sin `responsable_id` ⇒ `422`, sin cierre y el día sigue `abierto`; reemplaza el escenario
   inverificable de "movimiento sin responsable", M1).
-- [ ] 6.17 Escribir y hacer pasar
+- [x] 6.17 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_dia_sin_movimientos_sin_responsable_422`
   (sin `responsable_id` ⇒ `422`, sin cierre).
-- [ ] 6.18 Escribir y hacer pasar
+- [x] 6.18 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_responsable_otro_tenant_404`
   (`responsable_id` de T2 ⇒ `404`, sin cierre).
-- [ ] 6.19 Escribir y hacer pasar
+- [x] 6.19 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_responsable_queda_en_el_cierre`
   (`responsable_id=U1` y actor de auditoría U1).
-- [ ] 6.20 Escribir y hacer pasar
+- [x] 6.20 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_efectivo_contado_negativo_422`
   (`efectivo_contado=-1` ⇒ `422`, sin cierre; N9).
-- [ ] 6.21 Escribir y hacer pasar `tests/test_cierre_caja.py::test_dia_futuro_no_se_cierra`
+- [x] 6.21 Escribir y hacer pasar `tests/test_cierre_caja.py::test_dia_futuro_no_se_cierra`
   (reloj en `2026-11-10`, cierre del `2026-11-12` ⇒ `422`, sin cierre; interpretación N9).
-- [ ] 6.22 Escribir y hacer pasar
+- [x] 6.22 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_dia_anterior_sin_cerrar_no_bloquea`
   (`2026-11-09` sin cierre y alta del `2026-11-10` ⇒ `201`, el `2026-11-09` sigue abierto;
   interpretación de C10-OQ-3, M3).
-- [ ] 6.23 Escribir y hacer pasar
+- [x] 6.23 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_cierre_atrasado_se_permite`
   (el `2026-11-09` se cierra el `2026-11-10` ⇒ `201`, estado `cerrado`; M3).
-- [ ] 6.24 Escribir y hacer pasar
+- [x] 6.24 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_dia_atrasado_cerrado_queda_inmutable`
   (después del cierre atrasado, un alta con `fecha=2026-11-09` ⇒ `409 CIERRE_CERRADO`).
-- [ ] 6.25 Escribir y hacer pasar
+- [x] 6.25 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_cierre_no_se_edita_por_api`
   (`PATCH`/`DELETE` del cierre ⇒ `405`/`404`, nunca `200`; el cierre intacto).
-- [ ] 6.26 Escribir y hacer pasar
+- [x] 6.26 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_reapertura_no_existe`
   (`POST /api/caja/cierre/reabrir` y `/api/caja/cierre/{id}/reabrir` ⇒ `404`/`405`, nunca
   `200`; documenta C10-OQ-1).
-- [ ] 6.27 Escribir y hacer pasar
+- [x] 6.27 Escribir y hacer pasar
   `tests/test_cierre_caja.py::test_dia_cerrado_sigue_bloqueado_tras_intento_de_reapertura`
   (tras la reapertura fallida, cargar un movimiento del día cerrado sigue dando `409`).
-- [ ] 6.28 Escribir y hacer pasar `tests/test_cierre_caja.py::test_estado_dia_abierto`
+- [x] 6.28 Escribir y hacer pasar `tests/test_cierre_caja.py::test_estado_dia_abierto`
   (`estado=abierto`, sin totales de cierre y con total del sistema por medio).
-- [ ] 6.29 Escribir y hacer pasar `tests/test_cierre_caja.py::test_estado_dia_cerrado`
+- [x] 6.29 Escribir y hacer pasar `tests/test_cierre_caja.py::test_estado_dia_cerrado`
   (`estado=cerrado` con totales, `efectivo_contado`, `diferencia`, responsable y `cerrado_at`).
-- [ ] 6.30 Escribir y hacer pasar `tests/test_cierre_caja.py::test_cierre_otro_tenant_404`
+- [x] 6.30 Escribir y hacer pasar `tests/test_cierre_caja.py::test_cierre_otro_tenant_404`
   (cierre de T2 consultado desde T1 ⇒ `404`).
-- [ ] 6.31 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**)
+- [x] 6.31 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**)
   `tests/test_cierre_concurrente_pg.py::test_dos_cierres_simultaneos_crean_uno_solo`
   (una `201`, una `409`, un solo cierre, sin `500`; lock por `(tenant, fecha)` antes de leer
   totales y escribir).
-- [ ] 6.32 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**, H2)
+- [x] 6.32 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**, H2)
   `tests/test_carrera_movimiento_cierre_pg.py::test_movimiento_y_cierre_no_se_cruzan`
   (una conexión registra un ingreso de `50000` y la otra cierra con `efectivo_contado=50000`: o el
   movimiento entra antes y el cierre lo cuenta (`total_efectivo=50000`), o el cierre gana y el
   alta responde `409 CIERRE_CERRADO`; en ningún caso queda un movimiento del día fuera del cierre
   ni un `500`).
-- [ ] 6.33 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**, H2)
+- [x] 6.33 Escribir y hacer pasar (integración con **dos conexiones a PostgreSQL reales**, H2)
   `tests/test_carrera_movimiento_cierre_pg.py::test_cobro_de_pendiente_respeta_el_lock`
   (el cobro espera el lock y, si el cierre commiteó, asienta el ajuste post-cierre en lugar de
   insertar en el día cerrado).

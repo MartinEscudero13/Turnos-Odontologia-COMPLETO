@@ -55,6 +55,7 @@ from app.models.caja import (
 )
 from app.models.presupuesto import PresupuestoLinea
 from app.models.turno import Turno
+from app.models.usuario import Usuario
 from app.turnos.servicio import NoEncontrado
 
 __all__ = [
@@ -67,6 +68,7 @@ __all__ = [
     "MovimientosSQL",
     "TurnosSQL",
     "UnidadDeTrabajoCajaSQL",
+    "UsuariosSQL",
 ]
 
 _UNIQUE_LINEA_TRAMO = "movimientos_caja_tenant_linea_tramo_unique"
@@ -623,6 +625,22 @@ class TurnosSQL:
     def existe(self, *, tenant_id: str, turno_id: str) -> bool:
         turno = self._session.get(Turno, _uuid(turno_id))
         return turno is not None and str(turno.tenant_id) == tenant_id
+
+
+class UsuariosSQL:
+    """`UsuarioPort`: el responsable del cierre pertenece al tenant (D4)."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def existe(self, *, tenant_id: str, usuario_id: str) -> bool:
+        encontrado = self._session.scalar(
+            select(Usuario.id).where(
+                Usuario.tenant_id == _uuid(tenant_id),
+                Usuario.id == _uuid(usuario_id),
+            )
+        )
+        return encontrado is not None
 
 
 class LineasPresupuestoSQL:

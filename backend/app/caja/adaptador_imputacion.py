@@ -24,6 +24,11 @@ Reglas:
 - El tramo OS se registra una sola vez por línea (`UNIQUE (tenant_id, linea_id)`):
   un replay idéntico es no-op y uno con otro monto es `409 IMPUTACION_DUPLICADA`.
 - La línea debe pertenecer al tenant y al presupuesto: si no, `404` sin escribir.
+- Un día cerrado no recibe la imputación: el tramo del paciente delega en
+  `ServicioCaja.imputar_tramo_paciente` (`CIERRE_CERRADO`) y el devengado OS
+  nuevo se rechaza con el mismo `409` antes de insertarse. El replay de un
+  hecho ya registrado sigue siendo no-op aunque el día se haya cerrado después
+  (H1).
 - Todo ocurre dentro de una unidad de trabajo que toma el advisory lock del día
   (D14) antes de escribir; el tramo del paciente delega en
   `ServicioCaja.imputar_tramo_paciente`, que ya aplica H1 (UNIQUE por tramo) y
@@ -37,6 +42,7 @@ from datetime import date, datetime
 from typing import cast, get_args
 
 from app.caja.puertos import (
+    CierreRepositorio,
     CuentaPorCobrarDuplicada,
     CuentaPorCobrarOSRepositorio,
     LineaPresupuestoPort,
@@ -74,12 +80,14 @@ class AdaptadorCaja:
         self,
         *,
         servicio: ServicioCaja,
+        cierres: CierreRepositorio,
         cuentas: CuentaPorCobrarOSRepositorio,
         lineas: LineaPresupuestoPort,
         uow_factory: Callable[[], UnidadDeTrabajo],
         reloj: Reloj | None = None,
     ) -> None:
         self._servicio = servicio
+        self._cierres = cierres
         self._cuentas = cuentas
         self._lineas = lineas
         self._uow_factory = uow_factory
@@ -201,6 +209,14 @@ class AdaptadorCaja:
         if existente is not None:
             self._exigir_mismo_monto(existente.monto_centavos, monto_centavos, linea_id)
             return
+        # H1 primero, día cerrado después: un replay de un devengado ya
+        # registrado es no-op aunque el día se haya cerrado luego; un devengado
+        # nuevo en una fecha cerrada no tiene dónde asentarse (`409`).
+        if self._cierres.obtener(tenant_id=tenant_id, fecha=fecha) is not None:
+            raise ConflictoCaja(
+                "CIERRE_CERRADO",
+                f"el día {fecha.isoformat()} está cerrado",
+            )
         try:
             self._cuentas.registrar(
                 tenant_id=tenant_id,
