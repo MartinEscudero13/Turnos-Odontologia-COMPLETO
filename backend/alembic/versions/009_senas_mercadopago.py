@@ -10,8 +10,13 @@ Decisiones aplicadas (design C-11):
 - D2: estados, snapshots y CHECKs estado↔instante; `UNIQUE (tenant_id,
   turno_id)` (1──1 con la reserva); `token_hash` único **global**; UNIQUE
   parciales de preferencia y de movimiento de caja.
-- D3: `mp_payment_id` único **global** (RN-SE-03), resultado propio y moneda
-  `ARS` (C11-OQ-12).
+- D3: `mp_payment_id` único **global** (RN-SE-03), resultado propio y `moneda`
+  como texto libre: guarda la moneda **real** que informa la pasarela (`ARS`,
+  `USD`, …) porque un pago en otra moneda tiene que poder registrarse con su
+  `resultado=MONTO_DISTINTO` y dejar la obligación de devolución visible
+  (C11-OQ-12). La acreditación exige `ARS` **y** monto exacto en la aplicación;
+  un `CHECK moneda='ARS'` haría inalcanzable ese escenario (el caso real de la
+  plata que llegó mal no se podría ni registrar).
 - D7: RLS `ENABLE` + `FORCE` fail-closed con
   `NULLIF(current_setting('app.tenant_id', true), '')::uuid`: sin tenant la
   consulta devuelve 0 filas y no lanza `42704`.
@@ -88,7 +93,8 @@ def upgrade() -> None:
           mp_payment_id TEXT NOT NULL,
           sena_id UUID NOT NULL REFERENCES senas(id) ON DELETE RESTRICT,
           monto_centavos INTEGER NOT NULL CHECK (monto_centavos > 0),
-          moneda TEXT NOT NULL DEFAULT 'ARS' CHECK (moneda = 'ARS'),
+          moneda TEXT NOT NULL DEFAULT 'ARS'
+            CHECK (btrim(moneda) <> '' AND moneda = upper(moneda)),
           estado TEXT NOT NULL CHECK (estado IN ('APPROVED','PENDING','IN_PROCESS','REJECTED','CANCELLED','REFUNDED','OTHER')),
           resultado TEXT NOT NULL CHECK (resultado IN ('ACREDITADA','DEVUELTA','IGNORADO','MONTO_DISTINTO','PAGO_EXCEDENTE','TURNO_NO_CONFIRMABLE','FUERA_DE_TIEMPO','DUPLICADO','REEMBOLSADO','REEMBOLSO_AJUSTE_CAJA')),
           raw_json JSONB NOT NULL,

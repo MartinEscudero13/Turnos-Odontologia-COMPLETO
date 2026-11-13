@@ -1,36 +1,51 @@
-"""Harness de señas cableado en memoria — C-11 §4–§5 (no recolectado por pytest).
+"""Harness de señas cableado en memoria — C-11 §4–§8 (no recolectado por pytest).
 
 Todo dato es ficticio (RN-GL-03): tenant T1/T2, prestación `PREST-1` de
 `precio_base=10000`, `PORCENTAJE=30` ⇒ `3000`, reloj inyectado en `-03:00`.
 Ningún camino abre sockets: la pasarela es `AdaptadorPasarelaFake`.
 
-Dos harness:
+Tres harness:
 
 - `HarnessSenas`: dominio de señas + app pública (token y preferencia), sin C-06.
 - `HarnessReservaConSena`: C-06 real (`ServicioReservasPublicas`) con el enganche
   de C-11, compartiendo reloj y resolución de tenant entre ambos servicios.
+- `HarnessSenaCiclo`: webhook firmado (§6), expiración con auto-oferta (§7) y el
+  runner del barrido (§7.9) sobre los mismos adaptadores en memoria. La
+  atomicidad del release se emula con `UnidadDeTrabajoMemoria` (rollback por
+  instantánea); la garantía real de los locks vive en los tests PG (§8).
 """
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
+from typing import Any
 
 from _reserva_helpers import Harness as HarnessReserva
 from _reserva_helpers import catalogo_estandar
 from conftest import T1, T2
 from fastapi.testclient import TestClient
 
+from app.lista_espera.puertos import HuecoLiberadoMemoria
 from app.reservas.antispam import ContadorMemoria
 from app.reservas.puertos import TenantMemoria
 from app.routers.senas import crear_app_senas
+from app.routers.webhooks_mp import crear_app_webhooks
 from app.senas.puertos import (
     AdaptadorPasarelaFake,
     AuditoriaSenaMemoria,
     ConfiguracionSenaMemoria,
+    EstadoSena,
+    PagoMP,
     PagoMPMemoria,
+    Sena,
     SenaCreada,
     SenaMemoria,
+    TurnoMemoriaSena,
+    UnidadDeTrabajoMemoria,
 )
+from app.senas.runner import RegistroJobs, RunnerSenas
 from app.senas.servicio import ServicioSenas
+from app.senas.webhook import ServicioSenasWebhook, firma_esperada, manifiesto
+from app.senas.worker import ServicioSenasExpulsion
 
 TZ = timezone(timedelta(hours=-3))
 AHORA = datetime(2026, 11, 13, 9, 0, tzinfo=TZ)
@@ -39,6 +54,11 @@ TUR1 = "turno-1"
 TUR2 = "turno-2"
 PREST1 = "PREST-1"
 PREST30 = "PREST-30"
+
+# Secreto **ficticio**: los tests nunca usan credenciales reales (regla dura).
+SECRETO_WEBHOOK = "secreto-webhook-ficticio-c11"
+REQUEST_ID = "req-ficticio-1"
+TS_FIRMA = "1763035200"
 
 SLUGS: dict[str, tuple[str, bool]] = {"t1": (T1, True), "t2": (T2, True)}
 
@@ -204,3 +224,214 @@ class HarnessReservaConSena:
     def fijar_ahora(self, dia: str, hora: int = 9, minuto: int = 0) -> datetime:
         self.reloj["ahora"] = self.base.fijar_ahora(dia, hora, minuto)
         return self.reloj["ahora"]
+
+
+def firmar(
+    data_id: str,
+    *,
+    request_id: str = REQUEST_ID,
+    ts: str = TS_FIRMA,
+    secreto: str = SECRETO_WEBHOOK,
+) -> str:
+    """Header `x-signature` correcto para el manifiesto de MP (D7)."""
+    firmado = firma_esperada(
+        secreto=secreto,
+        manifiesto_=manifiesto(data_id=data_id, request_id=request_id, ts=ts),
+    )
+    return f"ts={ts},v1={firmado}"
+
+
+class HarnessSenaCiclo:
+    """Webhook firmado, expiración con auto-oferta y runner sobre memoria.
+
+    Comparte reloj con todos los adaptadores: ningún test duerme ni lee el reloj
+    del sistema (D10). El `UnidadDeTrabajoMemoria` reproduce el "todo o nada" de
+    la transacción por seña para poder probar el rollback de §7 (F-14).
+    """
+
+    def __init__(
+        self,
+        *,
+        ahora: datetime | None = None,
+        secreto: str | None = SECRETO_WEBHOOK,
+        inicio: datetime | None = None,
+        intervalo_s: int = 60,
+    ) -> None:
+        self.ahora = ahora or AHORA
+        self.inicio = inicio or d3()
+        self.senas = SenaMemoria(reloj=lambda: self.ahora)
+        self.pagos = PagoMPMemoria(reloj=lambda: self.ahora)
+        self.turnos = TurnoMemoriaSena()
+        self.pasarela = AdaptadorPasarelaFake()
+        self.auditoria = AuditoriaSenaMemoria()
+        self.huecos = HuecoLiberadoMemoria()
+        self._siguiente_token = 1
+        self.webhook = ServicioSenasWebhook(
+            self.senas,
+            self.pagos,
+            self.turnos,
+            self.pasarela,
+            self.auditoria,
+            secreto=secreto,
+            reloj=lambda: self.ahora,
+            uow_factory=lambda: UnidadDeTrabajoMemoria(
+                self.senas, self.pagos, self.turnos, self.auditoria
+            ),
+        )
+        self.worker = ServicioSenasExpulsion(
+            self.senas,
+            self.turnos,
+            self.huecos,
+            self.auditoria,
+            reloj=lambda: self.ahora,
+            uow_factory=lambda: UnidadDeTrabajoMemoria(
+                self.senas, self.turnos, self.auditoria
+            ),
+        )
+        self.registro = RegistroJobs()
+        self.runner = RunnerSenas(
+            self.worker,
+            lambda: [T1],
+            intervalo_s=intervalo_s,
+            registro=self.registro,
+            reloj=lambda: self.ahora,
+        )
+        self.client = TestClient(crear_app_webhooks(self.webhook))
+
+    # -- siembra ---------------------------------------------------------
+
+    def sembrar_sena(
+        self,
+        *,
+        tenant_id: str = T1,
+        turno_id: str = TUR1,
+        monto_centavos: int = 3000,
+        estado: EstadoSena = "PENDIENTE",
+        expira_at: datetime | None = None,
+        turno_estado: str = "PENDIENTE",
+        inicio: datetime | None = None,
+        ahora: datetime | None = None,
+    ) -> Sena:
+        """Crea el turno y la seña en el estado pedido (datos ficticios)."""
+        momento = ahora or self.ahora
+        comienzo = inicio or self.inicio
+        self.turnos.agregar(
+            tenant_id=tenant_id,
+            turno_id=turno_id,
+            inicio=comienzo,
+            estado=turno_estado,
+        )
+        sena = self.senas.crear(
+            tenant_id=tenant_id,
+            turno_id=turno_id,
+            monto_centavos=monto_centavos,
+            regla_modo="PORCENTAJE",
+            regla_valor=30,
+            precio_base_centavos=10000,
+            anticipacion_cancelacion_h=24,
+            expira_at=expira_at or momento + timedelta(hours=24),
+            token_hash=f"hash-ficticio-{self._siguiente_token}",
+            ahora=momento,
+            turno_inicio=comienzo,
+            turno_fin=comienzo + timedelta(minutes=30),
+            turno_prestacion=PREST1,
+        )
+        self._siguiente_token += 1
+        return self._forzar(sena, estado, momento)
+
+    def _forzar(self, sena: Sena, estado: EstadoSena, momento: datetime) -> Sena:
+        if estado == "PENDIENTE":
+            return sena
+        campos: dict[str, Any] = {"acreditada_en": momento}
+        if estado == "LIBERADA":
+            campos = {"liberada_en": momento, "motivo_liberacion": "EXPIRACION"}
+        elif estado == "DEVUELTA":
+            campos = {
+                "devuelta_en": momento,
+                "motivo_devolucion": "POLITICA_CANCELACION",
+                "devuelta_por": None,
+            }
+        elif estado == "APLICADA":
+            campos = {
+                "acreditada_en": momento,
+                "aplicada_en": momento,
+                "movimiento_caja_id": "movimiento-mp-1",
+                "concepto_aplicacion": "TRATAMIENTO",
+            }
+        actual = self.senas.transicionar(
+            tenant_id=sena.tenant_id,
+            sena_id=sena.id,
+            desde="PENDIENTE",
+            hacia=estado,
+            campos=campos,
+        )
+        assert actual is not None
+        return actual
+
+    # -- notificación ----------------------------------------------------
+
+    def notificar(
+        self,
+        *,
+        sena: Sena,
+        mp_payment_id: str = "PAG-1",
+        estado: str = "APPROVED",
+        monto_centavos: int | None = None,
+        moneda: str = "ARS",
+        tipo: str = "payment",
+        firma: str = "valida",
+        request_id: str = REQUEST_ID,
+        tenant_id: str | None = None,
+        sena_id: str | None = None,
+        turno_id: str | None = None,
+        aprobado_en: datetime | None = None,
+        cuerpo: dict[str, Any] | None = None,
+    ) -> Any:
+        """Programa el pago en la pasarela fake y POSTea la notificación firmada."""
+        if tipo == "payment":
+            self.pasarela.programar(
+                mp_payment_id=mp_payment_id,
+                estado=estado,  # type: ignore[arg-type]
+                sena_id=sena_id or sena.id,
+                monto_centavos=monto_centavos or sena.monto_centavos,
+                moneda=moneda,
+                tenant_id=tenant_id or sena.tenant_id,
+                turno_id=turno_id or sena.turno_id,
+                aprobado_en=aprobado_en,
+            )
+        headers: dict[str, str] = {"x-request-id": request_id}
+        if firma == "valida":
+            headers["x-signature"] = firmar(mp_payment_id, request_id=request_id)
+        elif firma == "invalida":
+            headers["x-signature"] = f"ts={TS_FIRMA},v1={'0' * 64}"
+        elif firma == "otro_secreto":
+            headers["x-signature"] = firmar(
+                mp_payment_id, request_id=request_id, secreto="otro-secreto-ficticio"
+            )
+        return self.client.post(
+            f"/api/webhooks/mercadopago?data.id={mp_payment_id}&type={tipo}",
+            json=cuerpo or {"type": tipo, "data": {"id": mp_payment_id}},
+            headers=headers,
+        )
+
+    # -- consultas -------------------------------------------------------
+
+    def sena(self, sena: Sena) -> Sena:
+        actual = self.senas.obtener(tenant_id=sena.tenant_id, sena_id=sena.id)
+        assert actual is not None
+        return actual
+
+    def pago(self, mp_payment_id: str, *, tenant_id: str = T1) -> PagoMP | None:
+        return self.pagos.obtener(tenant_id=tenant_id, mp_payment_id=mp_payment_id)
+
+    def obligaciones(self, *, tenant_id: str = T1) -> list[PagoMP]:
+        """Pagos que dejaron una obligación de devolución visible (D3/F-11)."""
+        return [
+            pago
+            for pago in self.pagos.listar(tenant_id=tenant_id)
+            if pago.resultado
+            in ("MONTO_DISTINTO", "PAGO_EXCEDENTE", "REEMBOLSO_AJUSTE_CAJA")
+        ]
+
+    def eventos_hueco(self) -> list[tuple[str, str]]:
+        return list(self.huecos.eventos)

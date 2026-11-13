@@ -191,129 +191,129 @@
 
 ## 6. Webhook: autenticidad, idempotencia y acreditación (RN-SE-03)
 
-- [ ] 6.1 Escribir el test de firma (rojo):
+- [x] 6.1 Escribir el test de firma (rojo):
   `tests/test_sena_webhook.py::test_firma_valida_procesa`
   (secreto ficticio por env; manifiesto `id:...;request-id:...;ts:...;` ⇒ `200`, `PagoMP`
   registrado y seña acreditada); implementar `app/senas/webhook.py` con `hmac.compare_digest`.
-- [ ] 6.2 Escribir y hacer pasar `tests/test_sena_webhook.py::test_firma_invalida_401`
+- [x] 6.2 Escribir y hacer pasar `tests/test_sena_webhook.py::test_firma_invalida_401`
   (`x-signature` ausente o con `v1` distinto ⇒ `401`, ningún `PagoMP`, seña `PENDIENTE` y la
   pasarela no se consulta).
-- [ ] 6.3 Escribir y hacer pasar `tests/test_sena_webhook.py::test_sin_secreto_503`
+- [x] 6.3 Escribir y hacer pasar `tests/test_sena_webhook.py::test_sin_secreto_503`
   (sin `MP_WEBHOOK_SECRET` ⇒ `503 WEBHOOK_NO_CONFIGURADO`, sin persistir ni acreditar).
-- [ ] 6.4 Escribir y hacer pasar `tests/test_sena_webhook.py::test_el_cuerpo_no_acredita`
+- [x] 6.4 Escribir y hacer pasar `tests/test_sena_webhook.py::test_el_cuerpo_no_acredita`
   (cuerpo con `status=approved` y `monto=1` mientras la pasarela informa un pago rechazado ⇒ `200`,
   se registra el estado real y la seña sigue `PENDIENTE`).
-- [ ] 6.5 Escribir y hacer pasar
+- [x] 6.5 Escribir y hacer pasar
   `tests/test_sena_webhook.py::test_notificacion_no_payment_se_ignora`
   (`type=merchant_order` firmado ⇒ `200`, sin consultar la pasarela y sin tocar señas).
-- [ ] 6.6 Escribir y hacer pasar `tests/test_sena_webhook.py::test_pasarela_caida_503`
+- [x] 6.6 Escribir y hacer pasar `tests/test_sena_webhook.py::test_pasarela_caida_503`
   (`obtener_pago` lanza `PasarelaNoDisponible` ⇒ `503`, nada acreditado, todo como estaba).
-- [ ] 6.7 Escribir y hacer pasar `tests/test_sena_webhook.py::test_duplicado_200_sin_efecto`
+- [x] 6.7 Escribir y hacer pasar `tests/test_sena_webhook.py::test_duplicado_200_sin_efecto`
   (segunda notificación del mismo `mp_payment_id` ⇒ `200` con `resultado=DUPLICADO`, un solo
   `PagoMP` y un solo movimiento cuando se aplique).
-- [ ] 6.8 Escribir y hacer pasar
+- [x] 6.8 Escribir y hacer pasar
   `tests/test_sena_webhook.py::test_estado_no_aprobado_registra_sin_acreditar`
   (`PENDING` ⇒ `PagoMP` con `resultado=IGNORADO` y seña `PENDIENTE`).
-- [ ] 6.9 Escribir y hacer pasar `tests/test_sena_webhook.py::test_desorden_no_degrada`
+- [x] 6.9 Escribir y hacer pasar `tests/test_sena_webhook.py::test_desorden_no_degrada`
   (`APPROVED` y luego `PENDING` del mismo pago ⇒ `estado=APPROVED` se conserva, seña `ACREDITADA` y
   cero movimientos nuevos).
-- [ ] 6.10 Escribir y hacer pasar `tests/test_sena_webhook.py::test_monto_distinto_no_acredita`
+- [x] 6.10 Escribir y hacer pasar `tests/test_sena_webhook.py::test_monto_distinto_no_acredita`
   (seña `3000`, pago `1000` ⇒ `200` con `resultado=MONTO_DISTINTO`, seña igual y obligación de
   devolución visible en `GET /api/senas`).
-- [ ] 6.11 Escribir y hacer pasar `tests/test_sena_webhook.py::test_moneda_distinta_no_acredita`
+- [x] 6.11 Escribir y hacer pasar `tests/test_sena_webhook.py::test_moneda_distinta_no_acredita`
   (pago en `USD` ⇒ `resultado=MONTO_DISTINTO`, sin acreditar y con obligación de devolución,
   C11-OQ-12).
-- [ ] 6.12 Escribir y hacer pasar `tests/test_sena_webhook.py::test_pago_no_asociable_500`
+- [x] 6.12 Escribir y hacer pasar `tests/test_sena_webhook.py::test_pago_no_asociable_500`
   (`metadata` que no resuelve a una seña del tenant ⇒ `500` sin persistir, **log estructurado** con
   ids y motivo, sin fila de auditoría porque no hay entidad ni actor, y el hecho no se descarta,
   F-25).
-- [ ] 6.13 Escribir y hacer pasar `tests/test_sena_webhook.py::test_acredita_y_confirma_turno`
+- [x] 6.13 Escribir y hacer pasar `tests/test_sena_webhook.py::test_acredita_y_confirma_turno`
   (pago `3000` `ARS` sobre seña `PENDIENTE` con turno `PENDIENTE` ⇒ seña `ACREDITADA` con
   `acreditada_en`, turno `CONFIRMADO` y auditoría `SENA_ACREDITADA` con `mp_payment_id`).
-- [ ] 6.14 Escribir y hacer pasar
+- [x] 6.14 Escribir y hacer pasar
   `tests/test_sena_webhook.py::test_pago_sobre_turno_cancelado_devuelve`
   (turno `CANCELADO` + pago aprobado ⇒ seña `DEVUELTA` con `resultado=TURNO_NO_CONFIRMABLE`, turno
   intacto y hueco no reabierto).
-- [ ] 6.15 Escribir y hacer pasar
+- [x] 6.15 Escribir y hacer pasar
   `tests/test_sena_webhook_pg.py::test_dos_webhooks_simultaneos_acreditan_una_vez`
   (dos conexiones independientes a PostgreSQL con el mismo pago ⇒ una acredita, la otra `DUPLICADO`,
   un `PagoMP`, una seña `ACREDITADA` y una sola confirmación del turno).
-- [ ] 6.16 Escribir y hacer pasar
+- [x] 6.16 Escribir y hacer pasar
   `tests/test_sena_webhook.py::test_segundo_pago_aprobado_es_excedente`
   (seña ya `ACREDITADA` por PAG-A y un `APPROVED` de PAG-B, **pago distinto** por el mismo monto ⇒
   `resultado=PAGO_EXCEDENTE`, **no** `DUPLICADO`, la seña no cambia y la obligación de devolución de
   PAG-B aparece en `GET /api/senas`, F-11).
-- [ ] 6.17 Escribir y hacer pasar `tests/test_sena_webhook.py::test_refunded_de_mp`
+- [x] 6.17 Escribir y hacer pasar `tests/test_sena_webhook.py::test_refunded_de_mp`
   (PAG-C `REFUNDED` sobre seña `ACREDITADA` ⇒ `resultado=REEMBOLSADO` y seña `DEVUELTA` con
   `motivo_devolucion=REEMBOLSO_MP`; PAG-D `REFUNDED` sobre seña `APLICADA` ⇒
   `resultado=REEMBOLSO_AJUSTE_CAJA`, la seña sigue `APLICADA` y queda ajuste de caja pendiente de
   `ADMIN` visible en `GET /api/senas`, F-18).
-- [ ] 6.18 Escribir y hacer pasar
+- [x] 6.18 Escribir y hacer pasar
   `tests/test_turnos_sena.py::test_turno_presente_no_se_confirma_ni_cancela_por_sena`
   (turno en `PRESENTE` ⇒ confirmar o cancelar por la vía de la seña responde `409`, el estado no
   cambia y no se emite hueco, F-21).
 
 ## 7. Expiración y auto-oferta (RN-SE-01 + RN-RE-04)
 
-- [ ] 7.1 Escribir el test (rojo) y hacerlo pasar:
+- [x] 7.1 Escribir el test (rojo) y hacerlo pasar:
   `tests/test_sena_expiracion.py::test_expira_libera_y_emite_auto_oferta`
   (reloj `2026-11-14T09:00:00-03:00`, seña con `expira_at` igual ⇒ `LIBERADA` con
   `motivo_liberacion=EXPIRACION`, turno `CANCELADO` con motivo `SENA_NO_ACREDITADA` y
   `HuecoLiberadoPort.emitir` llamado con ese `turno_id`).
-- [ ] 7.2 Escribir y hacer pasar `tests/test_sena_expiracion.py::test_no_expira_antes`
+- [x] 7.2 Escribir y hacer pasar `tests/test_sena_expiracion.py::test_no_expira_antes`
   (seña vigente ⇒ sigue `PENDIENTE` y el turno sigue `PENDIENTE`).
-- [ ] 7.3 Escribir y hacer pasar `tests/test_sena_expiracion.py::test_segunda_corrida_no_duplica`
+- [x] 7.3 Escribir y hacer pasar `tests/test_sena_expiracion.py::test_segunda_corrida_no_duplica`
   (segunda corrida con el mismo reloj ⇒ sin transición, sin segundo evento y sin error).
-- [ ] 7.4 Escribir y hacer pasar
+- [x] 7.4 Escribir y hacer pasar
   `tests/test_sena_expiracion.py::test_turno_ya_cancelado_libera_igual`
   (turno `CANCELADO` por otro canal ⇒ la seña se libera, el turno no cambia y no hay segundo
   evento).
-- [ ] 7.5 Escribir y hacer pasar `tests/test_sena_expiracion.py::test_pago_tardio_no_reabre`
+- [x] 7.5 Escribir y hacer pasar `tests/test_sena_expiracion.py::test_pago_tardio_no_reabre`
   (pago aprobado después de liberar ⇒ `DEVUELTA` con `resultado=FUERA_DE_TIEMPO`, turno
   `CANCELADO`, hueco todavía retenido por la oferta, C11-OQ-07).
-- [ ] 7.6 Escribir y hacer pasar `tests/test_sena_expiracion.py::test_reloj_inyectado`
+- [x] 7.6 Escribir y hacer pasar `tests/test_sena_expiracion.py::test_reloj_inyectado`
   (dos relojes distintos producen dos resultados distintos sin `sleep`; el worker no lee el reloj
   del sistema).
-- [ ] 7.7 Escribir y hacer pasar
+- [x] 7.7 Escribir y hacer pasar
   `tests/test_sena_expiracion.py::test_emite_el_mismo_puerto_que_c06`
   (un espía de `HuecoLiberadoPort` recibe exactamente `(tenant_id, turno_id)`; la oferta la crea
   `ServicioAutoOferta`, C-11 no la reimplementa).
-- [ ] 7.8 Escribir y hacer pasar
+- [x] 7.8 Escribir y hacer pasar
   `tests/test_sena_expiracion.py::test_fallo_al_emitir_hace_rollback`
   (el puerto de hueco liberado falla ⇒ no queda escritura parcial: la seña sigue `PENDIENTE`, el
   turno sigue `PENDIENTE`, no hay auditoría de `SENA_LIBERADA` y el siguiente barrido la procesa,
   F-14).
-- [ ] 7.9 Registrar el barrido en el runner de workers (cron/Redis, DD-08):
+- [x] 7.9 Registrar el barrido en el runner de workers (cron/Redis, DD-08):
   `backend/app/senas/runner.py` invoca `procesar_expiraciones(tenant_id, ahora)` por tenant con el
   intervalo configurado en el runner; test `tests/test_sena_expiracion.py::test_runner_registrado`
   (el job queda registrado y una seña vencida se libera al ejecutarlo). Sin este wiring la seña
   vencida no libera el turno: es **dependencia operativa** declarada en `proposal.md` (F-15).
-- [ ] 7.10 Escribir y hacer pasar
+- [x] 7.10 Escribir y hacer pasar
   `tests/test_sena_expiracion.py::test_barrido_de_t1_no_toca_t2`
   (T1 y T2 con señas `PENDIENTE` vencidas ⇒ procesar T1 libera sólo la de T1; la de T2 sigue
   `PENDIENTE` y su turno no se cancela, F-20).
 
 ## 8. Carreras con PostgreSQL real
 
-- [ ] 8.1 Escribir y hacer pasar
+- [x] 8.1 Escribir y hacer pasar
   `tests/test_sena_carreras_pg.py::test_acreditacion_gana_la_carrera`
   (dos conexiones, acreditación commiteada primero ⇒ seña `ACREDITADA`, turno `CONFIRMADO`, sin
   auto-oferta).
-- [ ] 8.2 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_expiracion_gana_la_carrera`
+- [x] 8.2 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_expiracion_gana_la_carrera`
   (expiación primero ⇒ seña `LIBERADA`, turno `CANCELADO` y el webhook responde `200` con
   `resultado=FUERA_DE_TIEMPO`, nunca `DUPLICADO` y nunca `500`, sin segundo evento de hueco).
-- [ ] 8.3 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_el_perdedor_no_pisa`
+- [x] 8.3 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_el_perdedor_no_pisa`
   (una sola transición registrada, un solo instante del estado ganador y ninguna escritura posterior
   que lo cambie).
-- [ ] 8.4 Escribir y hacer pasar
+- [x] 8.4 Escribir y hacer pasar
   `tests/test_sena_carreras_pg.py::test_dos_reservas_del_mismo_hueco_una_sena`
   (una `201` y una `409` con alternativas; un turno y una seña, sin seña huérfana).
-- [ ] 8.5 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_dos_aplicar_un_movimiento`
+- [x] 8.5 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_dos_aplicar_un_movimiento`
   (dos conexiones aplicando la misma seña ⇒ un `INGRESO MP`, la otra `409 SENA_YA_APLICADA`).
-- [ ] 8.6 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_aplicar_vs_cierre`
+- [x] 8.6 Escribir y hacer pasar `tests/test_sena_carreras_pg.py::test_aplicar_vs_cierre`
   (o el movimiento entra antes y el cierre lo cuenta, o el cierre gana y `aplicar` da
   `409 CIERRE_CERRADO`; nunca un movimiento del día fuera del cierre, D9).
-- [ ] 8.7 Escribir y hacer pasar
+- [x] 8.7 Escribir y hacer pasar
   `tests/test_sena_carreras_pg.py::test_reprogramacion_vs_webhook`
   (la seña queda atada al turno nuevo y el turno confirmado es ese, nunca el original).
 

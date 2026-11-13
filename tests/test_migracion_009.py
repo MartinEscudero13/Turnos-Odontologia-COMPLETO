@@ -223,8 +223,12 @@ def test_check_estado_e_instantes_en_db() -> None:
         "CONSTRAINT senas_preferencia_coherente CHECK (preferencia_estado <> 'CREADA' OR "
         "(mp_preference_id IS NOT NULL AND mp_init_point IS NOT NULL))" in sql
     )
-    # D3: estados y resultados propios del pago.
-    assert "CHECK (moneda = 'ARS')" in sql
+    # D3: estados y resultados propios del pago. La moneda NO se restringe a
+    # ARS en la base (corrección 2026-11-13): el pago en otra moneda tiene que
+    # poder registrarse con `MONTO_DISTINTO` y dejar la devolución visible.
+    assert "CHECK (moneda = 'ARS')" not in sql
+    assert "moneda TEXT NOT NULL DEFAULT 'ARS'" in sql
+    assert "moneda = upper(moneda)" in sql
     assert (
         "CHECK (estado IN ('APPROVED','PENDING','IN_PROCESS','REJECTED',"
         "'CANCELLED','REFUNDED','OTHER'))" in sql
@@ -362,7 +366,10 @@ def test_modelos_sqlalchemy_senas_cargan() -> None:
     checks_pago = [
         str(c.sqltext) for c in PagoMP.__table__.constraints if isinstance(c, CheckConstraint)
     ]
-    assert any("moneda = 'ARS'" in c for c in checks_pago)
+    # La moneda es la real que informa la pasarela; el CHECK sólo normaliza y
+    # prohíbe el vacío (la exigencia de ARS para acreditar es de aplicación).
+    assert not any("moneda = 'ARS'" in c for c in checks_pago)
+    assert any("moneda = upper(moneda)" in c for c in checks_pago)
     assert any("resultado IN" in c for c in checks_pago)
 
     # El override de la prestación es nullable: NULL = hereda del tenant (D1).
@@ -826,6 +833,42 @@ def test_unique_turno_pago_token_y_movimiento_en_pg(pg: Any) -> None:
             movimiento=ids["mov1"],
             concepto="TRATAMIENTO",
         ),
+    )
+
+
+@requiere_pg
+def test_pago_en_otra_moneda_se_registra_con_su_resultado(pg: Any) -> None:
+    """Corrección 2026-11-13: la base acepta la moneda real de la pasarela.
+
+    §6 exige registrar un `APPROVED` en `USD` como `MONTO_DISTINTO` para que la
+    obligación de devolución quede visible. Con `CHECK moneda='ARS'` la fila no
+    se podía insertar y el escenario era inalcanzable.
+    """
+    engine, ids = pg
+    sena = _sena(ids, token="token-usd")
+    _inserta(engine, _INSERT_SENA, sena)
+    _inserta(
+        engine,
+        _INSERT_PAGO,
+        _pago(ids, sena["id"], mp="PAG-USD", moneda="USD", resultado="MONTO_DISTINTO"),
+    )
+
+    with engine.connect() as conn:
+        fila = conn.execute(
+            sql_text("SELECT moneda, resultado FROM pagos_mp WHERE mp_payment_id = 'PAG-USD'")
+        ).one()
+    assert (fila.moneda, fila.resultado) == ("USD", "MONTO_DISTINTO")
+
+    # La moneda sigue normalizada: vacía o en minúsculas no entra.
+    _rechaza(
+        engine,
+        _INSERT_PAGO,
+        _pago(ids, sena["id"], id=str(uuid.uuid4()), mp="PAG-usd", moneda="usd"),
+    )
+    _rechaza(
+        engine,
+        _INSERT_PAGO,
+        _pago(ids, sena["id"], id=str(uuid.uuid4()), mp="PAG-vacia", moneda=""),
     )
 
 

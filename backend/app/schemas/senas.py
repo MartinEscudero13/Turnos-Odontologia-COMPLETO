@@ -69,3 +69,17 @@ class ErrorSenaOut(BaseModel):
 
     detalle: str
     codigo: str | None = Field(default=None)
+
+
+class WebhookSalida(BaseModel):
+    """`200` de `POST /api/webhooks/mercadopago`: qué se hizo con la notificación.
+
+    `resultado` es el efecto aplicado (`ACREDITADA`, `DUPLICADO`,
+    `MONTO_DISTINTO`, `PAGO_EXCEDENTE`, `FUERA_DE_TIEMPO`, `IGNORADO`, …) para
+    que la pasarela y operación vean que la plata no se descartó.
+    """
+
+    resultado: str
+    mp_payment_id: str
+    sena_id: str | None = None
+    estado_pago: str | None = None

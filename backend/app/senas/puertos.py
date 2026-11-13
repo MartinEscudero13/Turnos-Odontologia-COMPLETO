@@ -30,10 +30,11 @@ import threading
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
+from types import TracebackType
 from typing import Any, Literal, Protocol, cast
 
 from app.senas.regla import ModoSena, PrestacionSena
-from app.turnos.servicio import NoEncontrado
+from app.turnos.servicio import NoEncontrado, TurnoError
 
 __all__ = [
     "AccionSena",
@@ -74,10 +75,14 @@ __all__ = [
     "SenaPort",
     "SenaRepositorio",
     "TokenDuplicado",
+    "TransaccionNula",
     "TransicionTurnoInvalida",
     "TurnoMemoriaSena",
     "TurnoPort",
     "TurnoRef",
+    "UnidadDeTrabajoMemoria",
+    "UnidadDeTrabajoPort",
+    "rango_estado",
 ]
 
 EstadoSena = Literal["PENDIENTE", "ACREDITADA", "LIBERADA", "APLICADA", "DEVUELTA"]
@@ -126,6 +131,11 @@ _RANKING_ESTADO: dict[EstadoPagoMP, int] = {
     "CANCELLED": 1,
     "OTHER": 0,
 }
+
+
+def rango_estado(estado: EstadoPagoMP) -> int:
+    """Peso del estado de MP: un `PENDING` posterior no degrada un `APPROVED`."""
+    return _RANKING_ESTADO[estado]
 
 
 # ---------------------------------------------------------------------------
@@ -296,8 +306,16 @@ class PagoNoEncontrado(Exception):
     """Mercado Pago no conoce el id de pago consultado."""
 
 
-class TransicionTurnoInvalida(Exception):
-    """El turno no está en el estado que habilita la transición."""
+class TransicionTurnoInvalida(TurnoError):
+    """`409` — el turno no está en el estado que habilita la transición.
+
+    `confirmar_por_sena` sólo actúa desde `PENDIENTE` y `cancelar_por_sena`
+    también: un turno en un estado final (`PRESENTE`, `AUSENTE`, `CANCELADO`, …)
+    no se confirma ni se cancela por la vía de la seña (F-21).
+    """
+
+    codigo = 409
+    codigo_dominio = "TRANSICION_TURNO_INVALIDA"
 
 
 # ---------------------------------------------------------------------------
@@ -410,6 +428,25 @@ class SenaRepositorio(Protocol):
     ) -> Sena: ...
 
 
+class UnidadDeTrabajoPort(Protocol):
+    """Unidad de trabajo que la expiración y el webhook abren por operación.
+
+    En PostgreSQL es `TransaccionSQL(session)` (commit si es la más externa); en
+    memoria, `UnidadDeTrabajoMemoria` restaura la instantánea si algo falla. La
+    atomicidad del release (seña + turno + evento de hueco) depende de esto
+    (D10/F-14).
+    """
+
+    def __enter__(self) -> object: ...
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool | None: ...
+
+
 class PagoMPRepositorio(Protocol):
     def registrar_o_actualizar(
         self,
@@ -420,7 +457,7 @@ class PagoMPRepositorio(Protocol):
         monto_centavos: int,
         moneda: str,
         estado: EstadoPagoMP,
-        resultado: ResultadoPagoMP,
+        resultado: ResultadoPagoMP | None = None,
         raw_json: Mapping[str, Any],
         aprobado_en: datetime | None = None,
         ahora: datetime | None = None,
@@ -754,15 +791,24 @@ class PagoMPMemoria:
         monto_centavos: int,
         moneda: str,
         estado: EstadoPagoMP,
-        resultado: ResultadoPagoMP,
+        resultado: ResultadoPagoMP | None = None,
         raw_json: Mapping[str, Any],
         aprobado_en: datetime | None = None,
         ahora: datetime | None = None,
     ) -> PagoMP:
+        """Registra el pago o refresca el existente (mismo `mp_payment_id`).
+
+        `resultado=None` significa "conservar el efecto ya aplicado": una
+        renotificación no borra el `ACREDITADA` que explica la plata retenida
+        (el `DUPLICADO` es el resultado de **esa** notificación, no del pago).
+        La `moneda` es la real que informó la pasarela: un pago en `USD` se
+        registra igual con su resultado (`MONTO_DISTINTO`), porque la plata que
+        entró mal tiene que quedar visible para devolverla (corrección 009).
+        """
         if monto_centavos <= 0:
             raise SenaInvalida("el monto del pago debe ser positivo")
-        if moneda != "ARS":
-            raise SenaInvalida("v1 sólo registra pagos en ARS")
+        if not moneda or moneda != moneda.upper():
+            raise SenaInvalida("la moneda del pago debe venir normalizada")
         momento = _ahora(ahora, self._reloj)
         with self._lock:
             for existente in self._pagos.values():
@@ -772,16 +818,14 @@ class PagoMPMemoria:
                     # La fila ganadora del UNIQUE global no se reescribe desde
                     # otro tenant (F-04/F-05).
                     return existente
-                if _RANKING_ESTADO[estado] > _RANKING_ESTADO[existente.estado]:
+                if rango_estado(estado) > rango_estado(existente.estado):
                     actualizado_estado = estado
                 else:
                     actualizado_estado = existente.estado
-                # `resultado` sí se actualiza: un `REFUNDED` posterior explica un
-                # hecho nuevo sobre el mismo pago (D3/D8). `estado` no retrocede.
                 actualizado = replace(
                     existente,
                     estado=actualizado_estado,
-                    resultado=resultado,
+                    resultado=resultado if resultado is not None else existente.resultado,
                     raw_json=dict(raw_json),
                     actualizado_en=momento,
                     aprobado_en=aprobado_en if aprobado_en is not None else existente.aprobado_en,
@@ -796,7 +840,7 @@ class PagoMPMemoria:
                 monto_centavos=monto_centavos,
                 moneda=moneda,
                 estado=estado,
-                resultado=resultado,
+                resultado=resultado or "IGNORADO",
                 raw_json=dict(raw_json),
                 recibido_en=momento,
                 actualizado_en=momento,
@@ -1037,6 +1081,7 @@ class TurnoMemoriaSena:
 
     def __init__(self, turnos: Mapping[tuple[str, str], datetime] | None = None) -> None:
         self._turnos: dict[tuple[str, str], TurnoRef] = {}
+        self._lock = threading.Lock()
         for (tenant_id, turno_id), inicio in (turnos or {}).items():
             self.agregar(tenant_id=tenant_id, turno_id=turno_id, inicio=inicio)
 
@@ -1085,6 +1130,16 @@ class TurnoMemoriaSena:
                 f"el turno {turno_id} no está PENDIENTE (está {actual.estado})"
             )
         self._turnos[(tenant_id, turno_id)] = replace(actual, estado=hacia)
+
+    # -- instantánea (rollback de la unidad de trabajo en memoria) ------
+
+    def instantanea(self) -> object:
+        with self._lock:
+            return dict(self._turnos)
+
+    def restaurar(self, estado: object) -> None:
+        with self._lock:
+            self._turnos = dict(cast(dict[tuple[str, str], TurnoRef], estado))
 
 
 class AplicacionCajaMemoria:
@@ -1199,3 +1254,65 @@ class AuditoriaSenaMemoria:
         entradas = cast(list[EntradaAuditoriaSena], estado)
         with self._lock:
             self.entradas = list(entradas)
+
+
+# ---------------------------------------------------------------------------
+# Unidades de trabajo
+# ---------------------------------------------------------------------------
+
+
+class _Instantaneable(Protocol):
+    def instantanea(self) -> object: ...
+
+    def restaurar(self, estado: object) -> None: ...
+
+
+class TransaccionNula:
+    """Unidad de trabajo sin transacción (adaptadores que ya son atómicos).
+
+    Se usa cuando el dominio corre contra adaptadores en memoria que no
+    necesitan rollback. El adaptador SQL inyecta `TransaccionSQL(session)`, que
+    es el que da la garantía real (D10/D11).
+    """
+
+    def __enter__(self) -> TransaccionNula:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool | None:
+        del exc_type, exc, tb
+        return None
+
+
+class UnidadDeTrabajoMemoria:
+    """UoW de los tests en memoria: instantánea y rollback si algo falla.
+
+    No pretende reemplazar a PostgreSQL: reproduce el contrato "todo o nada" de
+    la transacción por seña (seña + turno + evento de hueco) para poder probar
+    el rollback de §7 sin base real (F-14).
+    """
+
+    def __init__(self, *adaptadores: _Instantaneable) -> None:
+        self._adaptadores = adaptadores
+        self._instantanea: list[tuple[_Instantaneable, object]] = []
+
+    def __enter__(self) -> UnidadDeTrabajoMemoria:
+        self._instantanea = [(a, a.instantanea()) for a in self._adaptadores]
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool | None:
+        del exc, tb
+        if exc_type is not None:
+            for adaptador, estado in reversed(self._instantanea):
+                adaptador.restaurar(estado)
+        self._instantanea = []
+        return None

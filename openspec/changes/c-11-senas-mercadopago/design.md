@@ -185,7 +185,7 @@ vez, pero cada notificación relevante queda registrada.
 | `mp_payment_id` | `text NOT NULL` | **UNIQUE global** (RN-SE-03: "`mp_payment_id` único") |
 | `sena_id` | `uuid NOT NULL` FK `senas` | 1──N por ERD (`04_modelo_de_datos.md:23`): un intento rechazado y uno aprobado son dos filas |
 | `monto_centavos` | `integer NOT NULL` | `CHECK > 0` |
-| `moneda` | `text NOT NULL DEFAULT 'ARS'` | `CHECK = 'ARS'` (v1 sólo pesos, `C11-OQ-12`) |
+| `moneda` | `text NOT NULL DEFAULT 'ARS'` | moneda **real** que informa la pasarela (`ARS`, `USD`, …), normalizada a mayúsculas; la acreditación exige `ARS` **y** monto exacto en la aplicación (corrección 2026-11-13: un `CHECK moneda='ARS'` haría inalcanzable el `MONTO_DISTINTO` de §6, C11-OQ-12) |
 | `estado` | `text NOT NULL` | estado informado por MP (`APPROVED`,`PENDING`,`IN_PROCESS`,`REJECTED`,`CANCELLED`,`REFUNDED`,`OTHER`) |
 | `resultado` | `text NOT NULL` | efecto propio: `ACREDITADA`,`DEVUELTA`,`IGNORADO`,`MONTO_DISTINTO`,`PAGO_EXCEDENTE`,`TURNO_NO_CONFIRMABLE`,`FUERA_DE_TIEMPO`,`DUPLICADO`,`REEMBOLSADO`,`REEMBOLSO_AJUSTE_CAJA` |
 | `raw_json` | `jsonb NOT NULL` | **subconjunto allow-list** del pago, nunca el payload completo (D15) |
@@ -923,7 +923,7 @@ class PagoMPRepositorio(Protocol):
 | C11-OQ-09 | **Fijada 2026-11-13** | ¿La devolución se ejecuta por API de MP o a mano? | `11_integraciones.md:10` (devoluciones automáticas = post-v1). Dueño: **reembolso manual**, sin API de reembolsos | `DEVUELTA` = obligación registrada; el reintegro se hace en el panel de MP con responsable asignado |
 | C11-OQ-10 | **Fijada 2026-11-13** | ¿La seña visible en agenda cambia el payload de turnos o usa endpoint propio? | C-10 evitó tocar contratos ajenos. Dueño: **endpoint propio** | `GET /api/senas?desde=&hasta=` filtrando por `turno.inicio`; `GET /api/turnos` no cambia |
 | C11-OQ-11 | Abierta (no bloqueante) | ¿Se guarda el payload completo de MP en `raw_json`? | RN-CL-04 y regla dura "sin PHI"; el pago trae datos del pagador. **Recomendación: subconjunto allow-list** | Sólo los campos que el sistema consume |
-| C11-OQ-12 | Abierta (no bloqueante) | ¿Sólo pesos? ¿Tope opcional del porcentaje? | PO-01 menciona "porcentaje con tope opcional" como provisional (`docs/decisiones-po.md:49`); el dominio es Argentina. **Recomendación: sólo `ARS` y sin tope en v1** | `CHECK moneda='ARS'`; sin columna de tope |
+| C11-OQ-12 | Abierta (no bloqueante) | ¿Sólo pesos? ¿Tope opcional del porcentaje? | PO-01 menciona "porcentaje con tope opcional" como provisional (`docs/decisiones-po.md:49`); el dominio es Argentina. **Recomendación: sólo `ARS` y sin tope en v1** | `pagos_mp.moneda` guarda la moneda real (`ARS`, `USD`, …) y la acreditación exige `ARS` + monto exacto; un pago en otra moneda queda `MONTO_DISTINTO` con obligación de devolución visible. Sin columna de tope |
 | C11-OQ-13 | Abierta (no bloqueante, **fuera de v1**) | ¿Cómo se descuenta la seña contra un presupuesto aceptado (C-09)? | El descuento automático queda fuera de v1 por decisión del dueño (2026-11-13). Mientras no exista, aplicar con presupuesto aceptado vigente es un doble cobro | `409 PRESUPUESTO_CON_SENA` en `aplicar`, sin movimiento y sin cambio de estado |
 
 **Cierre 2026-11-13** (decisiones del dueño aplicadas a este design, las specs y `tasks.md`):

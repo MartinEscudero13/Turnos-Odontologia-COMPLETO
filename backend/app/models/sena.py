@@ -180,7 +180,14 @@ class PagoMP(Base):
     __tablename__ = "pagos_mp"
     __table_args__ = (
         CheckConstraint("monto_centavos > 0", name="pagos_mp_monto_positivo"),
-        CheckConstraint("moneda = 'ARS'", name="pagos_mp_moneda_valida"),
+        # La moneda es la **real** que informa la pasarela (ARS, USD, …): el
+        # pago en otra moneda se registra con `MONTO_DISTINTO` y deja la
+        # obligación de devolución visible. La exigencia de `ARS` para acreditar
+        # es una regla de aplicación, no un CHECK de base (corrección 2026-11-13).
+        CheckConstraint(
+            "btrim(moneda) <> '' AND moneda = upper(moneda)",
+            name="pagos_mp_moneda_normalizada",
+        ),
         CheckConstraint(_ESTADOS_PAGO, name="pagos_mp_estado_valido"),
         CheckConstraint(_RESULTADOS, name="pagos_mp_resultado_valido"),
     )
