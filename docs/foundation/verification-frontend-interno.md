@@ -12,6 +12,7 @@
 | `npm run build` | OK (`dist` generado) |
 | Seed demo | Idempotente (2 corridas) |
 | Login + endpoints internos | `200` contra PostgreSQL real |
+| Compose completo | API healthy y login `200` vía nginx (`/api/auth/login`) |
 | OpenSpec | `frontend-interno` válido (`--strict`) |
 
 ## Rutas del SPA
