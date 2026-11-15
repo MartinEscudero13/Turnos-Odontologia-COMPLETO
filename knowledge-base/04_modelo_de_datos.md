@@ -80,10 +80,10 @@ auditoria (tenant, actor, acción, entidad, antes/después, timestamp) — appen
 - `mensajes_wa`: `id`, `tenant_id`, `paciente_id`, `turno_id?`, `plantilla`, `estado(ENVIADO, ENTREGADO, LEIDO, FALLIDO)`, `provider_message_id unique?`.
 - `auditoria`: append-only `(tenant_id, actor_id, accion, entidad, entidad_id, antes jsonb, despues jsonb, at)`; sin UPDATE/DELETE (revoke).
 
-## Extensiones materializadas en migraciones (007–010)
+## Extensiones materializadas en migraciones (007–011)
 
 Además de las entidades planeadas arriba, las migraciones agregaron estas tablas y columnas. Son la
-fuente de verdad vigente; los `design.md` archivados de C-09, C-10, C-11 y C-12 documentan su semántica.
+fuente de verdad vigente; los `design.md` archivados de C-09, C-10, C-11, C-12 y C-14 documentan su semántica.
 
 | Migración | Objeto nuevo | Para qué |
 |---|---|---|
@@ -97,6 +97,7 @@ fuente de verdad vigente; los `design.md` archivados de C-09, C-10, C-11 y C-12 
 | 010 | `obras_sociales`, `coberturas` | Catálogo de OS por tenant y cobertura configurada por (OS × prestación) |
 | 010 | `liquidaciones`, `liquidacion_lineas` | Liquidación por período de turnos atendidos y su detalle inmutable |
 | 010 | `pacientes.obra_social_id` (FK) | Vínculo del paciente con la obra social del tenant |
+| 011 | `calendar_links`, `calendar_eventos`, `calendar_envios` | Vínculo OAuth por profesional, mapeo turno↔evento, bloqueos externos y cola de reintentos |
 
 Todas llevan `tenant_id NOT NULL` con RLS forzada. `senas.token_hash` y `pagos_mp.mp_payment_id` son
 únicos globales (no por tenant) para que el webhook público resuelva sin filtrar existencia entre tenants.

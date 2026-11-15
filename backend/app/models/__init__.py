@@ -8,6 +8,7 @@ from app.models.caja import (
     CuentaPorCobrarOS,
     MovimientoCaja,
 )
+from app.models.calendario import CalendarEnvio, CalendarEvento, CalendarLink
 from app.models.catalogos import (
     Bloqueo,
     HorarioSemanal,
@@ -42,6 +43,9 @@ __all__ = [
     "CuentaPorCobrarOS",
     "Evolucion",
     "Ficha",
+    "CalendarEnvio",
+    "CalendarEvento",
+    "CalendarLink",
     "HorarioSemanal",
     "ListaEspera",
     "Liquidacion",

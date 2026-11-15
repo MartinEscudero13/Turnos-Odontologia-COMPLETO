@@ -25,6 +25,18 @@ from app.caja.puertos import (
     AuditoriaMemoria as AuditoriaCajaMemoria,
 )
 from app.caja.servicio import ServicioCaja
+from app.calendario.puertos import (
+    AuditoriaMemoria as AuditoriaCalendarioMemoria,
+)
+from app.calendario.puertos import (
+    ColaCalendarioMemoria,
+    EventoMemoria,
+    LinkMemoria,
+    PasarelaGoogleFake,
+    TurnoCalendario,
+    TurnosCalendarioMemoria,
+)
+from app.calendario.servicio import ServicioCalendario
 from app.ficha_clinica.puertos import (
     AdjuntoMemoria,
     ConsentimientoMemoria,
@@ -190,6 +202,7 @@ class DemoServices:
     odontograma: ServicioOdontograma
     presupuesto: ServicioPresupuesto
     obras_sociales: ServicioObrasSociales
+    calendario: ServicioCalendario
 
 
 def _seed_catalogo() -> CatalogoMemoria:
@@ -444,6 +457,36 @@ def build_demo_services(
             obra_social_id=os_norte.id if paciente_id == DEMO_PACIENTE_1 else os_sur.id,
         )
 
+    # -- C-14 Google Calendar -----------------------------------------
+    turnos_calendario = TurnosCalendarioMemoria()
+    dia_calendario, _ = demo_periodo_actual(clock())
+    turnos_calendario.agregar(
+        DEMO_TENANT_ID,
+        TurnoCalendario(
+            turno_id="turno-demo-calendario",
+            profesional_id=PROFESIONAL_DEMO_1,
+            inicio=datetime.combine(dia_calendario.replace(day=10), time(10, 0), tzinfo=TZ_DEMO),
+            fin=datetime.combine(dia_calendario.replace(day=10), time(10, 30), tzinfo=TZ_DEMO),
+            estado="PENDIENTE",
+            resumen="Turno demo",
+        ),
+    )
+    calendario = ServicioCalendario(
+        LinkMemoria(),
+        EventoMemoria(),
+        ColaCalendarioMemoria(),
+        PasarelaGoogleFake(),
+        turnos_calendario,
+        AuditoriaCalendarioMemoria(),
+        reloj=clock,
+    )
+    calendario.conectar(
+        admin,
+        profesional_id=PROFESIONAL_DEMO_1,
+        gcal_calendar_id="demo-calendar@example.test",
+        oauth_ref="demo-oauth-ref",
+    )
+
     # -- C-08 ficha clínica + C-09 odontograma/presupuesto -------------
     consentimientos = ConsentimientoMemoria()
     pacientes_clinicos = PacienteFichaMemoria()
@@ -556,6 +599,7 @@ def build_demo_services(
         odontograma=odontograma,
         presupuesto=presupuesto,
         obras_sociales=obras_sociales,
+        calendario=calendario,
     )
 
 

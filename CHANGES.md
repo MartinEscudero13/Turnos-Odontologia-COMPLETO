@@ -399,7 +399,9 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ---
 
 ### [C-14] `google-calendar-sync`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-15; link OAuth por profesional, push idempotente de turnos, pull de eventos externos como bloqueo informativo, conflicto a favor del sistema, cola con backoff y token revocado sin romper la agenda; migración **011** renumerada porque C-13 sigue bloqueado) + archivado en `openspec/changes/archive/2026-11-15-c-14-google-calendar-sync/`
+- **Verificación**: [`docs/foundation/verification-c-14-google-calendar.md`](docs/foundation/verification-c-14-google-calendar.md)
+- **Límite**: OAuth y Google Calendar simulados con adaptador fake; los bloqueos externos no alteran la disponibilidad de C-06 en v1; sin UI ni cron propio.
 - **Scope**: Sync bidireccional con Google Calendar por profesional, sistema como fuente de verdad (US-050; RN-IN-02/03)
   - Modelo `CalendarLink(profesional, gcal_calendar_id, oauth_ref, ultima_sync, estado)`; OAuth2 por profesional (`GCAL_CLIENT_ID/SECRET`)
   - Push: turno creado/modificado/cancelado → evento GCal; pull: webhook/polling → evento externo se refleja como bloqueo informativo no-reservable

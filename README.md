@@ -6,14 +6,14 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 
 | | |
 |---|---|
-| Changes archivados | **17** de 20 — C-01…C-12, F-01…F-05 |
-| Specs vivas | **17** capabilities en `openspec/specs/` |
-| Migraciones | 001 → **010**, con `downgrade` verificado contra PostgreSQL real |
-| Tests backend | **730 passed, 45 skipped** en local · **775 passed, 0 skipped** con `C02_DATABASE_URL` |
-| Calidad | `mypy` 110 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
+| Changes archivados | **18** de 20 — C-01…C-12, C-14, F-01…F-05 |
+| Specs vivas | **18** capabilities en `openspec/specs/` |
+| Migraciones | 001 → **011**, con `downgrade` verificado contra PostgreSQL real |
+| Tests backend | **753 passed, 47 skipped** en local · **800 passed, 0 skipped** con `C02_DATABASE_URL` |
+| Calidad | `mypy` 117 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
 | Frontend | Landing pública F-02 (reserva + gestión por token) con tests, lint, typecheck y build |
 
-> ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05 a C-12
+> ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05 a C-14
 > están montados en `create_app` sobre adaptadores en memoria. Lo que falta es UI, persistencia SQL de
 > esos dominios y las integraciones externas reales.
 
@@ -66,7 +66,7 @@ Para solo compilar o inspeccionar la base compilada, ver `docs/foundation/bootst
 ```bash
 docker compose up -d db            # PostgreSQL 15 en localhost:5433
 
-# migraciones 001 → 010 (el rol owner es el único que puede correr DDL)
+# migraciones 001 → 011 (el rol owner es el único que puede correr DDL)
 $env:DATABASE_OWNER_URL = "postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos"
 py -m alembic -c backend/alembic.ini upgrade head
 
@@ -324,6 +324,7 @@ ni de tests.
 - **C-11 `senas-mercadopago`** — archivado el 2026-11-13. Seña atada 1:1 al turno (monto por prestación con override, truncado hacia abajo), preferencia de Mercado Pago con reintento y backoff, token público opaco, **webhook idempotente que verifica HMAC y re-consulta el pago** (nunca confía en el cuerpo; `503` fail-closed sin secreto), expiración atómica con auto-oferta a C-07, aplicación a caja vía C-10 con bloqueo por presupuesto aceptado, devolución como estado contable y transferencia de la seña al reprogramar. Migración 009. Suite 678 + 42 local; 720 + 0 con PostgreSQL.
 - **Montaje demo (F-03, F-04, F-05)** — la API real expone C-05 a C-11 sobre un composition root en memoria (`backend/app/demo.py`): reserva pública con seña, lista de espera, ficha y consentimiento, odontograma, presupuesto, caja y señas. El estado se pierde al reiniciar y las aceptaciones de presupuesto no impactan caja.
 - **C-12 `obras-sociales-liquidacion`** — archivado el 2026-11-15. Catálogo de obras sociales por tenant, cobertura configurable por (OS × prestación) con modo `PORCENTAJE`/`MONTO` y tope, cálculo de tramos para presupuestos, liquidación por período de turnos `PRESENTE`, cierre inmutable y export CSV. Migración 010. La cobertura es **configurada, no validada en vivo** (RN-OS-01).
+- **C-14 `google-calendar-sync`** — archivado el 2026-11-15. Link OAuth por profesional, push idempotente de turnos, eventos externos como bloqueo informativo, conflicto a favor del sistema, cola con backoff y token revocado sin romper la agenda. Migración **011** (renumerada: C-13 sigue bloqueado por PO-03 y conserva el 011 del roadmap; C-15 tomará 012).
 
 ## Alcance completo vs pendiente (TPI)
 
@@ -340,7 +341,8 @@ ni de tests.
 | Señas con Mercado Pago (C-11) | ✅ archivada |
 | Skill propia + MCP | ✅ `revisor-escenarios-turnos`, `visual-turnos` y MCP Context7 documentados y aplicados |
 | C-12 obras sociales y liquidación | ✅ archivada |
-| C-14 Google Calendar · C-15 admin y reportes | ⏳ pendientes del roadmap |
+| C-14 Google Calendar sync | ✅ archivada |
+| C-15 admin y reportes | ⏳ pendiente (depende de C-13) |
 | C-13 WhatsApp | ⛔ bloqueado por PO-03 (no hay proveedor/BSP definido) |
 | UI de agenda, ficha, odontograma, caja y señas | ⛔ diferida a `C-09-UI`, `C-10-UI` y `C-11-UI` (changes aún no creados) |
 | Montaje de routers en `create_app` | ✅ C-05…C-11 (adaptadores en memoria) |
@@ -366,16 +368,19 @@ El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son l
    visual de F-01. Agenda, ficha, odontograma, presupuesto, caja, señas y configuración de obras sociales
    son backend-only.
 4. **Integraciones externas simuladas.** Mercado Pago se ejercita con un adaptador fake que respeta el
-   contrato (firma HMAC, re-consulta del pago); no hay credenciales ni llamadas reales al proveedor.
-   WhatsApp no está implementado y Google Calendar no empezó.
-5. **La cobertura de obras sociales es configurada, no validada.** No hay WS/SOAP con la OS (PO-04) ni
+   contrato (firma HMAC, re-consulta del pago); Google Calendar con `PasarelaGoogleFake` y `oauth_ref`
+   ficticio. No hay credenciales ni llamadas reales a los proveedores. WhatsApp no está implementado.
+5. **Los bloqueos de Google Calendar no alteran la disponibilidad de C-06.** Se guardan y se consultan
+   por `/api/calendar/bloqueos`, pero el motor de reservas todavía no los lee; cablearlos es un
+   follow-up que toca C-05/C-06.
+6. **La cobertura de obras sociales es configurada, no validada.** No hay WS/SOAP con la OS (PO-04) ni
    aranceles por OS (PO-08): la liquidación usa `prestaciones.precio_base` y declara
    `validada_en_vivo = false`.
-6. **Reembolso de seña manual.** El estado `DEVUELTA` es contable: el reintegro en Mercado Pago lo ejecuta
+7. **Reembolso de seña manual.** El estado `DEVUELTA` es contable: el reintegro en Mercado Pago lo ejecuta
    una persona desde el panel del proveedor. No hay API de reembolsos.
-7. **El ingreso de la seña queda con `tramo=NULL`.** `ServicioCaja.registrar_movimiento` no expone ese
+8. **El ingreso de la seña queda con `tramo=NULL`.** `ServicioCaja.registrar_movimiento` no expone ese
    parámetro y C-11 no puede escribir `movimientos_caja` directo. Corregirlo es un cambio en C-10.
-8. **El access log del servidor HTTP puede registrar el token público** de `/pagar/:tokenSena`. El log
+9. **El access log del servidor HTTP puede registrar el token público** de `/pagar/:tokenSena`. El log
    estructurado de la aplicación lo redacta y hay test que lo verifica; la redacción del access log es
    de infraestructura.
 

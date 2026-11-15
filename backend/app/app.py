@@ -23,6 +23,7 @@ from app.demo import build_demo_services
 from app.middleware import RequestIdMiddleware
 from app.routers.auth import router as auth_router
 from app.routers.caja import crear_router as crear_router_caja
+from app.routers.calendario import crear_router as crear_router_calendario
 from app.routers.catalogos import router as catalogos_router
 from app.routers.ficha_clinica import crear_router as crear_router_ficha_clinica
 from app.routers.health import router as health_router
@@ -69,6 +70,7 @@ def create_app(
     app.include_router(crear_router_odontograma(demo.odontograma))
     app.include_router(crear_router_presupuesto(demo.presupuesto))
     app.include_router(crear_router_obras_sociales(demo.obras_sociales))
+    app.include_router(crear_router_calendario(demo.calendario))
 
     @app.exception_handler(TurnoError)
     async def handle_turno_error(_request: Request, exc: TurnoError) -> JSONResponse:
