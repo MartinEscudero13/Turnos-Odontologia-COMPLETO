@@ -12,7 +12,50 @@ export interface SessionTokens {
   tokenType: string;
 }
 
+export interface MeResponse {
+  id: string;
+  tenant_id: string;
+  nombre: string;
+  email: string;
+  rol: string;
+}
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api';
+
+export async function meRequest(
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ApiResult<MeResponse>> {
+  try {
+    const response = await fetchImpl(`${apiBaseUrl}/auth/me`, {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken}` },
+    });
+    const body: unknown = await response.json().catch(() => null);
+    if (!response.ok || !isRecord(body)) {
+      return { ok: false, error: 'No pudimos leer el perfil de la sesión.' };
+    }
+    if (
+      typeof body.id !== 'string' ||
+      typeof body.tenant_id !== 'string' ||
+      typeof body.email !== 'string' ||
+      typeof body.rol !== 'string'
+    ) {
+      return { ok: false, error: 'Perfil de sesión inválido.' };
+    }
+    return {
+      ok: true,
+      data: {
+        id: body.id,
+        tenant_id: body.tenant_id,
+        nombre: typeof body.nombre === 'string' ? body.nombre : body.email,
+        email: body.email,
+        rol: body.rol,
+      },
+    };
+  } catch {
+    return { ok: false, error: 'No pudimos conectar con el servidor.' };
+  }
+}
 
 export async function loginRequest(
   payload: LoginPayload,

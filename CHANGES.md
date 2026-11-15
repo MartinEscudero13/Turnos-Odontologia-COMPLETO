@@ -464,3 +464,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Estado**: `[x]` completado (2026-11-15; C-08 ficha clínica y C-09 odontograma/presupuesto montados en `create_app` sobre adaptadores en memoria; consentimiento compartido entre ficha, evolución, hallazgos y líneas clínicas; presupuestos y líneas compartidos entre odontograma y presupuesto) + archivado en `openspec/changes/archive/2026-11-15-demo-api-clinica/`
 - **Verificación**: [`docs/foundation/verification-demo-api-clinica.md`](docs/foundation/verification-demo-api-clinica.md)
 - **Límite**: estado clínico en memoria; la aceptación de presupuesto no escribe en caja (imputación simulada); sin cobertura de obra social ni UI clínica.
+### [F-06] `frontend-interno`
+- **Estado**: `[x]` completado (2026-11-15; SPA `/app` con agenda, pacientes, clínica, caja, señas, obras sociales, calendario y configuración; login demo persistente; cliente API tipado con actor/JWT; seed demo y servicio `migrate` en Compose) + archivado en `openspec/changes/archive/2026-11-15-frontend-interno/`
+- **Verificación**: [`docs/foundation/verification-frontend-interno.md`](docs/foundation/verification-frontend-interno.md)
+- **Límite**: UI de WhatsApp/C-13, superadmin y edición avanzada fuera de alcance; la demo sigue en memoria.

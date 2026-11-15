@@ -32,6 +32,24 @@ services:
     networks:
       - turnos
 
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_OWNER_URL: postgresql+psycopg://turnos_owner:dev-only-owner-password@db:5432/turnos
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-c",
+        "python -m alembic -c alembic.ini upgrade head && python seed_demo.py",
+      ]
+    networks:
+      - turnos
+
   api:
     build:
       context: .
@@ -46,6 +64,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: dev-only-jwt-not-for-production-change-this-1234567890
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:

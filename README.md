@@ -6,12 +6,12 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 
 | | |
 |---|---|
-| Changes archivados | **19** de 20 — C-01…C-12, C-14, C-15, F-01…F-05 |
-| Specs vivas | **19** capabilities en `openspec/specs/` |
+| Changes archivados | **20** de 21 — C-01…C-12, C-14, C-15, F-01…F-06 |
+| Specs vivas | **20** capabilities en `openspec/specs/` |
 | Migraciones | 001 → **011**, con `downgrade` verificado contra PostgreSQL real |
 | Tests backend | **787 passed, 51 skipped** en local · **838 passed, 0 skipped** con `C02_DATABASE_URL` |
 | Calidad | `mypy` 123 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
-| Frontend | Landing pública F-02 (reserva + gestión por token) con tests, lint, typecheck y build |
+| Frontend | **SPA interno C-05…C-15** + landing pública F-02 · 32 tests, lint, typecheck y build |
 
 > ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05 a C-15
 > están montados en `create_app` sobre adaptadores en memoria. Lo que falta es UI, persistencia SQL de
@@ -64,28 +64,39 @@ Para solo compilar o inspeccionar la base compilada, ver `docs/foundation/bootst
 ## Cómo se levanta y qué responde hoy
 
 ```bash
-docker compose up -d db            # PostgreSQL 15 en localhost:5433
+docker compose up -d --build
+```
 
-# migraciones 001 → 011 (el rol owner es el único que puede correr DDL)
+Compose levanta PostgreSQL, Redis, corre las migraciones, siembra la demo y arranca API + SPA.
+
+**Credenciales demo** (datos ficticios):
+
+- Tenant: `demo`
+- Admin: `admin@demo.test` / `demo1234`
+- Recepción: `recepcion@demo.test` / `demo1234`
+- Odontólogo: `odontologo@demo.test` / `demo1234`
+
+**Frontend interno**: <http://localhost:5173/login> → “Entrar en modo demo” o las credenciales.
+**Reserva pública**: <http://localhost:5173/r/demo> · **Swagger**: <http://localhost:8000/docs>.
+
+Para desarrollo sin Docker:
+
+```bash
+docker compose up -d db
 $env:DATABASE_OWNER_URL = "postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos"
 py -m alembic -c backend/alembic.ini upgrade head
-
-# API con el rol de aplicación (sin privilegios de owner)
+py backend/seed_demo.py
 $env:DATABASE_URL = "postgresql+psycopg://turnos_app:dev-only-app-password@localhost:5433/turnos"
 cd backend; py -m uvicorn app.main:app --reload --port 8000
 ```
 
-- **Swagger**: <http://localhost:8000/docs> · **OpenAPI**: <http://localhost:8000/openapi.json>
-- **Health**: `GET /api/health` → `{"status":"UP",...}`
-- **Rutas vivas en el bootstrap actual**: `health`, `auth` (login/refresh/logout/me/2FA), `catalogos`
-  (profesionales, sillones, prestaciones, horarios, bloqueos, pacientes).
-- **Rutas documentadas pero no montadas**: turnos, reserva pública, lista de espera, ficha clínica,
-  odontograma, presupuesto, caja y señas. Ver [Límites declarados](#límites-declarados-del-alcance).
+Rutas del SPA: `/app` resumen · `/app/agenda` · `/app/pacientes` · `/app/clinica` · `/app/caja` ·
+`/app/senas` · `/app/obras-sociales` · `/app/calendario` · `/app/config`.
 
 ## Tests
 
 ```bash
-py -m pytest tests/                       # 678 passed, 42 skipped (addopts ya trae -q)
+py -m pytest tests/                       # 787 passed, 51 skipped (addopts ya trae -q)
 py -m ruff check .
 py -m mypy --config-file pyproject.toml
 
@@ -98,13 +109,13 @@ npm run build
 
 ### Suite completa con PostgreSQL real
 
-Los 42 tests que se saltean en local son los que necesitan una base viva (RLS real, `EXCLUDE` de
+Los 51 tests que se saltean en local son los que necesitan una base viva (RLS real, `EXCLUDE` de
 anti-solape, carreras entre dos conexiones, migraciones). Para correrlos:
 
 ```bash
 docker compose up -d db
 $env:C02_DATABASE_URL = "postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos"
-py -m pytest tests/                       # 720 passed, 0 skipped
+py -m pytest tests/                       # 838 passed, 0 skipped
 docker compose stop db
 ```
 
@@ -345,8 +356,8 @@ ni de tests.
 | C-14 Google Calendar sync | ✅ archivada |
 | C-15 admin, exportación y KPIs (parcial) | ✅ archivada (WhatsApp y superadmin fuera de alcance) |
 | C-13 WhatsApp | ⛔ bloqueado por PO-03 (no hay proveedor/BSP definido) |
-| UI de agenda, ficha, odontograma, caja y señas | ⛔ diferida a `C-09-UI`, `C-10-UI` y `C-11-UI` (changes aún no creados) |
-| Montaje de routers en `create_app` | ✅ C-05…C-11 (adaptadores en memoria) |
+| SPA interno (F-06) | ✅ agenda, pacientes, clínica, caja, señas, OS, calendario y configuración |
+| Montaje de routers en `create_app` | ✅ C-05…C-15 (adaptadores en memoria) |
 
 ## Límites declarados del alcance
 
@@ -365,9 +376,9 @@ El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son l
    puertos con adaptadores en memoria en tests y en la demo: el estado se pierde al reiniciar. Los
    repositorios SQL están escritos y probados contra PostgreSQL, pero no reemplazan a los adaptadores en
    el camino de la API.
-3. **Sin UI para los changes nuevos.** La única interfaz es la landing pública de F-02 y la fundación
-   visual de F-01. Agenda, ficha, odontograma, presupuesto, caja, señas y configuración de obras sociales
-   son backend-only.
+3. **La UI interna cubre C-05 a C-15, no WhatsApp.** El SPA permite operar agenda, pacientes, clínica,
+   caja, señas, obras sociales, calendario, configuración, exportación y KPIs. Queda fuera la UI de C-13
+   (bloqueado), el superadmin cross-tenant y las pantallas de edición avanzada.
 4. **Integraciones externas simuladas.** Mercado Pago se ejercita con un adaptador fake que respeta el
    contrato (firma HMAC, re-consulta del pago); Google Calendar con `PasarelaGoogleFake` y `oauth_ref`
    ficticio. No hay credenciales ni llamadas reales a los proveedores. WhatsApp no está implementado.

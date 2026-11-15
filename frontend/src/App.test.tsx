@@ -31,6 +31,39 @@ function mockFetch(): void {
           { status: 200, headers: { 'content-type': 'application/json' } },
         );
       }
+      if (url.endsWith('/api/auth/me')) {
+        return new Response(
+          JSON.stringify({
+            id: 'user-1',
+            tenant_id: 'tenant-1',
+            nombre: 'Admin Demo',
+            email: 'admin@demo.test',
+            rol: 'ADMIN',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      if (url.includes('/api/reportes/kpis')) {
+        return new Response(
+          JSON.stringify({
+            desde: '2026-11-01',
+            hasta: '2026-12-01',
+            total_turnos: 0,
+            turnos_por_estado: {},
+            ausentismo_pct: 0,
+            reservas_online_pct: 0,
+            facturacion_por_profesional: [],
+            reasignados_2h: 0,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      if (url.endsWith('/api/pacientes') || url.endsWith('/api/profesionales')) {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
       return new Response('not found', { status: 404 });
     }),
   );
@@ -38,6 +71,7 @@ function mockFetch(): void {
 
 afterEach(() => {
   cleanup();
+  window.localStorage.clear();
   vi.unstubAllGlobals();
 });
 
@@ -63,8 +97,10 @@ describe('visual foundation routes', () => {
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'correct-password' } });
     fireEvent.click(screen.getByRole('button', { name: /Entrar al panel/i }));
 
-    await waitFor(() => expect(screen.getAllByText(/admin@demo.test/i).length).toBeGreaterThan(0));
-    expect(screen.getAllByText(/Fundación visual/i).length).toBeGreaterThan(0);
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /Resumen operativo/i })).toBeInTheDocument(),
+    );
+    expect(screen.getAllByText(/admin@demo.test/i).length).toBeGreaterThan(0);
   });
 
   it('shows a recoverable 404', () => {

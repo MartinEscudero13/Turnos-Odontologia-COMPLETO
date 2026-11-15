@@ -3,7 +3,15 @@ import { AuthProvider, RequireSession } from './auth/AuthContext';
 import { AppShell } from './layouts/AppShell';
 import { AuthLayout } from './layouts/AuthLayout';
 import { PublicLayout } from './layouts/PublicLayout';
-import { AppHomePage } from './pages/AppHomePage';
+import { AgendaPage } from './pages/app/AgendaPage';
+import { CajaPage } from './pages/app/CajaPage';
+import { CalendarioPage } from './pages/app/CalendarioPage';
+import { ClinicaPage } from './pages/app/ClinicaPage';
+import { ConfigPage } from './pages/app/ConfigPage';
+import { DashboardPage } from './pages/app/DashboardPage';
+import { ObrasSocialesPage } from './pages/app/ObrasSocialesPage';
+import { PacientesPage } from './pages/app/PacientesPage';
+import { SenasPage } from './pages/app/SenasPage';
 import { GestionTurnoPage } from './pages/GestionTurnoPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -23,7 +31,15 @@ export function AppRoutes(): JSX.Element {
       </Route>
       <Route element={<RequireSession />}>
         <Route element={<AppShell />}>
-          <Route path="app" element={<AppHomePage />} />
+          <Route path="app" element={<DashboardPage />} />
+          <Route path="app/agenda" element={<AgendaPage />} />
+          <Route path="app/pacientes" element={<PacientesPage />} />
+          <Route path="app/clinica" element={<ClinicaPage />} />
+          <Route path="app/caja" element={<CajaPage />} />
+          <Route path="app/senas" element={<SenasPage />} />
+          <Route path="app/obras-sociales" element={<ObrasSocialesPage />} />
+          <Route path="app/calendario" element={<CalendarioPage />} />
+          <Route path="app/config" element={<ConfigPage />} />
         </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />

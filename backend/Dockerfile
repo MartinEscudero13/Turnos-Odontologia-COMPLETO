@@ -22,6 +22,7 @@ COPY --from=builder /install /usr/local/lib/python3.12/site-packages
 COPY backend/app ./app
 COPY backend/alembic ./alembic
 COPY backend/alembic.ini ./alembic.ini
+COPY backend/seed_demo.py ./seed_demo.py
 USER turnos
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --retries=5 --start-period=10s \
