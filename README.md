@@ -14,7 +14,7 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 | Frontend | Landing pública F-02 (reserva + gestión por token) con tests, lint, typecheck y build |
 
 > ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: el dominio de
-> C-05…C-11 está implementado y probado, pero sus routers **no están montados** todavía en `create_app`.
+> C-05/C-06 ya están montados; C-07…C-11 siguen implementados y probados, pero sus routers **no están montados** todavía en `create_app`.
 > Está explicado sin vueltas más abajo.
 
 ## Equipo
@@ -210,7 +210,7 @@ ni de tests.
 | Directorio / archivo | Qué es |
 |----------------------|--------|
 | `backend/app/core/` | Core de la fundación C-01: `Settings`, logger JSON sin PHI, correlation IDs, excepciones |
-| `backend/app/app.py` | Factory FastAPI (`create_app`) con middleware y mapeo de errores; hoy monta `health`, `auth` y `catalogos` |
+| `backend/app/app.py` | Factory FastAPI (`create_app`) con middleware y mapeo de errores; monta `health`, `auth`, `catalogos`, turnos C-05 y reservas públicas C-06 |
 | `backend/app/main.py` | Entrypoint Uvicorn (`app.main:app`) usado por el contenedor |
 | `backend/app/db.py` | Engine/session factories SQLAlchemy 2.0 |
 | `backend/app/turnos/` | Dominio C-05: `overlap()`, cálculo de `fin`, 3 alternativas ante 409, máquina de estados, servicio + auditoría |
