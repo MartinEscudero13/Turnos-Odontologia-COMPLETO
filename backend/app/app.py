@@ -24,8 +24,11 @@ from app.middleware import RequestIdMiddleware
 from app.routers.auth import router as auth_router
 from app.routers.caja import crear_router as crear_router_caja
 from app.routers.catalogos import router as catalogos_router
+from app.routers.ficha_clinica import crear_router as crear_router_ficha_clinica
 from app.routers.health import router as health_router
 from app.routers.lista_espera import crear_router as crear_router_lista_espera
+from app.routers.odontograma import crear_router as crear_router_odontograma
+from app.routers.presupuesto import crear_router as crear_router_presupuesto
 from app.routers.reservas_publicas import crear_router_publico
 from app.routers.senas import crear_router_publico as crear_router_senas_publico
 from app.routers.senas_internas import crear_router_interno as crear_router_senas_interno
@@ -61,6 +64,9 @@ def create_app(
     app.include_router(crear_router_senas_publico(demo.senas))
     app.include_router(crear_router_senas_interno(demo.senas_consulta, demo.senas_aplicacion))
     app.include_router(crear_router_webhook(demo.senas_webhook))
+    app.include_router(crear_router_ficha_clinica(demo.ficha_clinica))
+    app.include_router(crear_router_odontograma(demo.odontograma))
+    app.include_router(crear_router_presupuesto(demo.presupuesto))
 
     @app.exception_handler(TurnoError)
     async def handle_turno_error(_request: Request, exc: TurnoError) -> JSONResponse:

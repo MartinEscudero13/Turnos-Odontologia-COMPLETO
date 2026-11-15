@@ -454,3 +454,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Estado**: `[x]` completado (2026-11-15; C-07 lista de espera, C-10 caja y C-11 señas montados en `create_app` sobre adaptadores en memoria; la reserva pública crea la seña cuando la regla demo la exige; handler global de `TurnoError` para conservar 403/404/409) + archivado en `openspec/changes/archive/2026-11-15-demo-api-dominios/`
 - **Verificación**: [`docs/foundation/verification-demo-api-dominios.md`](docs/foundation/verification-demo-api-dominios.md)
 - **Límite**: todo el estado de la demo es en memoria y se pierde al reiniciar; C-08/C-09 siguen sin montar; el webhook de Mercado Pago responde `503` porque no hay secreto real.
+### [F-05] `demo-api-clinica`
+- **Estado**: `[x]` completado (2026-11-15; C-08 ficha clínica y C-09 odontograma/presupuesto montados en `create_app` sobre adaptadores en memoria; consentimiento compartido entre ficha, evolución, hallazgos y líneas clínicas; presupuestos y líneas compartidos entre odontograma y presupuesto) + archivado en `openspec/changes/archive/2026-11-15-demo-api-clinica/`
+- **Verificación**: [`docs/foundation/verification-demo-api-clinica.md`](docs/foundation/verification-demo-api-clinica.md)
+- **Límite**: estado clínico en memoria; la aceptación de presupuesto no escribe en caja (imputación simulada); sin cobertura de obra social ni UI clínica.

@@ -6,16 +6,16 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 
 | | |
 |---|---|
-| Changes archivados | **15** de 19 — C-01…C-11, F-01…F-04 |
+| Changes archivados | **16** de 20 — C-01…C-11, F-01…F-05 |
 | Specs vivas | **16** capabilities en `openspec/specs/` |
 | Migraciones | 001 → **009**, con `downgrade` verificado contra PostgreSQL real |
-| Tests backend | **688 passed, 42 skipped** en local · **730 passed, 0 skipped** con `C02_DATABASE_URL` |
+| Tests backend | **695 passed, 42 skipped** en local · **737 passed, 0 skipped** con `C02_DATABASE_URL` |
 | Calidad | `mypy` 102 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
 | Frontend | Landing pública F-02 (reserva + gestión por token) con tests, lint, typecheck y build |
 
-> ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05, C-06,
-> C-07, C-10 y C-11 ya están montados en `create_app` sobre adaptadores en memoria. C-08 y C-09 siguen
-> implementados y probados, pero sin ruta en la app. Está explicado sin vueltas más abajo.
+> ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05 a C-11
+> están montados en `create_app` sobre adaptadores en memoria. Lo que falta es UI, persistencia SQL de
+> esos dominios y las integraciones externas reales.
 
 ## Equipo
 
@@ -210,7 +210,7 @@ ni de tests.
 | Directorio / archivo | Qué es |
 |----------------------|--------|
 | `backend/app/core/` | Core de la fundación C-01: `Settings`, logger JSON sin PHI, correlation IDs, excepciones |
-| `backend/app/app.py` | Factory FastAPI (`create_app`) con middleware y mapeo de errores; monta `health`, `auth`, `catalogos`, turnos C-05, reservas públicas C-06, lista de espera C-07, caja C-10 y señas C-11 |
+| `backend/app/app.py` | Factory FastAPI (`create_app`) con middleware y mapeo de errores; monta `health`, `auth`, `catalogos` y los routers de C-05 a C-11 (turnos, reserva, lista de espera, ficha, odontograma, presupuesto, caja y señas) |
 | `backend/app/main.py` | Entrypoint Uvicorn (`app.main:app`) usado por el contenedor |
 | `backend/app/db.py` | Engine/session factories SQLAlchemy 2.0 |
 | `backend/app/turnos/` | Dominio C-05: `overlap()`, cálculo de `fin`, 3 alternativas ante 409, máquina de estados, servicio + auditoría |
@@ -322,6 +322,7 @@ ni de tests.
 - **C-09 `odontograma-presupuesto`** — archivado el 2026-11-12. Odontograma FDI por diente/cara, presupuesto con ítems y aceptación, e imputación posterior a caja. Migración 007. Suite 416 passed + 10 skipped local; 426 + 0 con PostgreSQL.
 - **C-10 `caja-cierre-diario`** — archivado el 2026-11-13. Movimientos multi-medio, imputación de prestaciones y obras sociales, cobros pendientes, anulación con motivo, **cierre diario inmutable** con `pg_advisory_xact_lock` y snapshot de totales, ajustes post-cierre en ledger separado y reportes base. Migración 008. Suite 552 + 27 local; 579 + 0 con PostgreSQL.
 - **C-11 `senas-mercadopago`** — archivado el 2026-11-13. Seña atada 1:1 al turno (monto por prestación con override, truncado hacia abajo), preferencia de Mercado Pago con reintento y backoff, token público opaco, **webhook idempotente que verifica HMAC y re-consulta el pago** (nunca confía en el cuerpo; `503` fail-closed sin secreto), expiración atómica con auto-oferta a C-07, aplicación a caja vía C-10 con bloqueo por presupuesto aceptado, devolución como estado contable y transferencia de la seña al reprogramar. Migración 009. Suite 678 + 42 local; 720 + 0 con PostgreSQL.
+- **Montaje demo (F-03, F-04, F-05)** — la API real expone C-05 a C-11 sobre un composition root en memoria (`backend/app/demo.py`): reserva pública con seña, lista de espera, ficha y consentimiento, odontograma, presupuesto, caja y señas. El estado se pierde al reiniciar y las aceptaciones de presupuesto no impactan caja.
 
 ## Alcance completo vs pendiente (TPI)
 
@@ -340,22 +341,21 @@ ni de tests.
 | C-12 obras sociales · C-14 Google Calendar · C-15 admin y reportes | ⏳ pendientes del roadmap |
 | C-13 WhatsApp | ⛔ bloqueado por PO-03 (no hay proveedor/BSP definido) |
 | UI de agenda, ficha, odontograma, caja y señas | ⛔ diferida a `C-09-UI`, `C-10-UI` y `C-11-UI` (changes aún no creados) |
-| Montaje de routers en `create_app` | ✅ C-05/C-06/C-07/C-10/C-11 · ⏳ C-08/C-09 |
+| Montaje de routers en `create_app` | ✅ C-05…C-11 (adaptadores en memoria) |
 
 ## Límites declarados del alcance
 
 El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son los límites reales al
 2026-11-13, sin maquillaje:
 
-1. **El bootstrap de la API monta C-05/C-06/C-07/C-10/C-11, no C-08/C-09.** `backend/app/app.py`
-   registra `health`, `auth`, `catalogos`, los turnos internos, la reserva pública, la lista de espera,
-   la caja y las rutas de señas (públicas, internas y webhook). Ficha clínica, odontograma y
-   presupuesto siguen existiendo como routers inyectables y con tests, pero **no se engancharon a la
-   app**. Los repositorios SQLAlchemy de caja, presupuesto y señas también existen y no están cableados
-   al arranque.
-   Consecuencia concreta: por `uvicorn` se puede autenticar, ver catálogo, reservar online, gestionar la
-   lista de espera, cobrar y consultar señas; todavía no se puede abrir una ficha clínica ni un
-   presupuesto desde Swagger.
+1. **El bootstrap de la API monta C-05 a C-11.** `backend/app/app.py` registra `health`, `auth`,
+   `catalogos`, los turnos internos, la reserva pública, la lista de espera, la ficha clínica, el
+   odontograma, el presupuesto, la caja y las rutas de señas (públicas, internas y webhook), todos
+   sobre adaptadores en memoria. Los repositorios SQLAlchemy de caja, presupuesto y señas existen y no
+   están cableados al arranque.
+   Consecuencia concreta: por `uvicorn` se puede recorrer el núcleo completo (reservar, gestionar la
+   lista de espera, abrir ficha, registrar hallazgos, presupuestar, cobrar y consultar señas), pero el
+   estado se pierde al reiniciar y las aceptaciones de presupuesto no escriben en caja.
 2. **La persistencia real solo aplica a `auth` y `catalogos`.** El resto de los dominios corre sobre
    puertos con adaptadores en memoria en tests y en la demo: el estado se pierde al reiniciar. Los
    repositorios SQL están escritos y probados contra PostgreSQL, pero no reemplazan a los adaptadores en

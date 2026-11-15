@@ -20,7 +20,7 @@ Después esperá mi confirmación antes de tocar archivos.
 ## Estado (2026-11-13)
 
 - C-01 a C-11, F-01 y F-02: **terminados, verificados y archivados** (13 changes).
-- **API demo**: C-05, C-06, C-07, C-10 y C-11 montados en `create_app` sobre adaptadores en memoria (F-03 + F-04).
+- **API demo**: C-05 a C-11 montados en `create_app` sobre adaptadores en memoria (F-03, F-04 y F-05).
 - TP2 skill + MCP: **terminado y pusheado**.
 - Backend: **678 passed + 42 skipped** en local · **720 passed + 0 skipped** con `C02_DATABASE_URL`.
 - Migraciones **001 a 009** aplicadas y reversibles contra PostgreSQL real.
@@ -30,9 +30,9 @@ Después esperá mi confirmación antes de tocar archivos.
 
 ## Deudas declaradas (leer antes de proponer nada)
 
-1. Los routers de C-05, C-06, C-07, C-10 y C-11 ya están montados sobre adaptadores en
-   memoria; **C-08 y C-09 siguen sin montar** en `backend/app/app.py`. Ficha, odontograma y
-   presupuesto todavía no tienen ruta; caja y señas sí, pero su estado se pierde al reiniciar.
+1. Los routers de C-05 a C-11 ya están montados sobre adaptadores en memoria:
+   reserva, lista de espera, ficha, odontograma, presupuesto, caja y señas. El estado se
+   pierde al reiniciar y las aceptaciones de presupuesto no escriben en caja.
 2. La UI de C-09, C-10 y C-11 está diferida a `C-09-UI`, `C-10-UI` y `C-11-UI`, y esos changes no existen todavía.
 3. El ERD de `knowledge-base/04_modelo_de_datos.md` no incluye las tablas 007/008/009.
 

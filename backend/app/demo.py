@@ -25,6 +25,23 @@ from app.caja.puertos import (
     AuditoriaMemoria as AuditoriaCajaMemoria,
 )
 from app.caja.servicio import ServicioCaja
+from app.ficha_clinica.puertos import (
+    AdjuntoMemoria,
+    ConsentimientoMemoria,
+    EvolucionMemoria,
+    FichaMemoria,
+    ProfesionalMemoria,
+)
+from app.ficha_clinica.puertos import (
+    AuditoriaMemoria as AuditoriaFichaMemoria,
+)
+from app.ficha_clinica.puertos import (
+    PacienteMemoria as PacienteFichaMemoria,
+)
+from app.ficha_clinica.puertos import (
+    TurnoMemoria as TurnoFichaMemoria,
+)
+from app.ficha_clinica.servicio import ServicioFichaClinica
 from app.lista_espera.puertos import (
     AuditoriaMemoria as AuditoriaListaMemoria,
 )
@@ -40,6 +57,39 @@ from app.lista_espera.puertos import (
 )
 from app.lista_espera.servicio import ServicioListaEspera
 from app.lista_espera.worker import ServicioAutoOferta
+from app.odontograma.puertos import (
+    AuditoriaMemoria as AuditoriaOdontogramaMemoria,
+)
+from app.odontograma.puertos import (
+    HallazgoMemoria,
+)
+from app.odontograma.puertos import (
+    PrestacionMemoria as PrestacionOdontogramaMemoria,
+)
+from app.odontograma.puertos import (
+    UnidadDeTrabajoMemoria as UowOdontogramaMemoria,
+)
+from app.odontograma.servicio import ServicioOdontograma
+from app.presupuesto.puertos import (
+    AceptacionMemoria,
+    CoberturaMemoria,
+    ImputacionMemoria,
+    LineaMemoria,
+    PresupuestoMemoria,
+)
+from app.presupuesto.puertos import (
+    AuditoriaMemoria as AuditoriaPresupuestoMemoria,
+)
+from app.presupuesto.puertos import (
+    PacienteMemoria as PacientePresupuestoMemoria,
+)
+from app.presupuesto.puertos import (
+    PrestacionMemoria as PrestacionPresupuestoMemoria,
+)
+from app.presupuesto.puertos import (
+    UnidadDeTrabajoMemoria as UowPresupuestoMemoria,
+)
+from app.presupuesto.servicio import ServicioPresupuesto
 from app.reservas.antispam import ContadorMemoria, VerificadorMemoria
 from app.reservas.puertos import (
     AuditoriaMemoria,
@@ -84,6 +134,9 @@ DEMO_ADMIN_ID = "usuario-demo-admin"
 DEMO_PACIENTE_1 = "paciente-demo-1"
 DEMO_PACIENTE_2 = "paciente-demo-2"
 
+PRECIO_CONSULTA_CENTAVOS = 10000
+PRECIO_LIMPIEZA_CENTAVOS = 15000
+
 OFERTA_TTL_MIN = 120
 SENA_TTL_H = 24
 ANTICIPACION_CANCELACION_H = 24
@@ -108,6 +161,9 @@ class DemoServices:
     senas_consulta: ServicioSenasConsulta
     senas_aplicacion: ServicioSenasAplicacion
     senas_webhook: ServicioSenasWebhook
+    ficha_clinica: ServicioFichaClinica
+    odontograma: ServicioOdontograma
+    presupuesto: ServicioPresupuesto
 
 
 def _seed_catalogo() -> CatalogoMemoria:
@@ -177,12 +233,12 @@ def _seed_configuracion_senas() -> ConfiguracionSenaMemoria:
     configuracion.agregar_prestacion(
         tenant_id=DEMO_TENANT_ID,
         prestacion_id=PRESTACION_CONSULTA,
-        precio_base_centavos=10000,
+        precio_base_centavos=PRECIO_CONSULTA_CENTAVOS,
     )
     configuracion.agregar_prestacion(
         tenant_id=DEMO_TENANT_ID,
         prestacion_id=PRESTACION_LIMPIEZA,
-        precio_base_centavos=15000,
+        precio_base_centavos=PRECIO_LIMPIEZA_CENTAVOS,
         sena_modo="SIN_SENA",
     )
     return configuracion
@@ -296,6 +352,77 @@ def build_demo_services(
         reloj=clock,
     )
 
+    # -- C-08 ficha clínica + C-09 odontograma/presupuesto -------------
+    consentimientos = ConsentimientoMemoria()
+    pacientes_clinicos = PacienteFichaMemoria()
+    profesionales_clinicos = ProfesionalMemoria()
+    turnos_clinicos = TurnoFichaMemoria()
+    for paciente_id in (DEMO_PACIENTE_1, DEMO_PACIENTE_2):
+        pacientes_clinicos.agregar(DEMO_TENANT_ID, paciente_id)
+        turnos_clinicos.agregar(DEMO_TENANT_ID, PROFESIONAL_DEMO_1, paciente_id)
+    for profesional_id in (PROFESIONAL_DEMO_1, PROFESIONAL_DEMO_2):
+        profesionales_clinicos.agregar(DEMO_TENANT_ID, profesional_id)
+
+    ficha_clinica = ServicioFichaClinica(
+        FichaMemoria(),
+        EvolucionMemoria(),
+        AdjuntoMemoria(),
+        consentimientos,
+        pacientes_clinicos,
+        profesionales_clinicos,
+        turnos_clinicos,
+        AuditoriaFichaMemoria(),
+        reloj=clock,
+    )
+
+    presupuestos_repo = PresupuestoMemoria()
+    lineas_repo = LineaMemoria()
+    prestaciones_odonto = PrestacionOdontogramaMemoria()
+    prestaciones_odonto.agregar(DEMO_TENANT_ID, PRESTACION_CONSULTA, PRECIO_CONSULTA_CENTAVOS)
+    prestaciones_odonto.agregar(DEMO_TENANT_ID, PRESTACION_LIMPIEZA, PRECIO_LIMPIEZA_CENTAVOS)
+    hallazgos_repo = HallazgoMemoria()
+    auditoria_odonto = AuditoriaOdontogramaMemoria()
+    odontograma = ServicioOdontograma(
+        hallazgos_repo,
+        presupuestos_repo,
+        lineas_repo,
+        prestaciones_odonto,
+        pacientes_clinicos,
+        profesionales_clinicos,
+        turnos_clinicos,
+        consentimientos,
+        auditoria_odonto,
+        uow_factory=lambda: UowOdontogramaMemoria(
+            [hallazgos_repo, presupuestos_repo, lineas_repo, auditoria_odonto]
+        ),
+        reloj=clock,
+    )
+
+    pacientes_presupuesto = PacientePresupuestoMemoria()
+    for paciente_id in (DEMO_PACIENTE_1, DEMO_PACIENTE_2):
+        pacientes_presupuesto.agregar(DEMO_TENANT_ID, paciente_id, None)
+    prestaciones_presupuesto = PrestacionPresupuestoMemoria()
+    prestaciones_presupuesto.agregar(DEMO_TENANT_ID, PRESTACION_CONSULTA, PRECIO_CONSULTA_CENTAVOS)
+    prestaciones_presupuesto.agregar(DEMO_TENANT_ID, PRESTACION_LIMPIEZA, PRECIO_LIMPIEZA_CENTAVOS)
+    aceptaciones_repo = AceptacionMemoria()
+    auditoria_presupuesto = AuditoriaPresupuestoMemoria()
+    presupuesto = ServicioPresupuesto(
+        presupuestos_repo,
+        lineas_repo,
+        aceptaciones_repo,
+        prestaciones_presupuesto,
+        pacientes_presupuesto,
+        CoberturaMemoria(),
+        ImputacionMemoria(),
+        auditoria_presupuesto,
+        consentimientos=consentimientos,
+        uow_factory=lambda: UowPresupuestoMemoria(
+            [presupuestos_repo, lineas_repo, aceptaciones_repo, auditoria_presupuesto],
+            lineas_repo,
+        ),
+        reloj=clock,
+    )
+
     # -- C-06 reserva pública (con el enganche de C-11) ----------------
     auditoria_publica = AuditoriaMemoria()
     reservas = ServicioReservasPublicas(
@@ -333,6 +460,9 @@ def build_demo_services(
         senas_consulta=senas_consulta,
         senas_aplicacion=senas_aplicacion,
         senas_webhook=senas_webhook,
+        ficha_clinica=ficha_clinica,
+        odontograma=odontograma,
+        presupuesto=presupuesto,
     )
 
 
