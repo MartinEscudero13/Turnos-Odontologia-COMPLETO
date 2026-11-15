@@ -48,6 +48,10 @@ from app.senas.puertos import (
 )
 from app.turnos.servicio import NoEncontrado
 
+
+def _rowcount(resultado: Any) -> int:
+    return int(getattr(resultado, "rowcount", 0))
+
 __all__ = [
     "PagoMPRepositorioSQL",
     "SenaRepositorioSQL",
@@ -265,7 +269,7 @@ class SenaRepositorioSQL:
             )
             .values(**valores)
         )
-        if resultado.rowcount != 1:
+        if _rowcount(resultado) != 1:
             return None
         self._session.flush()
         return self.obtener(tenant_id=tenant_id, sena_id=sena_id)
@@ -294,7 +298,7 @@ class SenaRepositorioSQL:
         resultado = self._session.execute(
             update(SenaModel).where(*condiciones).values(**datos)
         )
-        if resultado.rowcount != 1:
+        if _rowcount(resultado) != 1:
             if self.obtener(tenant_id=tenant_id, sena_id=sena_id) is None:
                 raise NoEncontrado("seña no encontrada")
             return None
@@ -323,7 +327,7 @@ class SenaRepositorioSQL:
             )
         except IntegrityError as exc:
             raise TokenDuplicado("el token_hash ya existe") from exc
-        if resultado.rowcount != 1:
+        if _rowcount(resultado) != 1:
             raise NoEncontrado("seña no encontrada")
         self._session.flush()
         actual = self.obtener(tenant_id=tenant_id, sena_id=sena_id)
@@ -427,7 +431,7 @@ class PagoMPRepositorioSQL:
             .values(**valores)
             .on_conflict_do_nothing(index_elements=["mp_payment_id"])
         )
-        if insertado.rowcount == 1:
+        if _rowcount(insertado) == 1:
             self._session.flush()
             creado = self.obtener(tenant_id=tenant_id, mp_payment_id=mp_payment_id)
             if creado is None:  # pragma: no cover - el INSERT acaba de commitear
@@ -526,7 +530,7 @@ class TurnosSenaSQL:
             )
             .values(estado=hacia)
         )
-        if resultado.rowcount == 1:
+        if _rowcount(resultado) == 1:
             self._session.flush()
             return
         actual = self.turno_de(tenant_id=tenant_id, turno_id=turno_id)
