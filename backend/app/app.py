@@ -27,6 +27,7 @@ from app.routers.catalogos import router as catalogos_router
 from app.routers.ficha_clinica import crear_router as crear_router_ficha_clinica
 from app.routers.health import router as health_router
 from app.routers.lista_espera import crear_router as crear_router_lista_espera
+from app.routers.obras_sociales import crear_router as crear_router_obras_sociales
 from app.routers.odontograma import crear_router as crear_router_odontograma
 from app.routers.presupuesto import crear_router as crear_router_presupuesto
 from app.routers.reservas_publicas import crear_router_publico
@@ -67,6 +68,7 @@ def create_app(
     app.include_router(crear_router_ficha_clinica(demo.ficha_clinica))
     app.include_router(crear_router_odontograma(demo.odontograma))
     app.include_router(crear_router_presupuesto(demo.presupuesto))
+    app.include_router(crear_router_obras_sociales(demo.obras_sociales))
 
     @app.exception_handler(TurnoError)
     async def handle_turno_error(_request: Request, exc: TurnoError) -> JSONResponse:

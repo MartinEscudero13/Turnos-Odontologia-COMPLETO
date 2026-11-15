@@ -177,7 +177,9 @@ def test_presupuesto_crea_linea_al_precio_base_y_emite() -> None:
     )
     assert linea.status_code == 201, linea.text
     assert linea.json()["monto"] == PRECIO_CONSULTA_CENTAVOS
-    assert linea.json()["a_cargo_paciente"] == PRECIO_CONSULTA_CENTAVOS
+    # C-12: OS Demo Norte cubre 50% con tope 4000 sobre la consulta demo.
+    assert linea.json()["cobertura_os"] == 4000
+    assert linea.json()["a_cargo_paciente"] == 6000
 
     emitido = c.post(
         f"/api/presupuestos/{presupuesto_id}/emitir",

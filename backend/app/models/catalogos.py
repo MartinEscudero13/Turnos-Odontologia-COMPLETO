@@ -159,7 +159,11 @@ class Paciente(Base):
     dni_cifrado: Mapped[str] = mapped_column(Text, nullable=True)
     telefono: Mapped[str] = mapped_column(Text, nullable=False)
     email: Mapped[str] = mapped_column(Text, nullable=True)
-    obra_social_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    obra_social_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("obras_sociales.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     nro_afiliado: Mapped[str] = mapped_column(Text, nullable=True)
     consentimiento_ok: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     creado_en: Mapped[datetime] = mapped_column(

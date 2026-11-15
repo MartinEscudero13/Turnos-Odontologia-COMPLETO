@@ -80,10 +80,10 @@ auditoria (tenant, actor, acción, entidad, antes/después, timestamp) — appen
 - `mensajes_wa`: `id`, `tenant_id`, `paciente_id`, `turno_id?`, `plantilla`, `estado(ENVIADO, ENTREGADO, LEIDO, FALLIDO)`, `provider_message_id unique?`.
 - `auditoria`: append-only `(tenant_id, actor_id, accion, entidad, entidad_id, antes jsonb, despues jsonb, at)`; sin UPDATE/DELETE (revoke).
 
-## Extensiones materializadas en migraciones (007–009)
+## Extensiones materializadas en migraciones (007–010)
 
 Además de las entidades planeadas arriba, las migraciones agregaron estas tablas y columnas. Son la
-fuente de verdad vigente; los `design.md` archivados de C-09, C-10 y C-11 documentan su semántica.
+fuente de verdad vigente; los `design.md` archivados de C-09, C-10, C-11 y C-12 documentan su semántica.
 
 | Migración | Objeto nuevo | Para qué |
 |---|---|---|
@@ -94,6 +94,9 @@ fuente de verdad vigente; los `design.md` archivados de C-09, C-10 y C-11 docume
 | 008 | `cuentas_por_cobrar_os` | Tramo OS **devengado informativo**, nunca un ingreso de caja |
 | 009 | `senas`, `pagos_mp` | Seña atada al turno y pagos de Mercado Pago con idempotencia por `mp_payment_id` |
 | 009 | `prestaciones.sena_modo`, `prestaciones.sena_valor` | Override por prestación de la regla de seña (PO-01) |
+| 010 | `obras_sociales`, `coberturas` | Catálogo de OS por tenant y cobertura configurada por (OS × prestación) |
+| 010 | `liquidaciones`, `liquidacion_lineas` | Liquidación por período de turnos atendidos y su detalle inmutable |
+| 010 | `pacientes.obra_social_id` (FK) | Vínculo del paciente con la obra social del tenant |
 
 Todas llevan `tenant_id NOT NULL` con RLS forzada. `senas.token_hash` y `pagos_mp.mp_payment_id` son
 únicos globales (no por tenant) para que el webhook público resuelva sin filtrar existencia entre tenants.

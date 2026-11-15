@@ -19,6 +19,7 @@ from app.models.catalogos import (
 )
 from app.models.ficha_clinica import Adjunto, Consentimiento, Evolucion, Ficha
 from app.models.lista_espera import ListaEspera, Oferta
+from app.models.obras_sociales import Cobertura, Liquidacion, LiquidacionLinea, ObraSocial
 from app.models.odontograma import OdontogramaHallazgo
 from app.models.presupuesto import Aceptacion, Presupuesto, PresupuestoLinea
 from app.models.refresh_token import RefreshToken
@@ -36,13 +37,17 @@ __all__ = [
     "Bloqueo",
     "CierreDiario",
     "CobroPendiente",
+    "Cobertura",
     "Consentimiento",
     "CuentaPorCobrarOS",
     "Evolucion",
     "Ficha",
     "HorarioSemanal",
     "ListaEspera",
+    "Liquidacion",
+    "LiquidacionLinea",
     "MovimientoCaja",
+    "ObraSocial",
     "OdontogramaHallazgo",
     "Oferta",
     "Paciente",

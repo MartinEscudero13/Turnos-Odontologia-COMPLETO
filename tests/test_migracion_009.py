@@ -1083,13 +1083,15 @@ def test_downgrade_y_reupgrade_en_pg(monkeypatch: pytest.MonkeyPatch) -> None:
         antes = _tablas(engine)
         columnas_antes = _columnas(engine, "prestaciones")
         assert {"senas", "pagos_mp"} <= antes
-        assert _revision(engine) == "009_senas_mercadopago"
+        assert _revision(engine) == "010_obras_sociales_liquidacion"
 
         _migrar("008_caja_cierre_diario", monkeypatch)
 
         despues = _tablas(engine)
         assert "senas" not in despues
         assert "pagos_mp" not in despues
+        assert "obras_sociales" not in despues
+        assert "liquidaciones" not in despues
         columnas = _columnas(engine, "prestaciones")
         assert "sena_modo" not in columnas
         assert "sena_valor" not in columnas
@@ -1108,8 +1110,9 @@ def test_downgrade_y_reupgrade_en_pg(monkeypatch: pytest.MonkeyPatch) -> None:
         _migrar("head", monkeypatch)
 
         assert {"senas", "pagos_mp"} <= _tablas(engine)
+        assert {"obras_sociales", "coberturas", "liquidaciones"} <= _tablas(engine)
         assert {"sena_modo", "sena_valor"} <= _columnas(engine, "prestaciones")
-        assert _revision(engine) == "009_senas_mercadopago"
+        assert _revision(engine) == "010_obras_sociales_liquidacion"
     finally:
         _migrar("head", monkeypatch)
         engine.dispose()

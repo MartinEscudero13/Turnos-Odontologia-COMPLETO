@@ -356,7 +356,9 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ---
 
 ### [C-12] `obras-sociales-liquidacion`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-11-15; catálogo de obras sociales, coberturas por OS × prestación, cálculo de tramos con tope, liquidación por período de turnos atendidos, cierre inmutable y export CSV; migración 010 con RLS; adaptador de cobertura para C-09) + archivado en `openspec/changes/archive/2026-11-15-c-12-obras-sociales-liquidacion/`
+- **Verificación**: [`docs/foundation/verification-c-12-obras-sociales.md`](docs/foundation/verification-c-12-obras-sociales.md)
+- **Límite**: sin validación realtime (PO-04), sin aranceles por OS (PO-08: el monto base es `prestaciones.precio_base`) y sin UI de configuración.
 - **Scope**: Cobertura OS configurable por tenant + liquidación presentable (US-042; RN-OS-01/02/03, DD-04)
   - Modelos: `ObraSocial(tenant, nombre, activa)`, `Cobertura(tenant, obra_social, prestacion, porcentaje/monto, tope?)`, `Liquidacion(tenant, obra_social, periodo, estado, total)` + líneas por turno atendido con OS
   - Endpoints: `/api/obras-sociales`, `/api/coberturas`, `/api/liquidaciones` (por período, exportable); UI etiquetada "configurada, no validada en vivo"

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time, timedelta, timezone
 
 from app.caja.puertos import (
     AjustePostCierreMemoria,
@@ -57,6 +57,22 @@ from app.lista_espera.puertos import (
 )
 from app.lista_espera.servicio import ServicioListaEspera
 from app.lista_espera.worker import ServicioAutoOferta
+from app.obras_sociales.adaptadores import CoberturaPresupuesto
+from app.obras_sociales.puertos import (
+    AuditoriaMemoria as AuditoriaObrasSocialesMemoria,
+)
+from app.obras_sociales.puertos import (
+    CoberturaMemoria as CoberturaObrasSocialesMemoria,
+)
+from app.obras_sociales.puertos import (
+    LiquidacionMemoria,
+    ObraSocialMemoria,
+    PacienteObraSocialMemoria,
+    PrestacionPrecioMemoria,
+    TurnoAtendido,
+    TurnosAtendidosMemoria,
+)
+from app.obras_sociales.servicio import ServicioObrasSociales
 from app.odontograma.puertos import (
     AuditoriaMemoria as AuditoriaOdontogramaMemoria,
 )
@@ -72,7 +88,6 @@ from app.odontograma.puertos import (
 from app.odontograma.servicio import ServicioOdontograma
 from app.presupuesto.puertos import (
     AceptacionMemoria,
-    CoberturaMemoria,
     ImputacionMemoria,
     LineaMemoria,
     PresupuestoMemoria,
@@ -140,6 +155,16 @@ PRECIO_LIMPIEZA_CENTAVOS = 15000
 OFERTA_TTL_MIN = 120
 SENA_TTL_H = 24
 ANTICIPACION_CANCELACION_H = 24
+TZ_DEMO = timezone(timedelta(hours=-3))
+
+
+def demo_periodo_actual(ahora: datetime | None = None) -> tuple[date, date]:
+    """Período mensual de la demo: `[primer día, primer día del mes siguiente)`."""
+    momento = ahora or datetime.now(TZ_DEMO)
+    dia = momento.astimezone(TZ_DEMO).date()
+    desde = dia.replace(day=1)
+    hasta = (desde.replace(day=28) + timedelta(days=4)).replace(day=1)
+    return desde, hasta
 
 
 @dataclass(frozen=True)
@@ -164,6 +189,7 @@ class DemoServices:
     ficha_clinica: ServicioFichaClinica
     odontograma: ServicioOdontograma
     presupuesto: ServicioPresupuesto
+    obras_sociales: ServicioObrasSociales
 
 
 def _seed_catalogo() -> CatalogoMemoria:
@@ -352,6 +378,72 @@ def build_demo_services(
         reloj=clock,
     )
 
+    # -- C-12 obras sociales y liquidación -----------------------------
+    atendidos_os = TurnosAtendidosMemoria()
+    pacientes_os = PacienteObraSocialMemoria()
+    prestaciones_os = PrestacionPrecioMemoria()
+    prestaciones_os.agregar(DEMO_TENANT_ID, PRESTACION_CONSULTA, PRECIO_CONSULTA_CENTAVOS)
+    prestaciones_os.agregar(DEMO_TENANT_ID, PRESTACION_LIMPIEZA, PRECIO_LIMPIEZA_CENTAVOS)
+    obras_sociales = ServicioObrasSociales(
+        ObraSocialMemoria(),
+        CoberturaObrasSocialesMemoria(),
+        LiquidacionMemoria(),
+        atendidos_os,
+        pacientes_os,
+        prestaciones_os,
+        AuditoriaObrasSocialesMemoria(),
+        reloj=clock,
+    )
+    admin = Actor(tenant_id=DEMO_TENANT_ID, rol="ADMIN", user_id=DEMO_ADMIN_ID)
+    os_norte = obras_sociales.crear_obra_social(admin, nombre="OS Demo Norte")
+    os_sur = obras_sociales.crear_obra_social(admin, nombre="OS Demo Sur")
+    obras_sociales.crear_obra_social(admin, nombre="OS Demo Centro")
+    obras_sociales.configurar_cobertura(
+        admin,
+        obra_social_id=os_norte.id,
+        prestacion_id=PRESTACION_CONSULTA,
+        modo="PORCENTAJE",
+        valor=50,
+        tope_centavos=4000,
+    )
+    obras_sociales.configurar_cobertura(
+        admin,
+        obra_social_id=os_norte.id,
+        prestacion_id=PRESTACION_LIMPIEZA,
+        modo="MONTO",
+        valor=8000,
+    )
+    obras_sociales.configurar_cobertura(
+        admin,
+        obra_social_id=os_sur.id,
+        prestacion_id=PRESTACION_CONSULTA,
+        modo="PORCENTAJE",
+        valor=30,
+    )
+    pacientes_os.agregar(DEMO_TENANT_ID, DEMO_PACIENTE_1, os_norte.id)
+    pacientes_os.agregar(DEMO_TENANT_ID, DEMO_PACIENTE_2, os_sur.id)
+    desde_demo, _ = demo_periodo_actual(clock())
+    inicio_demo = datetime.combine(desde_demo, time(10, 0), tzinfo=TZ_DEMO)
+    for indice, (paciente_id, prestacion_id, precio) in enumerate(
+        (
+            (DEMO_PACIENTE_1, PRESTACION_CONSULTA, PRECIO_CONSULTA_CENTAVOS),
+            (DEMO_PACIENTE_1, PRESTACION_LIMPIEZA, PRECIO_LIMPIEZA_CENTAVOS),
+            (DEMO_PACIENTE_2, PRESTACION_CONSULTA, PRECIO_CONSULTA_CENTAVOS),
+        ),
+        start=1,
+    ):
+        atendidos_os.agregar(
+            TurnoAtendido(
+                turno_id=f"turno-atendido-{indice}",
+                paciente_id=paciente_id,
+                prestacion_id=prestacion_id,
+                inicio=inicio_demo + timedelta(hours=indice),
+                precio_base_centavos=precio,
+            ),
+            tenant_id=DEMO_TENANT_ID,
+            obra_social_id=os_norte.id if paciente_id == DEMO_PACIENTE_1 else os_sur.id,
+        )
+
     # -- C-08 ficha clínica + C-09 odontograma/presupuesto -------------
     consentimientos = ConsentimientoMemoria()
     pacientes_clinicos = PacienteFichaMemoria()
@@ -399,8 +491,8 @@ def build_demo_services(
     )
 
     pacientes_presupuesto = PacientePresupuestoMemoria()
-    for paciente_id in (DEMO_PACIENTE_1, DEMO_PACIENTE_2):
-        pacientes_presupuesto.agregar(DEMO_TENANT_ID, paciente_id, None)
+    pacientes_presupuesto.agregar(DEMO_TENANT_ID, DEMO_PACIENTE_1, os_norte.id)
+    pacientes_presupuesto.agregar(DEMO_TENANT_ID, DEMO_PACIENTE_2, os_sur.id)
     prestaciones_presupuesto = PrestacionPresupuestoMemoria()
     prestaciones_presupuesto.agregar(DEMO_TENANT_ID, PRESTACION_CONSULTA, PRECIO_CONSULTA_CENTAVOS)
     prestaciones_presupuesto.agregar(DEMO_TENANT_ID, PRESTACION_LIMPIEZA, PRECIO_LIMPIEZA_CENTAVOS)
@@ -412,7 +504,7 @@ def build_demo_services(
         aceptaciones_repo,
         prestaciones_presupuesto,
         pacientes_presupuesto,
-        CoberturaMemoria(),
+        CoberturaPresupuesto(obras_sociales),
         ImputacionMemoria(),
         auditoria_presupuesto,
         consentimientos=consentimientos,
@@ -463,6 +555,7 @@ def build_demo_services(
         ficha_clinica=ficha_clinica,
         odontograma=odontograma,
         presupuesto=presupuesto,
+        obras_sociales=obras_sociales,
     )
 
 
