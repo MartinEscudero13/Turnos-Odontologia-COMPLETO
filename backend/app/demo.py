@@ -11,6 +11,18 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 
+from app.admin.puertos import (
+    AuditoriaMemoria as AuditoriaAdminMemoria,
+)
+from app.admin.puertos import (
+    ConfigMemoria,
+    DatosReporte,
+    ExportacionMemoria,
+    ReportesMemoria,
+    UsuarioAdmin,
+    UsuariosMemoria,
+)
+from app.admin.servicio import ServicioAdmin
 from app.caja.puertos import (
     AjustePostCierreMemoria,
     CierreMemoria,
@@ -203,6 +215,7 @@ class DemoServices:
     presupuesto: ServicioPresupuesto
     obras_sociales: ServicioObrasSociales
     calendario: ServicioCalendario
+    admin: ServicioAdmin
 
 
 def _seed_catalogo() -> CatalogoMemoria:
@@ -487,6 +500,91 @@ def build_demo_services(
         oauth_ref="demo-oauth-ref",
     )
 
+    # -- C-15 admin, exportación y KPIs --------------------------------
+    servicio_admin = ServicioAdmin(
+        ConfigMemoria(
+            {
+                DEMO_TENANT_ID: {
+                    "anticipacion_cancelacion_h": 24,
+                    "sena_modo": "PORCENTAJE",
+                    "sena_valor": 30,
+                    "recordatorios_habilitados": False,
+                }
+            }
+        ),
+        UsuariosMemoria(
+            [
+                UsuarioAdmin(
+                    id=DEMO_ADMIN_ID,
+                    tenant_id=DEMO_TENANT_ID,
+                    nombre="Admin Demo",
+                    email="admin@demo.test",
+                    rol="ADMIN",
+                    activo=True,
+                    creado_en=clock(),
+                ),
+                UsuarioAdmin(
+                    id=DEMO_USER_ID,
+                    tenant_id=DEMO_TENANT_ID,
+                    nombre="Recepción Demo",
+                    email="recepcion@demo.test",
+                    rol="RECEPCION",
+                    activo=True,
+                    creado_en=clock(),
+                ),
+            ]
+        ),
+        ExportacionMemoria(
+            {
+                DEMO_TENANT_ID: {
+                    "pacientes": [
+                        {"id": DEMO_PACIENTE_1, "nombre": "Paciente Demo Uno"},
+                        {"id": DEMO_PACIENTE_2, "nombre": "Paciente Demo Dos"},
+                    ],
+                    "profesionales": [
+                        {"id": PROFESIONAL_DEMO_1, "nombre": "Dra. Demo Uno"},
+                        {"id": PROFESIONAL_DEMO_2, "nombre": "Dr. Demo Dos"},
+                    ],
+                    "prestaciones": [
+                        {"id": PRESTACION_CONSULTA, "nombre": "Consulta"},
+                        {"id": PRESTACION_LIMPIEZA, "nombre": "Limpieza"},
+                    ],
+                    "turnos": [
+                        {
+                            "id": "turno-demo-calendario",
+                            "profesional_id": PROFESIONAL_DEMO_1,
+                            "estado": "PENDIENTE",
+                        }
+                    ],
+                    "obras_sociales": [
+                        {"id": os_norte.id, "nombre": os_norte.nombre},
+                        {"id": os_sur.id, "nombre": os_sur.nombre},
+                    ],
+                    "calendar_links": [
+                        {
+                            "id": "link-1",
+                            "profesional_id": PROFESIONAL_DEMO_1,
+                            "estado": "CONECTADO",
+                        }
+                    ],
+                }
+            }
+        ),
+        ReportesMemoria(
+            {
+                DEMO_TENANT_ID: DatosReporte(
+                    total_turnos=4,
+                    por_estado={"PRESENTE": 2, "AUSENTE": 1, "PENDIENTE": 1},
+                    online=1,
+                    facturacion_por_profesional=((PROFESIONAL_DEMO_1, 12000),),
+                    reasignados_2h=1,
+                )
+            }
+        ),
+        AuditoriaAdminMemoria(),
+        reloj=clock,
+    )
+
     # -- C-08 ficha clínica + C-09 odontograma/presupuesto -------------
     consentimientos = ConsentimientoMemoria()
     pacientes_clinicos = PacienteFichaMemoria()
@@ -600,6 +698,7 @@ def build_demo_services(
         presupuesto=presupuesto,
         obras_sociales=obras_sociales,
         calendario=calendario,
+        admin=servicio_admin,
     )
 
 

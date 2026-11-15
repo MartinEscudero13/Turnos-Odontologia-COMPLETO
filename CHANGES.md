@@ -422,7 +422,9 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ## FASE 7 — Administración y plataforma
 
 ### [C-15] `admin-plataforma-exportacion`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado en **alcance parcial** (2026-11-15; configuración del tenant con whitelist, usuarios con Argon2, exportación JSON/CSV sin secretos y KPIs base; sin migración nueva) + archivado en `openspec/changes/archive/2026-11-15-c-15-admin-exportacion/`
+- **Verificación**: [`docs/foundation/verification-c-15-admin.md`](docs/foundation/verification-c-15-admin.md)
+- **Fuera de alcance declarado**: WhatsApp/C-13, superadmin cross-tenant, job de respaldo, KPI de ocupación (requiere capacidad por horarios) y UI `C-15-UI`.
 - **Scope**: Cierre del sistema: usuarios/config del tenant, exportación 1-clic, respaldo y superadmin (US-051 parcial: CA-3 + resto; RN-AU-04)
   - `/api/tenants/*`: alta/configuración del consultorio (admin tenant + superadmin plataforma sin acceso a PHI salvo intervención auditada)
   - Usuarios del tenant CRUD + config tenant (seña, anticipación cancelación, recordatorios) — UI SPA `/config`

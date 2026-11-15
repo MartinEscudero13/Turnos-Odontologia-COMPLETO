@@ -21,6 +21,7 @@ from app.db import create_db_engine
 from app.db import session_factory as create_session_factory
 from app.demo import build_demo_services
 from app.middleware import RequestIdMiddleware
+from app.routers.admin import crear_router as crear_router_admin
 from app.routers.auth import router as auth_router
 from app.routers.caja import crear_router as crear_router_caja
 from app.routers.calendario import crear_router as crear_router_calendario
@@ -71,6 +72,7 @@ def create_app(
     app.include_router(crear_router_presupuesto(demo.presupuesto))
     app.include_router(crear_router_obras_sociales(demo.obras_sociales))
     app.include_router(crear_router_calendario(demo.calendario))
+    app.include_router(crear_router_admin(demo.admin))
 
     @app.exception_handler(TurnoError)
     async def handle_turno_error(_request: Request, exc: TurnoError) -> JSONResponse:
