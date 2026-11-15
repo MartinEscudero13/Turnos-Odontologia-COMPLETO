@@ -450,3 +450,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Estado**: `[x]` completado (2026-11-15; C-05/C-06 montados en `create_app`, catálogo demo disponible, flujo público catálogo → disponibilidad → reserva con token verificado por HTTP) + archivado en `openspec/changes/archive/2026-11-15-demo-api-integration/`
 - **Verificación**: [`docs/foundation/verification-demo-api.md`](docs/foundation/verification-demo-api.md)
 - **Límite**: estado C-05/C-06 en memoria; C-07…C-11 siguen sin montar y la persistencia SQL sigue limitada a auth/catálogos.
+### [F-04] `demo-api-dominios`
+- **Estado**: `[x]` completado (2026-11-15; C-07 lista de espera, C-10 caja y C-11 señas montados en `create_app` sobre adaptadores en memoria; la reserva pública crea la seña cuando la regla demo la exige; handler global de `TurnoError` para conservar 403/404/409) + archivado en `openspec/changes/archive/2026-11-15-demo-api-dominios/`
+- **Verificación**: [`docs/foundation/verification-demo-api-dominios.md`](docs/foundation/verification-demo-api-dominios.md)
+- **Límite**: todo el estado de la demo es en memoria y se pierde al reiniciar; C-08/C-09 siguen sin montar; el webhook de Mercado Pago responde `503` porque no hay secreto real.

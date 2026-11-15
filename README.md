@@ -6,16 +6,16 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 
 | | |
 |---|---|
-| Changes archivados | **13** de 17 — C-01…C-11, F-01, F-02 |
-| Specs vivas | **15** capabilities en `openspec/specs/` |
+| Changes archivados | **15** de 19 — C-01…C-11, F-01…F-04 |
+| Specs vivas | **16** capabilities en `openspec/specs/` |
 | Migraciones | 001 → **009**, con `downgrade` verificado contra PostgreSQL real |
-| Tests backend | **678 passed, 42 skipped** en local · **720 passed, 0 skipped** con `C02_DATABASE_URL` |
-| Calidad | `mypy` 101 archivos · `ruff check .` · `openspec validate --all --strict` (15/15) en verde |
+| Tests backend | **688 passed, 42 skipped** en local · **730 passed, 0 skipped** con `C02_DATABASE_URL` |
+| Calidad | `mypy` 102 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
 | Frontend | Landing pública F-02 (reserva + gestión por token) con tests, lint, typecheck y build |
 
-> ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: el dominio de
-> C-05/C-06 ya están montados; C-07…C-11 siguen implementados y probados, pero sus routers **no están montados** todavía en `create_app`.
-> Está explicado sin vueltas más abajo.
+> ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05, C-06,
+> C-07, C-10 y C-11 ya están montados en `create_app` sobre adaptadores en memoria. C-08 y C-09 siguen
+> implementados y probados, pero sin ruta en la app. Está explicado sin vueltas más abajo.
 
 ## Equipo
 
@@ -210,7 +210,7 @@ ni de tests.
 | Directorio / archivo | Qué es |
 |----------------------|--------|
 | `backend/app/core/` | Core de la fundación C-01: `Settings`, logger JSON sin PHI, correlation IDs, excepciones |
-| `backend/app/app.py` | Factory FastAPI (`create_app`) con middleware y mapeo de errores; monta `health`, `auth`, `catalogos`, turnos C-05 y reservas públicas C-06 |
+| `backend/app/app.py` | Factory FastAPI (`create_app`) con middleware y mapeo de errores; monta `health`, `auth`, `catalogos`, turnos C-05, reservas públicas C-06, lista de espera C-07, caja C-10 y señas C-11 |
 | `backend/app/main.py` | Entrypoint Uvicorn (`app.main:app`) usado por el contenedor |
 | `backend/app/db.py` | Engine/session factories SQLAlchemy 2.0 |
 | `backend/app/turnos/` | Dominio C-05: `overlap()`, cálculo de `fin`, 3 alternativas ante 409, máquina de estados, servicio + auditoría |
@@ -313,7 +313,7 @@ ni de tests.
 - **Estado: archivado** el 2026-11-05. Landing mobile-first `/r/:tokenTenant` que consume la API pública: catálogo → prestación → huecos → nombre/teléfono/verificación → confirmación con token; gestión por token en `/r/:tokenTenant/turno/:token` (consultar/cancelar/reprogramar).
 - **Enabler backend incluido**: `GET /api/publico/{tokenTenant}/catalogo` (OQ-F1), solo lectura, tenant-scoped, `404` uniforme y allow-list sin PHI.
 - **Archivo**: `openspec/changes/archive/2026-11-05-f-02-reserva-publica-landing/`; capturas en `.../mockups/previews/`.
-- **Pendiente declarado**: proveedor real de captcha (hoy placeholder accesible), confirmación por WhatsApp/email (C-13) y wiring real del backend en la demo (D9 de C-06).
+- **Pendiente declarado**: proveedor real de captcha (hoy placeholder accesible), confirmación por WhatsApp/email (C-13) y persistencia SQL real de la reserva (hoy la demo corre en memoria).
 
 ## Estado de los ciclos C-07 a C-11
 
@@ -340,23 +340,26 @@ ni de tests.
 | C-12 obras sociales · C-14 Google Calendar · C-15 admin y reportes | ⏳ pendientes del roadmap |
 | C-13 WhatsApp | ⛔ bloqueado por PO-03 (no hay proveedor/BSP definido) |
 | UI de agenda, ficha, odontograma, caja y señas | ⛔ diferida a `C-09-UI`, `C-10-UI` y `C-11-UI` (changes aún no creados) |
-| Montaje de routers en `create_app` | ✅ C-05/C-06 · ⏳ C-07…C-11 |
+| Montaje de routers en `create_app` | ✅ C-05/C-06/C-07/C-10/C-11 · ⏳ C-08/C-09 |
 
 ## Límites declarados del alcance
 
 El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son los límites reales al
 2026-11-13, sin maquillaje:
 
-1. **El bootstrap de la API monta C-05/C-06, no C-07…C-11.** `backend/app/app.py` registra
-   `health`, `auth`, `catalogos`, `/api/turnos` y las rutas públicas de C-06. Los dominios de
-   lista de espera, ficha, odontograma, presupuesto, caja y señas siguen existiendo como routers
-   inyectables y con tests, pero **no se engancharon a la app**. Los repositorios SQLAlchemy de
-   caja, presupuesto y señas también existen y no están cableados al arranque.
-   Consecuencia concreta: por `uvicorn` ya se puede autenticar, ver catálogo, reservar online y
-   crear turnos internos; todavía no se puede operar caja, OS ni seña desde Swagger.
+1. **El bootstrap de la API monta C-05/C-06/C-07/C-10/C-11, no C-08/C-09.** `backend/app/app.py`
+   registra `health`, `auth`, `catalogos`, los turnos internos, la reserva pública, la lista de espera,
+   la caja y las rutas de señas (públicas, internas y webhook). Ficha clínica, odontograma y
+   presupuesto siguen existiendo como routers inyectables y con tests, pero **no se engancharon a la
+   app**. Los repositorios SQLAlchemy de caja, presupuesto y señas también existen y no están cableados
+   al arranque.
+   Consecuencia concreta: por `uvicorn` se puede autenticar, ver catálogo, reservar online, gestionar la
+   lista de espera, cobrar y consultar señas; todavía no se puede abrir una ficha clínica ni un
+   presupuesto desde Swagger.
 2. **La persistencia real solo aplica a `auth` y `catalogos`.** El resto de los dominios corre sobre
-   puertos con adaptadores en memoria en tests y demostraciones. Los repositorios SQL están escritos y
-   probados contra PostgreSQL, pero no reemplazan a los adaptadores en el camino de la API.
+   puertos con adaptadores en memoria en tests y en la demo: el estado se pierde al reiniciar. Los
+   repositorios SQL están escritos y probados contra PostgreSQL, pero no reemplazan a los adaptadores en
+   el camino de la API.
 3. **Sin UI para los changes nuevos.** La única interfaz es la landing pública de F-02 y la fundación
    visual de F-01. Agenda, ficha, odontograma, presupuesto, caja y señas son backend-only.
 4. **Integraciones externas simuladas.** Mercado Pago se ejercita con un adaptador fake que respeta el
