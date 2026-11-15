@@ -18,10 +18,13 @@ from app.core.logging import configure_logging, get_logger
 from app.core.settings import Settings, get_settings
 from app.db import create_db_engine
 from app.db import session_factory as create_session_factory
+from app.demo import build_demo_services
 from app.middleware import RequestIdMiddleware
 from app.routers.auth import router as auth_router
 from app.routers.catalogos import router as catalogos_router
 from app.routers.health import router as health_router
+from app.routers.reservas_publicas import crear_router_publico
+from app.routers.turnos import crear_router as crear_router_turnos
 
 logger = get_logger("app.startup")
 
@@ -38,10 +41,14 @@ def create_app(
     app.state.settings = runtime
     app.state.session_factory = maker
     app.state.auth_service = auth_service or AuthService(runtime, maker)
+    demo = build_demo_services()
+    app.state.demo_services = demo
     app.add_middleware(RequestIdMiddleware)
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(catalogos_router)
+    app.include_router(crear_router_turnos(demo.turnos))
+    app.include_router(crear_router_publico(demo.reservas))
 
     @app.exception_handler(HTTPException)
     async def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:

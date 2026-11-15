@@ -446,3 +446,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Estado**: `[x]` completado (2026-11-05; landing pública `/r/:tokenTenant` mobile-first, catálogo público `GET /api/publico/{tokenTenant}/catalogo`, reserva con verificación captcha placeholder, gestión por token, estados 403/404/409/422/429, a11y AA y screenshots 375/768/1440) + archivado en `openspec/changes/archive/2026-11-05-f-02-reserva-publica-landing/`
 - **Verificación**: `py -m pytest tests/ -q`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` y `openspec validate --strict` en verde; capturas en `openspec/changes/f-02-reserva-publica-landing/mockups/previews/`
 - **Alcance**: consume el contrato de C-06 y agrega el enabler backend de catálogo (OQ-F1). Pendiente declarado: proveedor real de captcha, confirmación WA/email (C-13) y wiring SQLAlchemy real del backend (D9 de C-06).
+### [F-03] `demo-api-integration`
+- **Estado**: `[x]` completado (2026-11-15; C-05/C-06 montados en `create_app`, catálogo demo disponible, flujo público catálogo → disponibilidad → reserva con token verificado por HTTP) + archivado en `openspec/changes/archive/2026-11-15-demo-api-integration/`
+- **Verificación**: [`docs/foundation/verification-demo-api.md`](docs/foundation/verification-demo-api.md)
+- **Límite**: estado C-05/C-06 en memoria; C-07…C-11 siguen sin montar y la persistencia SQL sigue limitada a auth/catálogos.

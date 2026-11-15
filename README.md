@@ -340,19 +340,20 @@ ni de tests.
 | C-12 obras sociales · C-14 Google Calendar · C-15 admin y reportes | ⏳ pendientes del roadmap |
 | C-13 WhatsApp | ⛔ bloqueado por PO-03 (no hay proveedor/BSP definido) |
 | UI de agenda, ficha, odontograma, caja y señas | ⛔ diferida a `C-09-UI`, `C-10-UI` y `C-11-UI` (changes aún no creados) |
-| Montaje de los routers de C-05…C-11 en `create_app` | ⛔ **pendiente** (ver límites) |
+| Montaje de routers en `create_app` | ✅ C-05/C-06 · ⏳ C-07…C-11 |
 
 ## Límites declarados del alcance
 
 El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son los límites reales al
 2026-11-13, sin maquillaje:
 
-1. **El bootstrap de la API no monta C-05…C-11.** `backend/app/app.py` registra solo `health`, `auth` y
-   `catalogos`. Los demás routers existen y son inyectables (`crear_router(svc)`, `crear_app_…`), y sus
-   servicios están cubiertos por la suite, pero **no se engancharon a la app de producción**. Los
-   repositorios SQLAlchemy de caja, presupuesto y señas también existen y no están cableados al
-   arranque. Consecuencia concreta: por `uvicorn` solo se pueden crear turnos de catálogo y autenticarse;
-   no se puede reservar online, cobrar ni pagar una seña desde Swagger.
+1. **El bootstrap de la API monta C-05/C-06, no C-07…C-11.** `backend/app/app.py` registra
+   `health`, `auth`, `catalogos`, `/api/turnos` y las rutas públicas de C-06. Los dominios de
+   lista de espera, ficha, odontograma, presupuesto, caja y señas siguen existiendo como routers
+   inyectables y con tests, pero **no se engancharon a la app**. Los repositorios SQLAlchemy de
+   caja, presupuesto y señas también existen y no están cableados al arranque.
+   Consecuencia concreta: por `uvicorn` ya se puede autenticar, ver catálogo, reservar online y
+   crear turnos internos; todavía no se puede operar caja, OS ni seña desde Swagger.
 2. **La persistencia real solo aplica a `auth` y `catalogos`.** El resto de los dominios corre sobre
    puertos con adaptadores en memoria en tests y demostraciones. Los repositorios SQL están escritos y
    probados contra PostgreSQL, pero no reemplazan a los adaptadores en el camino de la API.

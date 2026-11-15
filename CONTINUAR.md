@@ -29,8 +29,9 @@ Después esperá mi confirmación antes de tocar archivos.
 
 ## Deudas declaradas (leer antes de proponer nada)
 
-1. Los routers de C-05 a C-11 existen y son inyectables, pero **no están montados** en
-   `backend/app/app.py` (hoy solo `health`, `auth` y `catalogos`). Sin eso no hay demo end-to-end.
+1. Los routers de C-05 y C-06 ya están montados; **C-07 a C-11 siguen sin montar** en
+   `backend/app/app.py`. La reserva pública y los turnos internos ya son demoables; caja,
+   presupuesto, ficha, odontograma y señas todavía no.
 2. La UI de C-09, C-10 y C-11 está diferida a `C-09-UI`, `C-10-UI` y `C-11-UI`, y esos changes no existen todavía.
 3. El ERD de `knowledge-base/04_modelo_de_datos.md` no incluye las tablas 007/008/009.
 
