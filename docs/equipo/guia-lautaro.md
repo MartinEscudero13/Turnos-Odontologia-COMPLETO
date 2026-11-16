@@ -5,7 +5,7 @@
 
 ## Estado
 
-- C-01 a C-15 y F-01 a F-06: terminados y archivados (21 changes; C-15 parcial).
+- C-01 a C-16 y F-01 a F-06: terminados y archivados (22 changes).
 - TP2 skill + MCP: terminado y pusheado.
 - C-13 WhatsApp: cerrado con Twilio Sandbox; producción pendiente de número y plantillas.
 - Video y TXT de entrega: pendientes de grabación.

@@ -3,9 +3,9 @@
 ## Purpose
 
 Dar al `ADMIN` del consultorio control sobre su propio tenant: configuración validada, gestión de
-usuarios, exportación 1-clic sin secretos y KPIs base con definiciones explícitas. Todo queda aislado
-por `tenant_id` y auditado. WhatsApp, superadmin cross-tenant, respaldo automático, ocupación y UI
-quedan fuera de este alcance.
+usuarios, exportación 1-clic sin secretos y KPIs base con definiciones explícitas —incluida la
+ocupación—. Todo queda aislado por `tenant_id` y auditado. El superadmin cross-tenant y el respaldo se
+operan fuera de la API, con las herramientas de `operacion`.
 
 ## Requirements
 
@@ -89,7 +89,9 @@ tenant, SHALL exclude secrets and SHALL be audited.
 ### Requirement: Base KPIs
 
 The system SHALL expose base KPIs for a period with explicit definitions: turns by state, absenteeism,
-online reservation share, billing by professional and slots reassigned in under two hours.
+online reservation share, billing by professional, slots reassigned in under two hours and occupancy.
+Occupancy SHALL be the share of booked minutes over the capacity offered by professionals in the
+period, with a `0.0` result when the denominator is zero.
 
 #### Scenario: Absenteeism
 - **DADO** 2 turnos `PRESENTE` y 2 `AUSENTE` en el período
@@ -105,6 +107,16 @@ online reservation share, billing by professional and slots reassigned in under 
 - **DADO** un turno `LISTA_ESPERA` creado 30 minutos antes de su inicio y otro 3 horas antes
 - **CUANDO** se consultan los KPIs
 - **ENTONCES** `reasignados_2h = 1`
+
+#### Scenario: Occupancy
+- **DADO** 540 minutos ocupados y 1440 minutos de capacidad en el período
+- **CUANDO** se consultan los KPIs
+- **ENTONCES** `ocupacion_pct = 37.5`
+
+#### Scenario: Occupancy without capacity
+- **DADO** un período sin horarios cargados y sin turnos
+- **CUANDO** se consultan los KPIs
+- **ENTONCES** `ocupacion_pct = 0.0`
 
 #### Scenario: Invalid period
 - **DADO** `desde` posterior a `hasta`

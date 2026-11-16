@@ -10,10 +10,10 @@
 - Entrada corta para Lautaro: [`CONTINUAR.md`](CONTINUAR.md).
 - Contexto extendido de entorno: [`docs/equipo/guia-lautaro.md`](docs/equipo/guia-lautaro.md).
 - Alcance y autoría: [`AUTHORS.md`](AUTHORS.md).
-- **C-01 a C-15 y F-01 a F-06 están archivados** (21 changes; C-15 en alcance parcial). **C-13 se cerró con Twilio Sandbox** (producción pendiente de número y plantillas).
-- Los changes **C-01 a C-04**, **C-05** y **F-01** corresponden a Martin Escudero; **C-06** y la pieza skill+MCP del TP2 a Lautaro Naranjo; **C-07 a C-15** y **F-02 a F-06** se cerraron en la fase posterior al TP2.
-- **UI interna completa** (`F-06`): agenda, pacientes, clínica, caja, señas, WhatsApp, obras sociales, calendario y configuración. Los routers de C-05…C-15 están montados en `create_app` sobre adaptadores en memoria.
-- **Deudas declaradas**: persistencia SQL real de los dominios demo, WhatsApp de producción (sandbox en la demo), superadmin y KPI de ocupación. Detalle en [`README.md` § Límites declarados](README.md#límites-declarados-del-alcance).
+- **C-01 a C-16 y F-01 a F-06 están archivados** (22 changes). **C-13 se cerró con Twilio Sandbox** (producción pendiente de número y plantillas). **C-16** cerró las acciones operativas de la UI, la imputación presupuesto→caja, el KPI de ocupación y las herramientas de superadmin/respaldo.
+- Los changes **C-01 a C-04**, **C-05** y **F-01** corresponden a Martin Escudero; **C-06** y la pieza skill+MCP del TP2 a Lautaro Naranjo; **C-07 a C-16** y **F-02 a F-06** se cerraron en la fase posterior al TP2.
+- **UI interna completa** (`F-06` + `C-16`): agenda con transiciones, pacientes, clínica con decisiones de presupuesto, caja con anulación/cobros, señas, WhatsApp, obras sociales, calendario y configuración. Los routers de C-05…C-16 están montados en `create_app` sobre adaptadores en memoria.
+- **Deudas declaradas**: persistencia SQL real de los dominios demo, WhatsApp de producción (sandbox en la demo) y cron de respaldo. Superadmin y respaldo existen por CLI. Detalle en [`README.md` § Límites declarados](README.md#límites-declarados-del-alcance).
 
 ---
 
@@ -122,11 +122,11 @@ React, Vite, Mercado Pago, WhatsApp Cloud API o Google Calendar API). Configurac
 
 El plan de implementación completo está en [CHANGES.md](CHANGES.md). Resumen:
 
-- **Total**: 21 items (15 changes `C-NN` + 6 frentes `F-NN`), **21 archivados** (C-15 parcial).
+- **Total**: 22 items (16 changes `C-NN` + 6 frentes `F-NN`), **22 archivados**.
 - **Camino crítico** (8): `C-01 → C-02 → C-03 → C-04 → C-05 → C-06 → C-10 → C-15`.
-- **Completados**: C-01 … C-15 y F-01 … F-06.
-- **Pendiente**: ninguno bloqueante. C-15 completo requiere superadmin, respaldo y KPI de ocupación; C-13 producción requiere número y plantillas aprobadas.
-- **Deudas declaradas**: persistencia SQL real de los dominios demo, WhatsApp de producción (sandbox en la demo), superadmin y KPI de ocupación. Los routers de C-05…C-15 ya están montados.
+- **Completados**: C-01 … C-16 y F-01 … F-06.
+- **Pendiente**: video de entrega y validación real de Twilio. C-13 producción requiere número y plantillas aprobadas.
+- **Deudas declaradas**: persistencia SQL real de los dominios demo, WhatsApp de producción (sandbox en la demo) y cron de respaldo. Superadmin y respaldo existen por CLI. Los routers de C-05…C-16 ya están montados.
 
 **Antes de cualquier `/opsx:propose`**: leé [CHANGES.md](CHANGES.md), identificá las dependencias del change y los archivos de "Leer antes".
 

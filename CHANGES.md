@@ -8,13 +8,13 @@
 
 | | |
 |---|---|
-| Archivados | **21** — C-01 … C-15 y F-01 … F-06 (C-15 en alcance parcial) |
-| Pendientes | Ninguno bloqueante; C-15 completo requiere superadmin, respaldo y KPI de ocupación |
+| Archivados | **22** — C-01 … C-16 y F-01 … F-06 |
+| Pendientes | Ninguno bloqueante; video de entrega y validación real de Twilio |
 | Migraciones | 001 → 012 aplicadas y reversibles contra PostgreSQL real |
-| Suite | 806 passed + 53 skipped local · 859 passed + 0 skipped con `C02_DATABASE_URL` |
-| Frontend | SPA interno C-05…C-15 + landing pública F-02 · 32 tests, lint/typecheck/build |
+| Suite | 821 passed + 53 skipped local · 874 passed + 0 skipped con `C02_DATABASE_URL` |
+| Frontend | SPA interno C-05…C-16 + landing pública F-02 · 37 tests, lint/typecheck/build |
 
-Los routers de C-05…C-15 están montados en `create_app` sobre adaptadores en memoria; la deuda de
+Los routers de C-05…C-16 están montados en `create_app` sobre adaptadores en memoria; la deuda de
 integración es la persistencia SQL de esos dominios, no el montaje.
 
 ---
@@ -423,9 +423,9 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ## FASE 7 — Administración y plataforma
 
 ### [C-15] `admin-plataforma-exportacion`
-- **Estado**: `[x]` completado en **alcance parcial** (2026-11-15; configuración del tenant con whitelist, usuarios con Argon2, exportación JSON/CSV sin secretos y KPIs base; sin migración nueva) + archivado en `openspec/changes/archive/2026-11-15-c-15-admin-exportacion/`
+- **Estado**: `[x]` completado (2026-11-15 el núcleo; 2026-11-16 se cierran superadmin, respaldo, ocupación y UI vía **C-16**) + archivado en `openspec/changes/archive/2026-11-15-c-15-admin-exportacion/`
 - **Verificación**: [`docs/foundation/verification-c-15-admin.md`](docs/foundation/verification-c-15-admin.md)
-- **Fuera de alcance declarado**: WhatsApp/C-13, superadmin cross-tenant, job de respaldo, KPI de ocupación (requiere capacidad por horarios) y UI `C-15-UI`.
+- **Cierre posterior**: el KPI de ocupación vive en `admin-tenant`; el superadmin cross-tenant y el respaldo se operan con `tools/superadmin.py` y `tools/backup.py` (capability `operacion`). La UI de configuración ya está en el SPA.
 - **Scope**: Cierre del sistema: usuarios/config del tenant, exportación 1-clic, respaldo y superadmin (US-051 parcial: CA-3 + resto; RN-AU-04)
   - `/api/tenants/*`: alta/configuración del consultorio (admin tenant + superadmin plataforma sin acceso a PHI salvo intervención auditada)
   - Usuarios del tenant CRUD + config tenant (seña, anticipación cancelación, recordatorios) — UI SPA `/config`
@@ -440,6 +440,18 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - `knowledge-base/05_reglas_de_negocio.md` §RN-AU-04
   - `knowledge-base/01_vision_y_objetivos.md` §Métricas de éxito
   - `knowledge-base/10_preguntas_abiertas.md` §PO-10
+
+### [C-16] `cierre-operativo`
+- **Estado**: `[x]` completado (2026-11-16; transiciones de agenda, acciones de caja y presupuesto, toggles de OS/usuarios, desconexión de calendario, KPI de ocupación, superadmin y respaldo por CLI; sin migración nueva) + archivado en `openspec/changes/archive/2026-11-16-c-16-cierre-operativo/`
+- **Verificación**: [`docs/foundation/verification-c-16-cierre-operativo.md`](docs/foundation/verification-c-16-cierre-operativo.md)
+- **Scope aplicado**:
+  - Agenda: `CONFIRMADO`, `PRESENTE`, `AUSENTE` con auditoría y botones por estado.
+  - Presupuesto: aceptar/rechazar; la aceptación imputa el tramo del paciente a caja vía `ImputacionCaja`.
+  - Caja: anular con motivo, cobrar pendientes, cierres y reportes por rango.
+  - OS / usuarios: activar/desactivar; liquidación con detalle; calendario con desconexión.
+  - `ocupacion_pct` en KPIs (minutos ocupados / capacidad semanal).
+  - `tools/superadmin.py` y `tools/backup.py` + servicio Compose `backup`.
+- **Leer antes**: `knowledge-base/05_reglas_de_negocio.md` (§RN-AG-02, RN-CJ-03, RN-AU-04) y `knowledge-base/08_arquitectura_propuesta.md`.
 ---
 
 ## Cambios transversales (fuera del roadmap C-01…C-15)
@@ -468,4 +480,4 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ### [F-06] `frontend-interno`
 - **Estado**: `[x]` completado (2026-11-15; SPA `/app` con agenda, pacientes, clínica, caja, señas, obras sociales, calendario y configuración; login persistente con credenciales demo; cliente API tipado con actor/JWT; seed demo y servicio `migrate` en Compose) + archivado en `openspec/changes/archive/2026-11-15-frontend-interno/`
 - **Verificación**: [`docs/foundation/verification-frontend-interno.md`](docs/foundation/verification-frontend-interno.md)
-- **Límite**: UI de WhatsApp/C-13, superadmin y edición avanzada fuera de alcance; la demo sigue en memoria.
+- **Límite**: C-13 y las acciones operativas se completaron en C-16; la edición avanzada de entidades y la persistencia SQL del camino de la API siguen declaradas como deuda.
