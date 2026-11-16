@@ -98,6 +98,18 @@ def crear_router(svc: ServicioTurnos, hueco_port: HuecoLiberadoPort | None = Non
     ) -> Turno:
         return svc.sobreturno(actor, turno_id, motivo=body.motivo)
 
+    @r.post("/api/turnos/{turno_id}/confirmar", response_model=TurnoOut)
+    def confirmar(turno_id: str, actor: Actor = Depends(actor_desde_headers)) -> Turno:
+        return svc.confirmar(actor, turno_id)
+
+    @r.post("/api/turnos/{turno_id}/presente", response_model=TurnoOut)
+    def presente(turno_id: str, actor: Actor = Depends(actor_desde_headers)) -> Turno:
+        return svc.marcar_presente(actor, turno_id)
+
+    @r.post("/api/turnos/{turno_id}/ausente", response_model=TurnoOut)
+    def ausente(turno_id: str, actor: Actor = Depends(actor_desde_headers)) -> Turno:
+        return svc.marcar_ausente(actor, turno_id)
+
     @r.post("/api/turnos/{turno_id}/cancelar", response_model=TurnoOut)
     def cancelar(turno_id: str, actor: Actor = Depends(actor_desde_headers)) -> Turno:
         turno = svc.cancelar(actor, turno_id)

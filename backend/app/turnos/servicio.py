@@ -60,7 +60,15 @@ class AuditoriaEntrada:
 
     turno_id: str
     tenant_id: str
-    accion: Literal["CREADO", "SOBRETURNO", "CONFIRMADO", "CANCELADO", "REPROGRAMADO"]
+    accion: Literal[
+        "CREADO",
+        "SOBRETURNO",
+        "CONFIRMADO",
+        "PRESENTE",
+        "AUSENTE",
+        "CANCELADO",
+        "REPROGRAMADO",
+    ]
     actor: str
     antes: EstadoTurno | None
     despues: EstadoTurno
@@ -261,6 +269,31 @@ class ServicioTurnos:
             confirmado, "CONFIRMADO", actor.user_id, None, actual.estado, "CONFIRMADO"
         )
         return confirmado
+
+    def marcar_presente(self, actor: Actor, turno_id: str) -> Turno:
+        """Marca el turno como PRESENTE (sólo desde CONFIRMADO)."""
+        return self._marcar_asistencia(actor, turno_id, "PRESENTE")
+
+    def marcar_ausente(self, actor: Actor, turno_id: str) -> Turno:
+        """Marca el turno como AUSENTE (sólo desde CONFIRMADO)."""
+        return self._marcar_asistencia(actor, turno_id, "AUSENTE")
+
+    def _marcar_asistencia(
+        self, actor: Actor, turno_id: str, estado: Literal["PRESENTE", "AUSENTE"]
+    ) -> Turno:
+        actual = self.obtener(actor, turno_id)
+        if actor.rol == "PACIENTE":
+            raise Prohibido("paciente no registra asistencia")
+        if not self._puede_escribir(actor, actual):
+            raise Prohibido("sin permiso sobre este turno")
+        if not transicion_valida(actual.estado, estado):
+            raise Invalido(f"transición {actual.estado} → {estado} ilegal")
+        actualizado = replace(actual, estado=estado)
+        self._turnos[turno_id] = actualizado
+        self._auditar(
+            actualizado, estado, actor.user_id, None, actual.estado, estado
+        )
+        return actualizado
 
     def cancelar(
         self,
@@ -493,7 +526,15 @@ class ServicioTurnos:
     def _auditar(
         self,
         turno: Turno,
-        accion: Literal["CREADO", "SOBRETURNO", "CONFIRMADO", "CANCELADO", "REPROGRAMADO"],
+        accion: Literal[
+        "CREADO",
+        "SOBRETURNO",
+        "CONFIRMADO",
+        "PRESENTE",
+        "AUSENTE",
+        "CANCELADO",
+        "REPROGRAMADO",
+    ],
         actor_id: str,
         motivo: str | None,
         antes: EstadoTurno | None,
