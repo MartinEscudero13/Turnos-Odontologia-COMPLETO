@@ -5,10 +5,10 @@
 
 ## Estado
 
-- C-01 a C-04, C-05 y F-01: terminados y archivados.
+- C-01 a C-15 y F-01 a F-06: terminados y archivados (21 changes; C-15 parcial).
 - TP2 skill + MCP: terminado y pusheado.
-- **C-06 `reserva-online-publica`: activo, 0/50 tareas, desbloqueado.**
-- Video: no hace falta ahora.
+- C-13 WhatsApp: cerrado con Twilio Sandbox; producción pendiente de número y plantillas.
+- Video y TXT de entrega: pendientes de grabación.
 
 ## Para empezar
 

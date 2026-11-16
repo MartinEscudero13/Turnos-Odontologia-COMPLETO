@@ -14,7 +14,7 @@
 |---|---|---|---|
 | Alta | PO-01 ¿Seña siempre o por prestación? ¿Monto fijo o %? ¿Anticipación mínima exacta de cancelación? | Sprint 1 (RN-SE-05, US-011/US-041) | Dueño + piloto |
 | Alta | PO-02 Precios no publicados de Dentalink, DentalSoft, DentalTec, FLAP, Odontal Web, Livio — relevar en demos | Posicionamiento/precio | Equipo (demos D1) |
-| Alta | PO-03 Profundidad técnica: ¿WA Business API oficial o QR? ¿MP Checkout/link/QR? ¿GCal OAuth bidireccional? (todo "No evidenciado" en vendors) | Sprint 1 (US-020, US-041, US-050) | Equipo técnico (guion demo D1 + `11_integraciones.md`) |
+| Alta | PO-03 Profundidad técnica: ¿WA Business API oficial o QR? ¿MP Checkout/link/QR? ¿GCal OAuth bidireccional? (todo "No evidenciado" en vendors) — ✅ TPI: **Twilio WhatsApp Sandbox** (2026-11-16); producción pendiente de número y plantillas | Sprint 1 (US-020, US-041, US-050) | Equipo técnico (guion demo D1 + `11_integraciones.md`) |
 | Alta | PO-04 Validación OS realtime: ¿qué OS tienen WS/SOAP real, latencia y manejo de caída? (moat DentalTec por verificar) | Fase 2 OS | Dueño + DentalTec/demo |
 | Media | PO-05 ¿Uno o varios profesionales desde el día 1 en el piloto? (SU-01) | Sprint 1 (seed) | Dueño |
 | Media | PO-06 ¿Login de paciente o nombre + teléfono? (DD-06 asume sin login; confirmar con tasa de spam) | Sprint 2 | Dueño + datos piloto |

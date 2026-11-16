@@ -6,10 +6,10 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 
 | | |
 |---|---|
-| Changes archivados | **20** de 21 — C-01…C-12, C-14, C-15, F-01…F-06 |
-| Specs vivas | **20** capabilities en `openspec/specs/` |
-| Migraciones | 001 → **011**, con `downgrade` verificado contra PostgreSQL real |
-| Tests backend | **788 passed, 51 skipped** en local · **839 passed, 0 skipped** con `C02_DATABASE_URL` |
+| Changes archivados | **21** de 21 — C-01…C-15, F-01…F-06 (C-15 parcial) |
+| Specs vivas | **21** capabilities en `openspec/specs/` |
+| Migraciones | 001 → **012**, con `downgrade` verificado contra PostgreSQL real |
+| Tests backend | **806 passed, 53 skipped** en local · **859 passed, 0 skipped** con `C02_DATABASE_URL` |
 | Calidad | `mypy` 123 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
 | Frontend | **SPA interno C-05…C-15** + landing pública F-02 · 32 tests, lint, typecheck y build |
 
@@ -92,12 +92,12 @@ cd backend; py -m uvicorn app.main:app --reload --port 8000
 ```
 
 Rutas del SPA: `/app` resumen · `/app/agenda` · `/app/pacientes` · `/app/clinica` · `/app/caja` ·
-`/app/senas` · `/app/obras-sociales` · `/app/calendario` · `/app/config`.
+`/app/senas` · `/app/whatsapp` · `/app/obras-sociales` · `/app/calendario` · `/app/config`.
 
 ## Tests
 
 ```bash
-py -m pytest tests/                       # 788 passed, 51 skipped (addopts ya trae -q)
+py -m pytest tests/                       # 806 passed, 53 skipped (addopts ya trae -q)
 py -m ruff check .
 py -m mypy --config-file pyproject.toml
 
@@ -116,17 +116,44 @@ anti-solape, carreras entre dos conexiones, migraciones). Para correrlos:
 ```bash
 docker compose up -d db
 $env:C02_DATABASE_URL = "postgresql+psycopg://turnos_owner:<POSTGRES_PASSWORD>@localhost:5433/turnos"
-py -m pytest tests/                       # 839 passed, 0 skipped
+py -m pytest tests/                       # 859 passed, 0 skipped
 docker compose stop db
 ```
 
 Si `C02_DATABASE_URL` no está definida, esos tests se saltean de forma explícita (no fallan en
 silencio). El gate de cada change exige `skipped == 0` con la variable seteada.
 
-Estado verificado al cierre de **F-06 (2026-11-15)**: backend `788 passed, 51 skipped` local y
-`839 passed, 0 skipped` con PostgreSQL; `mypy` y `ruff` en verde; `openspec validate --all --strict`
-20/20. El frontend incluye el SPA interno C-05…C-15 y la landing pública F-02: `32 passed` +
+Estado verificado al cierre de **C-13 (2026-11-16)**: backend `806 passed, 53 skipped` local y
+`859 passed, 0 skipped` con PostgreSQL; `mypy` y `ruff` en verde; `openspec validate --all --strict`
+21/21. El frontend incluye el SPA interno C-05…C-15 y la landing pública F-02: `32 passed` +
 lint/typecheck/build en verde.
+
+## WhatsApp: Twilio Sandbox
+
+La demo usa **Twilio WhatsApp Sandbox**. Sin credenciales, `WA_PROVIDER=fake` y no se toca la red.
+
+1. Creá una cuenta en <https://www.twilio.com/try-twilio>.
+2. En **Messaging → Try it out → Send a WhatsApp message**, uní tu teléfono con el código del sandbox.
+3. Copiá `Account SID`, `Auth Token` y el número del sandbox a `.env`:
+
+```env
+WA_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+```
+
+4. Configurá el webhook de Twilio a una URL pública (ngrok o dominio):
+
+```text
+https://TU-TUNEL/api/webhooks/whatsapp?tenant=a0000000-0000-4000-8000-000000000001
+```
+
+5. Reiniciá la API y probá desde `/app/whatsapp`: programar recordatorios, listar mensajes y recall.
+   Las respuestas `SI`/`NO` confirman o cancelan el turno.
+
+El sandbox sólo envía a números unidos y la sesión dura 24 h; no es producción. El fallback email es
+un log hasta configurar SMTP.
 
 ## Type hints
 
@@ -253,8 +280,8 @@ ni de tests.
 | `.env.example` | Variables de entorno ejemplo sin secretos reales |
 | `.github/workflows/quality.yml` | CI paralela: backend, frontend y Compose |
 | `tests/` | Suite completa por change: fundación, auth, catálogos, turnos, reservas, lista de espera, ficha, odontograma, presupuesto, caja, señas, migraciones y aislamiento |
-| `openspec/specs/` | 20 specs vivas (una por capability) |
-| `openspec/changes/archive/` | 20 changes archivados con proposal, design, specs y tasks |
+| `openspec/specs/` | 21 specs vivas (una por capability) |
+| `openspec/changes/archive/` | 21 changes archivados con proposal, design, specs y tasks |
 | `docs/foundation/bootstrap.md` | Setup, verificación, compose, troubleshooting |
 | `docs/foundation/verification-report.md` | Evidencia ejecutable del cierre C-01 |
 | `docs/discovery/` | Informe y checklist de Discovery |
@@ -325,7 +352,7 @@ ni de tests.
 - **Estado: archivado** el 2026-11-05. Landing mobile-first `/r/:tokenTenant` que consume la API pública: catálogo → prestación → huecos → nombre/teléfono/verificación → confirmación con token; gestión por token en `/r/:tokenTenant/turno/:token` (consultar/cancelar/reprogramar).
 - **Enabler backend incluido**: `GET /api/publico/{tokenTenant}/catalogo` (OQ-F1), solo lectura, tenant-scoped, `404` uniforme y allow-list sin PHI.
 - **Archivo**: `openspec/changes/archive/2026-11-05-f-02-reserva-publica-landing/`; capturas en `.../mockups/previews/`.
-- **Pendiente declarado**: proveedor real de captcha (hoy placeholder accesible), confirmación por WhatsApp/email (C-13) y persistencia SQL real de la reserva (hoy la demo corre en memoria).
+- **Pendiente declarado**: proveedor real de captcha (hoy placeholder accesible), persistencia SQL real de la reserva (hoy la demo corre en memoria) y WhatsApp de producción (la demo usa Twilio Sandbox).
 
 ## Estado de los ciclos C-07 a C-11
 
@@ -336,8 +363,9 @@ ni de tests.
 - **C-11 `senas-mercadopago`** — archivado el 2026-11-13. Seña atada 1:1 al turno (monto por prestación con override, truncado hacia abajo), preferencia de Mercado Pago con reintento y backoff, token público opaco, **webhook idempotente que verifica HMAC y re-consulta el pago** (nunca confía en el cuerpo; `503` fail-closed sin secreto), expiración atómica con auto-oferta a C-07, aplicación a caja vía C-10 con bloqueo por presupuesto aceptado, devolución como estado contable y transferencia de la seña al reprogramar. Migración 009. Suite 678 + 42 local; 720 + 0 con PostgreSQL.
 - **Montaje demo (F-03, F-04, F-05)** — la API real expone C-05 a C-11 sobre un composition root en memoria (`backend/app/demo.py`): reserva pública con seña, lista de espera, ficha y consentimiento, odontograma, presupuesto, caja y señas. El estado se pierde al reiniciar y las aceptaciones de presupuesto no impactan caja.
 - **C-12 `obras-sociales-liquidacion`** — archivado el 2026-11-15. Catálogo de obras sociales por tenant, cobertura configurable por (OS × prestación) con modo `PORCENTAJE`/`MONTO` y tope, cálculo de tramos para presupuestos, liquidación por período de turnos `PRESENTE`, cierre inmutable y export CSV. Migración 010. La cobertura es **configurada, no validada en vivo** (RN-OS-01).
-- **C-14 `google-calendar-sync`** — archivado el 2026-11-15. Link OAuth por profesional, push idempotente de turnos, eventos externos como bloqueo informativo, conflicto a favor del sistema, cola con backoff y token revocado sin romper la agenda. Migración **011** (renumerada: C-13 sigue bloqueado por PO-03 y conserva el 011 del roadmap; C-15 tomó 012 conceptualmente pero no necesitó DDL).
-- **C-15 `admin-plataforma-exportacion` (parcial)** — archivado el 2026-11-15. Configuración del tenant con whitelist, usuarios con Argon2, exportación JSON/CSV sin secretos y KPIs base (ausentismo, reservas online, facturación por profesional, reasignados <2 h). Sin migración nueva. Fuera de alcance: WhatsApp, superadmin, respaldo automático, ocupación y UI.
+- **C-14 `google-calendar-sync`** — archivado el 2026-11-15. Link OAuth por profesional, push idempotente de turnos, eventos externos como bloqueo informativo, conflicto a favor del sistema, cola con backoff y token revocado sin romper la agenda. Migración **011** (renumerada mientras C-13 estaba bloqueado).
+- **C-13 `whatsapp-recordatorios`** — archivado el 2026-11-16. Recordatorios idempotentes, Twilio Sandbox, webhook firmado con respuestas `SI`/`NO`, confirmación/cancelación con auto-oferta a C-07, fallback email y recall clínico. Migración **012**.
+- **C-15 `admin-plataforma-exportacion` (parcial)** — archivado el 2026-11-15. Configuración del tenant con whitelist, usuarios con Argon2, exportación JSON/CSV sin secretos y KPIs base. Fuera de alcance: superadmin, respaldo automático y ocupación.
 
 ## Alcance completo vs pendiente (TPI)
 
@@ -355,34 +383,34 @@ ni de tests.
 | Skill propia + MCP | ✅ `revisor-escenarios-turnos`, `visual-turnos` y MCP Context7 documentados y aplicados |
 | C-12 obras sociales y liquidación | ✅ archivada |
 | C-14 Google Calendar sync | ✅ archivada |
-| C-15 admin, exportación y KPIs (parcial) | ✅ archivada (WhatsApp y superadmin fuera de alcance) |
-| C-13 WhatsApp | ⛔ bloqueado por PO-03 (no hay proveedor/BSP definido) |
-| SPA interno (F-06) | ✅ agenda, pacientes, clínica, caja, señas, OS, calendario y configuración |
+| C-13 WhatsApp con Twilio | ✅ archivada (sandbox para demo; producción pendiente) |
+| C-15 admin, exportación y KPIs (parcial) | ✅ archivada (superadmin, respaldo y ocupación fuera de alcance) |
+| SPA interno (F-06) | ✅ agenda, pacientes, clínica, caja, señas, WhatsApp, OS, calendario y configuración |
 | Montaje de routers en `create_app` | ✅ C-05…C-15 (adaptadores en memoria) |
 
 ## Límites declarados del alcance
 
 El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son los límites reales al
-2026-11-13, sin maquillaje:
+2026-11-16, sin maquillaje:
 
-1. **El bootstrap de la API monta C-05 a C-11.** `backend/app/app.py` registra `health`, `auth`,
-   `catalogos`, los turnos internos, la reserva pública, la lista de espera, la ficha clínica, el
-   odontograma, el presupuesto, la caja y las rutas de señas (públicas, internas y webhook), todos
-   sobre adaptadores en memoria. Los repositorios SQLAlchemy de caja, presupuesto y señas existen y no
-   están cableados al arranque.
-   Consecuencia concreta: por `uvicorn` se puede recorrer el núcleo completo (reservar, gestionar la
-   lista de espera, abrir ficha, registrar hallazgos, presupuestar, cobrar y consultar señas), pero el
-   estado se pierde al reiniciar y las aceptaciones de presupuesto no escriben en caja.
+1. **El bootstrap de la API monta C-05 a C-15.** `backend/app/app.py` registra `health`, `auth`,
+   `catalogos`, turnos, reserva pública, lista de espera, ficha clínica, odontograma, presupuesto,
+   caja, señas, obras sociales, Google Calendar y WhatsApp, todos sobre adaptadores en memoria. Los
+   repositorios SQLAlchemy de caja, presupuesto, señas y WhatsApp existen y están probados contra
+   PostgreSQL, pero no reemplazan a los adaptadores en el camino de la API.
+   Consecuencia concreta: por `uvicorn` se puede recorrer el núcleo completo, pero el estado se pierde
+   al reiniciar y las aceptaciones de presupuesto no escriben en caja.
 2. **La persistencia real solo aplica a `auth` y `catalogos`.** El resto de los dominios corre sobre
    puertos con adaptadores en memoria en tests y en la demo: el estado se pierde al reiniciar. Los
    repositorios SQL están escritos y probados contra PostgreSQL, pero no reemplazan a los adaptadores en
    el camino de la API.
-3. **La UI interna cubre C-05 a C-15, no WhatsApp.** El SPA permite operar agenda, pacientes, clínica,
-   caja, señas, obras sociales, calendario, configuración, exportación y KPIs. Queda fuera la UI de C-13
-   (bloqueado), el superadmin cross-tenant y las pantallas de edición avanzada.
-4. **Integraciones externas simuladas.** Mercado Pago se ejercita con un adaptador fake que respeta el
-   contrato (firma HMAC, re-consulta del pago); Google Calendar con `PasarelaGoogleFake` y `oauth_ref`
-   ficticio. No hay credenciales ni llamadas reales a los proveedores. WhatsApp no está implementado.
+3. **La UI interna cubre C-05 a C-15, incluido WhatsApp.** El SPA permite operar agenda, pacientes,
+   clínica, caja, señas, WhatsApp, obras sociales, calendario, configuración, exportación y KPIs.
+   Quedan fuera el superadmin cross-tenant y las pantallas de edición avanzada.
+4. **Integraciones externas.** Mercado Pago y Google Calendar se ejercitan con adaptadores fake que
+   respetan el contrato. WhatsApp se integra con **Twilio Sandbox** cuando `WA_PROVIDER=twilio` y las
+   credenciales están en `.env`; sin credenciales usa `PasarelaWhatsAppFake`. El sandbox sólo envía a
+   números unidos y no es producción.
 5. **Los bloqueos de Google Calendar no alteran la disponibilidad de C-06.** Se guardan y se consultan
    por `/api/calendar/bloqueos`, pero el motor de reservas todavía no los lee; cablearlos es un
    follow-up que toca C-05/C-06.
@@ -397,9 +425,9 @@ El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son l
    estructurado de la aplicación lo redacta y hay test que lo verifica; la redacción del access log es
    de infraestructura.
 10. **Admin parcial**: no hay superadmin cross-tenant, job de respaldo ni KPI de ocupación (requiere
-   modelo de capacidad por horarios). WhatsApp sigue fuera por PO-03.
+   modelo de capacidad por horarios).
 
 ## Datos y secretos
 
-- **Datos ficticios**: seed (`backend/seed_test.py`) y tests usan datos inventados (1 tenant demo, profesional/sillón/prestación de prueba). NUNCA usar datos reales de pacientes en desarrollo, tests ni demos; nada de PHI en logs.
+- **Datos ficticios**: seed (`backend/seed_demo.py`) y tests usan datos inventados (1 tenant demo, profesionales/sillones/prestaciones/pacientes de prueba). NUNCA usar datos reales de pacientes en desarrollo, tests ni demos; nada de PHI en logs.
 - **Secretos**: nada commiteado. No hay `.env`; el repo versiona únicamente [`.env.example`](.env.example) con placeholders de desarrollo sin valores productivos. `.gitignore` excluye `.env`, `.env.local`, `__pycache__/` y `.pytest_cache/`. Las variables reales (`MP_*`, `WA_*`, `GCAL_*`, etc.) se documentan cuando esos changes las necesitan. CI ejecuta `tools/secret_scan.py` para no incorporar patrones comunes de claves.

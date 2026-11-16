@@ -4,14 +4,14 @@
 > Cada change es atómico: un agente puede implementarlo en una sesión (~4-6 horas).
 > **Leer este archivo antes de ejecutar cualquier `/opsx:propose`.**
 
-## Progreso al 2026-11-15
+## Progreso al 2026-11-16
 
 | | |
 |---|---|
-| Archivados | **20** — C-01 … C-12, C-14, C-15 (parcial), F-01 … F-06 |
-| Pendientes | C-13 WhatsApp (bloqueado por PO-03: sin proveedor/BSP) |
-| Migraciones | 001 → 011 aplicadas y reversibles contra PostgreSQL real |
-| Suite | 788 passed + 51 skipped local · 839 passed + 0 skipped con `C02_DATABASE_URL` |
+| Archivados | **21** — C-01 … C-15 y F-01 … F-06 (C-15 en alcance parcial) |
+| Pendientes | Ninguno bloqueante; C-15 completo requiere superadmin, respaldo y KPI de ocupación |
+| Migraciones | 001 → 012 aplicadas y reversibles contra PostgreSQL real |
+| Suite | 806 passed + 53 skipped local · 859 passed + 0 skipped con `C02_DATABASE_URL` |
 | Frontend | SPA interno C-05…C-15 + landing pública F-02 · 32 tests, lint/typecheck/build |
 
 Los routers de C-05…C-15 están montados en `create_app` sobre adaptadores en memoria; la deuda de
@@ -378,15 +378,16 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ## FASE 6 — Integraciones
 
 ### [C-13] `whatsapp-recordatorios`
-- **Estado**: `[ ]` pendiente
-- **Scope**: Recordatorios y confirmación por WhatsApp API oficial + email fallback + recall sanitario (US-020, US-021, US-052; RN-IN-01/03) — ⛔ PO-03 diferida (2026-11-06): proveedor/BSP sin definir; no se implementa hasta elegirlo (`docs/decisiones-po.md`)
-  - Modelo `MensajeWA(tenant, paciente, turno?, plantilla, estado ENVIADO/ENTREGADO/LEIDO/FALLIDO, provider_message_id unique?)`
-  - `workers/`: cron recordatorios (ej. 24 h antes, anticipación/horario/mensaje configurables) con plantillas aprobadas; proveedor y número declarados por tenant
-  - Webhook `POST /api/webhooks/whatsapp`: actualiza estados visibles en agenda; respuesta "SI"/"NO" → CONFIRMADO/CANCELADO (cancelación dispara C-07); respuesta ambigua → link de confirmación
-  - Outbox / cola con backoff: WA caído → email fallback (SMTP) + reintento; agenda/caja intactas
-  - Recall sanitario (US-052): motivo clínico + fecha objetivo por WA, separado de marketing (fuera de alcance)
-  - Migración 011: mensajes_wa, recordatorios/config + RLS
-  - Tests: webhook entrante confirma/cancela, cancelación dispara auto-oferta, fallback email cuando WA falla, estados visibles por turno
+- **Estado**: `[x]` completado (2026-11-16; recordatorios, webhook Twilio con firma, respuestas SI/NO, fallback email y recall; migración **012**) + archivado en `openspec/changes/archive/2026-11-16-c-13-whatsapp-recordatorios/`
+- **Verificación**: [`docs/foundation/verification-c-13-whatsapp.md`](docs/foundation/verification-c-13-whatsapp.md)
+- **Proveedor**: Twilio WhatsApp Sandbox para la demo. Producción requiere número propio y plantillas aprobadas (PO-03 fase 2).
+- **Scope aplicado**:
+  - Modelo `mensajes_wa` con estados, canal, intentos, respuesta y `provider_message_id` único.
+  - Recordatorios idempotentes por turno+plantilla; programación por endpoint (el cron queda para el worker).
+  - Webhook `POST /api/webhooks/whatsapp`: firma Twilio, estados de entrega y respuesta `SI`/`NO`; `NO` dispara C-07.
+  - Fallback email (adaptador de log hasta configurar SMTP) y cola de reintentos.
+  - Recall sanitario separado del marketing.
+- **Límite**: sandbox sólo envía a números unidos y la sesión dura 24 h; no es producción.
 - **Dependencias**: C-05, C-07
 - **Governance**: ALTO
 - **Leer antes**:
@@ -399,7 +400,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ---
 
 ### [C-14] `google-calendar-sync`
-- **Estado**: `[x]` completado (2026-11-15; link OAuth por profesional, push idempotente de turnos, pull de eventos externos como bloqueo informativo, conflicto a favor del sistema, cola con backoff y token revocado sin romper la agenda; migración **011** renumerada porque C-13 sigue bloqueado) + archivado en `openspec/changes/archive/2026-11-15-c-14-google-calendar-sync/`
+- **Estado**: `[x]` completado (2026-11-15; link OAuth por profesional, push idempotente de turnos, pull de eventos externos como bloqueo informativo, conflicto a favor del sistema, cola con backoff y token revocado sin romper la agenda; migración **011** renumerada mientras C-13 estaba bloqueado) + archivado en `openspec/changes/archive/2026-11-15-c-14-google-calendar-sync/`
 - **Verificación**: [`docs/foundation/verification-c-14-google-calendar.md`](docs/foundation/verification-c-14-google-calendar.md)
 - **Límite**: OAuth y Google Calendar simulados con adaptador fake; los bloqueos externos no alteran la disponibilidad de C-06 en v1; sin UI ni cron propio.
 - **Scope**: Sync bidireccional con Google Calendar por profesional, sistema como fuente de verdad (US-050; RN-IN-02/03)

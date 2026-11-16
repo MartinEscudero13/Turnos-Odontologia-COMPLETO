@@ -98,6 +98,7 @@ fuente de verdad vigente; los `design.md` archivados de C-09, C-10, C-11, C-12 y
 | 010 | `liquidaciones`, `liquidacion_lineas` | Liquidación por período de turnos atendidos y su detalle inmutable |
 | 010 | `pacientes.obra_social_id` (FK) | Vínculo del paciente con la obra social del tenant |
 | 011 | `calendar_links`, `calendar_eventos`, `calendar_envios` | Vínculo OAuth por profesional, mapeo turno↔evento, bloqueos externos y cola de reintentos |
+| 012 | `mensajes_wa` | Recordatorios, confirmaciones/cancelaciones y recall por WhatsApp (Twilio) |
 
 Todas llevan `tenant_id NOT NULL` con RLS forzada. `senas.token_hash` y `pagos_mp.mp_payment_id` son
 únicos globales (no por tenant) para que el webhook público resuelva sin filtrar existencia entre tenants.
