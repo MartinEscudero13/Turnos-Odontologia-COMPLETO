@@ -85,6 +85,8 @@ def nuevo_harness() -> Harness:
                 online=1,
                 facturacion_por_profesional=(("profesional-1", 12000),),
                 reasignados_2h=1,
+                minutos_ocupados=540,
+                minutos_disponibles=1440,
             )
         }
     )
@@ -299,6 +301,7 @@ def test_kpis_calculados() -> None:
     assert kpis.reservas_online_pct == 25.0
     assert kpis.facturacion_por_profesional == (("profesional-1", 12000),)
     assert kpis.reasignados_2h == 1
+    assert kpis.ocupacion_pct == 37.5
 
 
 def test_kpis_sin_turnos_no_divide_por_cero() -> None:

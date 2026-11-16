@@ -51,6 +51,7 @@ class KpisOut(BaseModel):
     reservas_online_pct: float
     facturacion_por_profesional: list[tuple[str, int]]
     reasignados_2h: int
+    ocupacion_pct: float
 
 
 class ErrorOut(BaseModel):

@@ -15,7 +15,7 @@ from app.admin.puertos import (
 )
 from app.models.caja import MovimientoCaja
 from app.models.calendario import CalendarLink
-from app.models.catalogos import Paciente, Prestacion, Profesional
+from app.models.catalogos import HorarioSemanal, Paciente, Prestacion, Profesional
 from app.models.obras_sociales import Cobertura, Liquidacion, ObraSocial
 from app.models.sena import Sena
 from app.models.tenant import ParametroTenant
@@ -293,20 +293,56 @@ class ReportesSQL:
         fin = datetime.combine(hasta, time.min, tzinfo=TZ_OPERATIVA) + timedelta(days=1)
         turnos = list(
             self._session.execute(
-                select(Turno.estado, Turno.origen, Turno.creado_en, Turno.inicio).where(
+                select(
+                    Turno.estado, Turno.origen, Turno.creado_en, Turno.inicio, Turno.fin
+                ).where(
                     Turno.tenant_id == t, Turno.inicio >= inicio, Turno.inicio < fin
                 )
             ).all()
         )
         por_estado: dict[str, int] = {}
-        for estado, _, _, _ in turnos:
+        for estado, _, _, _, _ in turnos:
             por_estado[estado] = por_estado.get(estado, 0) + 1
-        online = sum(1 for _, origen, _, _ in turnos if origen == "RESERVA_ONLINE")
+        online = sum(1 for _, origen, _, _, _ in turnos if origen == "RESERVA_ONLINE")
         reasignados = sum(
             1
-            for _, origen, creado_en, inicio_turno in turnos
+            for _, origen, creado_en, inicio_turno, _ in turnos
             if origen == "LISTA_ESPERA" and creado_en >= inicio_turno - timedelta(hours=2)
         )
+        # Ocupación: minutos de turnos que bloquean agenda sobre la capacidad
+        # semanal ofrecida por los profesionales en el período.
+        minutos_ocupados = sum(
+            int((fin_turno - inicio_turno).total_seconds() // 60)
+            for estado, _, _, inicio_turno, fin_turno in turnos
+            if estado in ("PENDIENTE", "CONFIRMADO", "PRESENTE", "AUSENTE")
+        )
+        capacidad = {
+            (profesional, dia): int(
+                (
+                    datetime.combine(date.min, hasta_h)
+                    - datetime.combine(date.min, desde_h)
+                ).total_seconds()
+                // 60
+            )
+            for profesional, dia, desde_h, hasta_h in self._session.execute(
+                select(
+                    HorarioSemanal.profesional_id,
+                    HorarioSemanal.dia,
+                    HorarioSemanal.desde,
+                    HorarioSemanal.hasta,
+                ).where(HorarioSemanal.tenant_id == t)
+            ).all()
+        }
+        minutos_disponibles = 0
+        dia_actual = desde
+        while dia_actual <= hasta:
+            dia_semana = dia_actual.isoweekday()
+            minutos_disponibles += sum(
+                minutos
+                for (_, dia), minutos in capacidad.items()
+                if dia == dia_semana
+            )
+            dia_actual += timedelta(days=1)
         facturacion = self._session.execute(
             select(Turno.profesional_id, func.sum(MovimientoCaja.monto))
             .join(Turno, Turno.id == MovimientoCaja.turno_id)
@@ -328,4 +364,6 @@ class ReportesSQL:
                 (str(profesional), int(total or 0)) for profesional, total in facturacion
             ),
             reasignados_2h=reasignados,
+            minutos_ocupados=minutos_ocupados,
+            minutos_disponibles=minutos_disponibles,
         )

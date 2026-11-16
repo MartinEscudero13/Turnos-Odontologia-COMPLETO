@@ -244,6 +244,7 @@ class ServicioAdmin:
             reservas_online_pct=self._pct(datos.online, datos.total_turnos),
             facturacion_por_profesional=datos.facturacion_por_profesional,
             reasignados_2h=datos.reasignados_2h,
+            ocupacion_pct=self._pct(datos.minutos_ocupados, datos.minutos_disponibles),
         )
 
     # ------------------------------------------------------------------

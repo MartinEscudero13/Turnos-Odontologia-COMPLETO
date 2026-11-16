@@ -16,6 +16,9 @@ venv/
 dist/
 build/
 
+# Respaldos locales de base de datos
+backups/
+
 # PDFs temporales (pero NO el informe final)
 *.tmp.pdf
 ~*.pdf

@@ -44,6 +44,7 @@ def _kpis_out(kpis: Kpis) -> KpisOut:
             (profesional, total) for profesional, total in kpis.facturacion_por_profesional
         ],
         reasignados_2h=kpis.reasignados_2h,
+        ocupacion_pct=kpis.ocupacion_pct,
     )
 
 

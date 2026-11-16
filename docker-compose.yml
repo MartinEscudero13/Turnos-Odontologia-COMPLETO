@@ -103,6 +103,24 @@ services:
     networks:
       - turnos
 
+  # Respaldo manual: docker compose run --rm backup
+  # El archivo queda en ./backups (ignorado por Git).
+  backup:
+    image: postgres:15-alpine
+    profiles: ["backup"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?definí POSTGRES_PASSWORD en .env}
+    command: >-
+      sh -c 'pg_dump -h db -U turnos_owner -d turnos -Fc
+      -f /backups/turnos-$$(date +%Y%m%d-%H%M%S).dump'
+    volumes:
+      - ./backups:/backups
+    networks:
+      - turnos
+
 networks:
   turnos:
     driver: bridge

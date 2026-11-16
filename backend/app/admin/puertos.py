@@ -68,6 +68,8 @@ class DatosReporte:
     online: int
     facturacion_por_profesional: tuple[tuple[str, int], ...]
     reasignados_2h: int
+    minutos_ocupados: int = 0
+    minutos_disponibles: int = 0
 
 
 @dataclass(frozen=True)
@@ -80,6 +82,7 @@ class Kpis:
     reservas_online_pct: float
     facturacion_por_profesional: tuple[tuple[str, int], ...]
     reasignados_2h: int
+    ocupacion_pct: float
 
 
 class ConfigRepositorio(Protocol):

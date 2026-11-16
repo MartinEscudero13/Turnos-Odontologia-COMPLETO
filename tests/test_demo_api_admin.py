@@ -140,6 +140,7 @@ def test_kpis_base() -> None:
     assert cuerpo["ausentismo_pct"] == 33.33
     assert cuerpo["reservas_online_pct"] == 25.0
     assert cuerpo["reasignados_2h"] == 1
+    assert cuerpo["ocupacion_pct"] == 37.5
 
 
 def test_kpis_periodo_invalido_es_422() -> None:
