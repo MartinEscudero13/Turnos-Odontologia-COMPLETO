@@ -267,6 +267,24 @@ export function ClinicaPage(): JSX.Element {
                     </StatusBadge>
                   ),
                 },
+                {
+                  header: 'Acciones',
+                  align: 'right',
+                  cell: (h) =>
+                    h.resuelto ? (
+                      <span className="muted">—</span>
+                    ) : (
+                      <Button
+                        variant="quiet"
+                        isLoading={busy}
+                        onClick={() =>
+                          void accion(() => clinicaApi.resolverHallazgo(h.id))
+                        }
+                      >
+                        Resolver
+                      </Button>
+                    ),
+                },
               ]}
             />
           </Section>
@@ -319,6 +337,17 @@ export function ClinicaPage(): JSX.Element {
                       ),
                     )
                   }
+                  onDecidir={(lineaId, acepta) =>
+                    void accion(() =>
+                      clinicaApi.decidir(presupuesto.id, {
+                        linea_id: lineaId,
+                        acepta,
+                        canal: 'mostrador',
+                        // Sin medio la aceptación deja un cobro pendiente en caja.
+                        medio: null,
+                      }),
+                    )
+                  }
                 />
               ))}
               {(presupuestos.data ?? []).length === 0 ? (
@@ -339,6 +368,7 @@ function PresupuestoCard({
   prestacionId,
   onAddLine,
   onEmit,
+  onDecidir,
 }: {
   presupuesto: Presupuesto;
   busy: boolean;
@@ -346,7 +376,9 @@ function PresupuestoCard({
   prestacionId: string;
   onAddLine: () => void;
   onEmit: () => void;
+  onDecidir: (lineaId: string, acepta: boolean) => void;
 }): JSX.Element {
+  const decidible = presupuesto.estado === 'EMITIDO' || presupuesto.estado === 'ACEPTADO';
   return (
     <article className="presupuesto-card">
       <header>
@@ -367,6 +399,27 @@ function PresupuestoCard({
           { header: 'Monto', cell: (l) => money(l.monto), align: 'right' },
           { header: 'OS', cell: (l) => money(l.cobertura_os), align: 'right' },
           { header: 'Paciente', cell: (l) => money(l.a_cargo_paciente), align: 'right' },
+          {
+            header: 'Decisión',
+            align: 'right',
+            cell: (l) =>
+              decidible ? (
+                <div className="row-actions">
+                  <Button variant="quiet" isLoading={busy} onClick={() => onDecidir(l.id, true)}>
+                    Aceptar
+                  </Button>
+                  <Button
+                    variant="quiet"
+                    isLoading={busy}
+                    onClick={() => onDecidir(l.id, false)}
+                  >
+                    Rechazar
+                  </Button>
+                </div>
+              ) : (
+                <span className="muted">—</span>
+              ),
+          },
         ]}
       />
       <div className="form-actions">

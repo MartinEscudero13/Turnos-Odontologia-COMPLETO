@@ -65,10 +65,10 @@ export function AgendaPage(): JSX.Element {
     }
   }
 
-  async function cancelar(id: string): Promise<void> {
+  async function transicion(task: () => Promise<unknown>): Promise<void> {
     setError(null);
     try {
-      await turnosApi.cancelar(id);
+      await task();
       turnos.reload();
     } catch (cause) {
       setError(errorMessage(cause));
@@ -165,14 +165,47 @@ export function AgendaPage(): JSX.Element {
               cell: (t) => <StatusBadge tone={toneFor(t.estado)}>{t.estado}</StatusBadge>,
             },
             {
-              header: '',
+              header: 'Acciones',
               align: 'right',
-              cell: (t) =>
-                t.estado !== 'CANCELADO' && t.estado !== 'REPROGRAMADO' ? (
-                  <Button variant="quiet" onClick={() => void cancelar(t.id)}>
-                    Cancelar
-                  </Button>
-                ) : null,
+              cell: (t) => {
+                const editable =
+                  t.estado === 'PENDIENTE' || t.estado === 'CONFIRMADO';
+                if (!editable) return <span className="muted">—</span>;
+                return (
+                  <div className="row-actions">
+                    {t.estado === 'PENDIENTE' ? (
+                      <Button
+                        variant="quiet"
+                        onClick={() => void transicion(() => turnosApi.confirmar(t.id))}
+                      >
+                        Confirmar
+                      </Button>
+                    ) : null}
+                    {t.estado === 'CONFIRMADO' ? (
+                      <>
+                        <Button
+                          variant="quiet"
+                          onClick={() => void transicion(() => turnosApi.presente(t.id))}
+                        >
+                          Presente
+                        </Button>
+                        <Button
+                          variant="quiet"
+                          onClick={() => void transicion(() => turnosApi.ausente(t.id))}
+                        >
+                          Ausente
+                        </Button>
+                      </>
+                    ) : null}
+                    <Button
+                      variant="quiet"
+                      onClick={() => void transicion(() => turnosApi.cancelar(t.id))}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                );
+              },
             },
           ]}
         />

@@ -23,6 +23,7 @@ from app.admin.puertos import (
     UsuariosMemoria,
 )
 from app.admin.servicio import ServicioAdmin
+from app.caja.adaptadores import ImputacionCaja
 from app.caja.puertos import (
     AjustePostCierreMemoria,
     CierreMemoria,
@@ -112,7 +113,6 @@ from app.odontograma.puertos import (
 from app.odontograma.servicio import ServicioOdontograma
 from app.presupuesto.puertos import (
     AceptacionMemoria,
-    ImputacionMemoria,
     LineaMemoria,
     PresupuestoMemoria,
 )
@@ -621,6 +621,9 @@ def build_demo_services(
                     online=1,
                     facturacion_por_profesional=((PROFESIONAL_DEMO_1, 12000),),
                     reasignados_2h=1,
+                    # Agenda demo: 9 h ocupadas sobre 24 h disponibles en el período.
+                    minutos_ocupados=540,
+                    minutos_disponibles=1440,
                 )
             }
         ),
@@ -689,7 +692,7 @@ def build_demo_services(
         prestaciones_presupuesto,
         pacientes_presupuesto,
         CoberturaPresupuesto(obras_sociales),
-        ImputacionMemoria(),
+        ImputacionCaja(caja),
         auditoria_presupuesto,
         consentimientos=consentimientos,
         uow_factory=lambda: UowPresupuestoMemoria(

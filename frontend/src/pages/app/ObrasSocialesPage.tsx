@@ -10,7 +10,15 @@ import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { PageHeader } from '../../components/PageHeader';
 import { StatusBadge } from '../../components/StatusBadge';
-import { DataTable, ErrorNotice, Section, Select, money, soloFecha } from '../../components/ui';
+import {
+  DataTable,
+  ErrorNotice,
+  Section,
+  Select,
+  fecha,
+  money,
+  soloFecha,
+} from '../../components/ui';
 
 function mes(): { desde: string; hasta: string } {
   const now = new Date();
@@ -41,6 +49,7 @@ export function ObrasSocialesPage(): JSX.Element {
     validada_en_vivo: boolean;
   } | null>(null);
   const [rango, setRango] = useState(mes());
+  const [detalle, setDetalle] = useState<Liquidacion | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -137,6 +146,43 @@ export function ObrasSocialesPage(): JSX.Element {
           prestaciones.error
         }
       />
+
+      <Section title="Obras sociales" description="Activar o desactivar sin borrar historial.">
+        <DataTable
+          rows={obras.data ?? []}
+          keyOf={(obra) => obra.id}
+          empty="Sin obras sociales."
+          columns={[
+            { header: 'Nombre', cell: (o) => o.nombre },
+            {
+              header: 'Estado',
+              cell: (o) => (
+                <StatusBadge tone={o.activa ? 'success' : 'danger'}>
+                  {o.activa ? 'Activa' : 'Inactiva'}
+                </StatusBadge>
+              ),
+            },
+            {
+              header: 'Acciones',
+              align: 'right',
+              cell: (o) => (
+                <Button
+                  variant="quiet"
+                  isLoading={busy}
+                  onClick={() =>
+                    void accion(
+                      () => obrasSocialesApi.cambiarEstado(o.id, !o.activa),
+                      () => obras.reload(),
+                    )
+                  }
+                >
+                  {o.activa ? 'Desactivar' : 'Activar'}
+                </Button>
+              ),
+            },
+          ]}
+        />
+      </Section>
 
       <div className="two-columns">
         <Section title="Nueva obra social">
@@ -325,6 +371,17 @@ export function ObrasSocialesPage(): JSX.Element {
               align: 'right',
               cell: (l: Liquidacion) => (
                 <div className="row-actions">
+                  <Button
+                    variant="quiet"
+                    isLoading={busy}
+                    onClick={() =>
+                      void accion(async () => {
+                        setDetalle(await obrasSocialesApi.detalle(l.id));
+                      })
+                    }
+                  >
+                    Detalle
+                  </Button>
                   <Button variant="quiet" onClick={() => void descargar(l)}>
                     CSV
                   </Button>
@@ -342,6 +399,43 @@ export function ObrasSocialesPage(): JSX.Element {
             },
           ]}
         />
+      </Section>
+
+      <Section
+        title="Detalle de liquidación"
+        description="Líneas incluidas en la liquidación seleccionada."
+        actions={
+          detalle ? (
+            <Button variant="quiet" onClick={() => setDetalle(null)}>
+              Limpiar
+            </Button>
+          ) : null
+        }
+      >
+        {detalle ? (
+          <>
+            <p className="muted">
+              {detalle.estado} · {soloFecha(detalle.periodo_desde)} →{' '}
+              {soloFecha(detalle.periodo_hasta)} · {money(detalle.total_centavos)}
+            </p>
+            <DataTable
+              rows={detalle.lineas}
+              keyOf={(linea) => `${linea.turno_id}-${linea.fecha}`}
+              empty="La liquidación no tiene líneas."
+              columns={[
+                { header: 'Turno', cell: (l) => l.turno_id.slice(0, 8) },
+                { header: 'Fecha', cell: (l) => fecha(l.fecha) },
+                {
+                  header: 'Monto',
+                  cell: (l) => money(l.monto_centavos),
+                  align: 'right',
+                },
+              ]}
+            />
+          </>
+        ) : (
+          <p className="table-empty">Elegí una liquidación y tocá “Detalle”.</p>
+        )}
       </Section>
     </div>
   );

@@ -281,6 +281,7 @@ export interface Kpis {
   reservas_online_pct: number;
   facturacion_por_profesional: [string, number][];
   reasignados_2h: number;
+  ocupacion_pct: number;
 }
 
 export type TenantConfig = Record<string, unknown>;
@@ -317,6 +318,74 @@ export interface EnvioWA {
   mensajes: MensajeWA[];
 }
 
+export interface Pendiente {
+  id: string;
+  fecha: string;
+  presupuesto_id: string;
+  linea_id: string;
+  monto_centavos: number;
+  actor_id: string;
+  turno_id: string | null;
+  creado_en: string;
+  resuelto_en: string | null;
+  movimiento_id: string | null;
+}
+
+export interface TotalesCaja {
+  efectivo: number;
+  transferencia: number;
+  mp: number;
+  os: number;
+}
+
+export interface CierreCaja {
+  id: string;
+  fecha: string;
+  totales: {
+    total_efectivo: number;
+    total_transferencia: number;
+    total_mp: number;
+    total_os_cobrado: number;
+    total_os: number;
+  };
+  efectivo_contado: number;
+  diferencia: number;
+  responsable_id: string;
+  motivo_diferencia: string | null;
+  observacion: string | null;
+  cerrado_at: string;
+}
+
+export interface DiaReporte {
+  fecha: string;
+  efectivo: number;
+  transferencia: number;
+  mp: number;
+  os: number;
+  movimientos: number;
+}
+
+export interface ReporteCaja {
+  desde: string;
+  hasta: string;
+  fuente: string;
+  totales: TotalesCaja;
+  por_dia: DiaReporte[];
+  cierres: number;
+  movimientos_anulados: number;
+}
+
+export interface DecisionPresupuesto {
+  presupuesto_id: string;
+  estado: string;
+  actor_id: string;
+  linea_id: string;
+  acepta: boolean;
+  fecha: string;
+  canal: string;
+  medio: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Catálogos y agenda
 // ---------------------------------------------------------------------------
@@ -347,6 +416,15 @@ export const turnosApi = {
   }) => api<Turno>('/api/turnos', { method: 'POST', body: JSON.stringify(body) }),
   cancelar: (id: string) =>
     api<Turno>(`/api/turnos/${id}/cancelar`, { method: 'POST' }),
+  confirmar: (id: string) =>
+    api<Turno>(`/api/turnos/${id}/confirmar`, { method: 'POST' }),
+  presente: (id: string) => api<Turno>(`/api/turnos/${id}/presente`, { method: 'POST' }),
+  ausente: (id: string) => api<Turno>(`/api/turnos/${id}/ausente`, { method: 'POST' }),
+  reprogramar: (id: string, body: { nuevo_inicio: string; duracion_min?: number }) =>
+    api<{ original: Turno; nuevo: Turno }>(`/api/turnos/${id}/reprogramar`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
 
 // ---------------------------------------------------------------------------
@@ -399,6 +477,21 @@ export const clinicaApi = {
       method: 'POST',
       body: JSON.stringify({ vence_en: venceEn }),
     }),
+  decidir: (
+    presupuestoId: string,
+    body: {
+      linea_id: string;
+      acepta: boolean;
+      canal: string;
+      medio?: string | null;
+    },
+  ) =>
+    api<DecisionPresupuesto>(`/api/presupuestos/${presupuestoId}/aceptar`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  resolverHallazgo: (hallazgoId: string) =>
+    api<Hallazgo>(`/api/odontograma/${hallazgoId}/resolver`, { method: 'POST' }),
 };
 
 // ---------------------------------------------------------------------------
@@ -417,7 +510,25 @@ export const cajaApi = {
     efectivo_contado: number;
     responsable_id: string;
     fecha: string;
-  }) => api<unknown>('/api/caja/cierre', { method: 'POST', body: JSON.stringify(body) }),
+    motivo_diferencia?: string;
+    observacion?: string;
+  }) => api<CierreCaja>('/api/caja/cierre', { method: 'POST', body: JSON.stringify(body) }),
+  anular: (id: string, motivo: string) =>
+    api<Movimiento>(`/api/caja/movimientos/${id}/anular`, {
+      method: 'POST',
+      body: JSON.stringify({ motivo }),
+    }),
+  pendientes: (fecha?: string) =>
+    api<Pendiente[]>(`/api/caja/pendientes${qs({ fecha })}`),
+  cobrar: (pendienteId: string, medio: string) =>
+    api<{ pendiente: Pendiente; movimiento: Movimiento; ajuste: unknown | null }>(
+      `/api/caja/pendientes/${pendienteId}/cobrar`,
+      { method: 'POST', body: JSON.stringify({ medio }) },
+    ),
+  cierres: (desde: string, hasta: string) =>
+    api<CierreCaja[]>(`/api/caja/cierres${qs({ desde, hasta })}`),
+  reporte: (desde: string, hasta: string) =>
+    api<ReporteCaja>(`/api/caja/reportes${qs({ desde, hasta })}`),
 };
 
 export const senasApi = {
@@ -455,6 +566,12 @@ export const obrasSocialesApi = {
     api<Liquidacion>('/api/liquidaciones', { method: 'POST', body: JSON.stringify(body) }),
   cerrar: (id: string) =>
     api<Liquidacion>(`/api/liquidaciones/${id}/cerrar`, { method: 'POST' }),
+  detalle: (id: string) => api<Liquidacion>(`/api/liquidaciones/${id}`),
+  cambiarEstado: (id: string, activa: boolean) =>
+    api<ObraSocial>(`/api/obras-sociales/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ activa }),
+    }),
   csvUrl: (id: string) => `/api/liquidaciones/${id}/export.csv`,
 };
 
@@ -490,6 +607,8 @@ export const calendarioApi = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  desconectar: (linkId: string) =>
+    api<CalendarLink>(`/api/calendar/links/${linkId}`, { method: 'DELETE' }),
 };
 
 // ---------------------------------------------------------------------------
@@ -507,6 +626,11 @@ export const adminApi = {
     password: string;
     rol: string;
   }) => api<UsuarioAdmin>('/api/tenant/usuarios', { method: 'POST', body: JSON.stringify(body) }),
+  cambiarEstadoUsuario: (usuarioId: string, activo: boolean) =>
+    api<UsuarioAdmin>(`/api/tenant/usuarios/${usuarioId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ activo }),
+    }),
   exportUrl: (formato: 'json' | 'csv') => `/api/exportacion?formato=${formato}`,
   kpis: (desde: string, hasta: string) =>
     api<Kpis>(`/api/reportes/kpis${qs({ desde, hasta })}`),

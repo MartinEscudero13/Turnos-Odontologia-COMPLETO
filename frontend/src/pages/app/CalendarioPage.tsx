@@ -187,6 +187,27 @@ export function CalendarioPage(): JSX.Element {
               ),
             },
             { header: 'Última sync', cell: (l) => (l.ultima_sync ? fecha(l.ultima_sync) : '—') },
+            {
+              header: 'Acciones',
+              align: 'right',
+              cell: (l) =>
+                l.estado === 'CONECTADO' ? (
+                  <Button
+                    variant="quiet"
+                    isLoading={busy}
+                    onClick={() =>
+                      void accion(
+                        () => calendarioApi.desconectar(l.id),
+                        () => links.reload(),
+                      )
+                    }
+                  >
+                    Desconectar
+                  </Button>
+                ) : (
+                  <span className="muted">—</span>
+                ),
+            },
           ]}
         />
       </Section>

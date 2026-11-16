@@ -139,7 +139,7 @@ export function ConfigPage(): JSX.Element {
               checked={recordatorios}
               onChange={(event) => setRecordatorios(event.target.checked)}
             />
-            Recordatorios habilitados (WhatsApp pendiente)
+            Recordatorios de WhatsApp habilitados
           </label>
           <div className="form-actions">
             <Button type="submit" isLoading={busy}>
@@ -201,6 +201,24 @@ export function ConfigPage(): JSX.Element {
                 </StatusBadge>
               ),
             },
+            {
+              header: 'Acciones',
+              align: 'right',
+              cell: (u) => (
+                <Button
+                  variant="quiet"
+                  isLoading={busy}
+                  onClick={() =>
+                    void accion(
+                      () => adminApi.cambiarEstadoUsuario(u.id, !u.activo),
+                      () => usuarios.reload(),
+                    )
+                  }
+                >
+                  {u.activo ? 'Desactivar' : 'Activar'}
+                </Button>
+              ),
+            },
           ]}
         />
       </Section>
@@ -237,6 +255,7 @@ export function ConfigPage(): JSX.Element {
             <div className="stat-grid">
               <Stat label="Turnos" value={kpis.total_turnos} />
               <Stat label="Ausentismo" value={`${kpis.ausentismo_pct}%`} />
+              <Stat label="Ocupación" value={`${kpis.ocupacion_pct}%`} />
               <Stat label="Online" value={`${kpis.reservas_online_pct}%`} />
               <Stat label="Reasignados < 2 h" value={kpis.reasignados_2h} />
             </div>
