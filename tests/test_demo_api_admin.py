@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.app import create_app
 from app.core.settings import Settings
-from app.demo import DEMO_ADMIN_ID, DEMO_TENANT_ID
+from app.demo import DEMO_ADMIN_ID, DEMO_TENANT_ID, DEMO_USER_ID
 
 SETTINGS = Settings(
     APP_ENV="test",
@@ -162,7 +162,7 @@ def test_rbac_admin() -> None:
     assert (
         c.get(
             "/api/reportes/kpis",
-            headers=actor("RECEPCION", "usuario-demo-recepcion"),
+            headers=actor("RECEPCION", DEMO_USER_ID),
             params={"desde": "2026-11-01", "hasta": "2026-12-01"},
         ).status_code
         == 200

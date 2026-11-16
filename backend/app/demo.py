@@ -144,7 +144,20 @@ from app.reservas.puertos import (
 )
 from app.reservas.servicio import ServicioReservasPublicas
 from app.reservas.tokens import TokenRepositorioEnMemoria
-from app.seed import DEMO_TENANT_ID, DEMO_TENANT_SLUG
+from app.seed import (
+    DEMO_ADMIN_ID,
+    DEMO_PACIENTE_1,
+    DEMO_PACIENTE_2,
+    DEMO_PRESTACION_CONSULTA,
+    DEMO_PRESTACION_LIMPIEZA,
+    DEMO_PROFESIONAL_1,
+    DEMO_PROFESIONAL_2,
+    DEMO_RECEPCION_ID,
+    DEMO_SILLON_1,
+    DEMO_SILLON_2,
+    DEMO_TENANT_ID,
+    DEMO_TENANT_SLUG,
+)
 from app.senas.adaptadores import AplicacionCajaServicio
 from app.senas.aplicacion import ServicioSenasAplicacion
 from app.senas.consulta import ServicioSenasConsulta
@@ -161,17 +174,14 @@ from app.senas.servicio import ServicioSenas
 from app.senas.webhook import ServicioSenasWebhook
 from app.turnos.servicio import Actor, NoEncontrado, ServicioTurnos, Turno
 
-PRESTACION_CONSULTA = "prestacion-consulta-demo"
-PRESTACION_LIMPIEZA = "prestacion-limpieza-demo"
-PROFESIONAL_DEMO_1 = "profesional-demo-1"
-PROFESIONAL_DEMO_2 = "profesional-demo-2"
-SILLON_DEMO_1 = "sillon-demo-1"
-SILLON_DEMO_2 = "sillon-demo-2"
+PRESTACION_CONSULTA = DEMO_PRESTACION_CONSULTA
+PRESTACION_LIMPIEZA = DEMO_PRESTACION_LIMPIEZA
+PROFESIONAL_DEMO_1 = DEMO_PROFESIONAL_1
+PROFESIONAL_DEMO_2 = DEMO_PROFESIONAL_2
+SILLON_DEMO_1 = DEMO_SILLON_1
+SILLON_DEMO_2 = DEMO_SILLON_2
 
-DEMO_USER_ID = "usuario-demo-recepcion"
-DEMO_ADMIN_ID = "usuario-demo-admin"
-DEMO_PACIENTE_1 = "paciente-demo-1"
-DEMO_PACIENTE_2 = "paciente-demo-2"
+DEMO_USER_ID = DEMO_RECEPCION_ID
 
 PRECIO_CONSULTA_CENTAVOS = 10000
 PRECIO_LIMPIEZA_CENTAVOS = 15000

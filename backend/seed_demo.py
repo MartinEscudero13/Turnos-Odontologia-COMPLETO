@@ -3,13 +3,13 @@
 Crea tenant, usuarios, profesionales, sillones, prestaciones y pacientes
 ficticios. Se ejecuta con el rol owner después de las migraciones:
 
-    DATABASE_OWNER_URL=postgresql+psycopg://... python seed_demo.py
+    DATABASE_OWNER_URL=postgresql+psycopg://... DEMO_PASSWORD=... python seed_demo.py
 
-Credenciales demo (solo desarrollo):
+Credenciales demo (el password se define en la variable DEMO_PASSWORD, nunca en el repo):
     tenant: demo
-    admin@demo.test / demo1234
-    recepcion@demo.test / demo1234
-    odontologo@demo.test / demo1234
+    admin@demo.test
+    recepcion@demo.test
+    odontologo@demo.test
 """
 from __future__ import annotations
 
@@ -22,24 +22,35 @@ from sqlalchemy.orm import Session
 from app.auth.security import hash_password
 from app.models.catalogos import Paciente, Prestacion, Profesional, Sillon
 from app.models.usuario import Usuario
-from app.seed import DEMO_TENANT_ID, DEMO_TENANT_NAME, DEMO_TENANT_SLUG, seed_tenant
+from app.seed import (
+    DEMO_ADMIN_ID,
+    DEMO_ODONTOLOGO_ID,
+    DEMO_PACIENTE_1,
+    DEMO_PACIENTE_2,
+    DEMO_PRESTACION_CONSULTA,
+    DEMO_PRESTACION_LIMPIEZA,
+    DEMO_PROFESIONAL_1,
+    DEMO_PROFESIONAL_2,
+    DEMO_RECEPCION_ID,
+    DEMO_SILLON_1,
+    DEMO_SILLON_2,
+    DEMO_TENANT_ID,
+    DEMO_TENANT_NAME,
+    DEMO_TENANT_SLUG,
+    seed_tenant,
+)
 
-DEMO_PASSWORD = "demo1234"
 
-ADMIN_ID = "a1000000-0000-4000-8000-000000000001"
-RECEPCION_ID = "a1000000-0000-4000-8000-000000000002"
-ODONTOLOGO_ID = "a1000000-0000-4000-8000-000000000003"
-PROFESIONAL_1 = "b1000000-0000-4000-8000-000000000001"
-PROFESIONAL_2 = "b1000000-0000-4000-8000-000000000002"
-SILLON_1 = "c1000000-0000-4000-8000-000000000001"
-SILLON_2 = "c1000000-0000-4000-8000-000000000002"
-PRESTACION_CONSULTA = "d1000000-0000-4000-8000-000000000001"
-PRESTACION_LIMPIEZA = "d1000000-0000-4000-8000-000000000002"
-PACIENTE_1 = "e1000000-0000-4000-8000-000000000001"
-PACIENTE_2 = "e1000000-0000-4000-8000-000000000002"
+def _password() -> str:
+    password = os.environ.get("DEMO_PASSWORD", "").strip()
+    if len(password) < 8:
+        raise SystemExit("Definí DEMO_PASSWORD (mínimo 8 caracteres) para sembrar la demo")
+    return password
 
 
-def _usuario(session: Session, *, nombre: str, email: str, rol: str, usuario_id: str) -> None:
+def _usuario(
+    session: Session, *, nombre: str, email: str, rol: str, usuario_id: str, password: str
+) -> None:
     tenant_id = uuid.UUID(DEMO_TENANT_ID)
     existente = session.scalar(
         select(Usuario).where(
@@ -53,7 +64,7 @@ def _usuario(session: Session, *, nombre: str, email: str, rol: str, usuario_id:
                 tenant_id=tenant_id,
                 nombre=nombre,
                 email=email,
-                password_hash=hash_password(DEMO_PASSWORD),
+                password_hash=hash_password(password),
                 rol=rol,
                 two_factor=False,
                 activo=True,
@@ -134,7 +145,7 @@ def _paciente(
         )
 
 
-def aplicar(engine_url: str) -> None:
+def aplicar(engine_url: str, password: str) -> None:
     engine = create_engine(engine_url, future=True)
     try:
         with Session(engine) as session:
@@ -149,57 +160,63 @@ def aplicar(engine_url: str) -> None:
                 nombre="Admin Demo",
                 email="admin@demo.test",
                 rol="ADMIN",
-                usuario_id=ADMIN_ID,
+                usuario_id=DEMO_ADMIN_ID,
+                password=password,
             )
             _usuario(
                 session,
                 nombre="Recepción Demo",
                 email="recepcion@demo.test",
                 rol="RECEPCION",
-                usuario_id=RECEPCION_ID,
+                usuario_id=DEMO_RECEPCION_ID,
+                password=password,
             )
             _usuario(
                 session,
                 nombre="Odontólogo Demo",
                 email="odontologo@demo.test",
                 rol="ODONTOLOGO",
-                usuario_id=ODONTOLOGO_ID,
+                usuario_id=DEMO_ODONTOLOGO_ID,
+                password=password,
             )
             _profesional(
                 session,
-                profesional_id=PROFESIONAL_1,
+                profesional_id=DEMO_PROFESIONAL_1,
                 nombre="Dra. Demo Uno",
-                usuario_id=ODONTOLOGO_ID,
+                usuario_id=DEMO_ODONTOLOGO_ID,
             )
             _profesional(
-                session, profesional_id=PROFESIONAL_2, nombre="Dr. Demo Dos", usuario_id=None
+                session,
+                profesional_id=DEMO_PROFESIONAL_2,
+                nombre="Dr. Demo Dos",
+                usuario_id=None,
             )
-            _sillon(session, sillon_id=SILLON_1, nombre="Sillón 1")
-            _sillon(session, sillon_id=SILLON_2, nombre="Sillón 2")
+            _sillon(session, sillon_id=DEMO_SILLON_1, nombre="Sillón 1")
+            _sillon(session, sillon_id=DEMO_SILLON_2, nombre="Sillón 2")
             _prestacion(
                 session,
-                prestacion_id=PRESTACION_CONSULTA,
+                prestacion_id=DEMO_PRESTACION_CONSULTA,
                 nombre="Consulta",
                 duracion_min=30,
                 precio_base=10000,
             )
             _prestacion(
                 session,
-                prestacion_id=PRESTACION_LIMPIEZA,
+                prestacion_id=DEMO_PRESTACION_LIMPIEZA,
                 nombre="Limpieza",
                 duracion_min=45,
                 precio_base=15000,
             )
             _paciente(
                 session,
-                paciente_id=PACIENTE_1,
+                paciente_id=DEMO_PACIENTE_1,
                 nombre="Paciente Demo Uno",
                 telefono="+5491130551001",
                 email="paciente1@demo.test",
             )
             _paciente(
                 session,
-                paciente_id=PACIENTE_2,
+                paciente_id=DEMO_PACIENTE_2,
                 nombre="Paciente Demo Dos",
                 telefono="+5491130551002",
                 email="paciente2@demo.test",
@@ -213,8 +230,8 @@ def main() -> None:
     url = os.environ.get("DATABASE_OWNER_URL") or os.environ.get("DATABASE_URL")
     if not url:
         raise SystemExit("Definí DATABASE_OWNER_URL para sembrar la demo")
-    aplicar(url)
-    print("Seed demo listo: tenant 'demo', admin@demo.test / demo1234")
+    aplicar(url, _password())
+    print("Seed demo listo: tenant 'demo' (password definido por DEMO_PASSWORD)")
 
 
 if __name__ == "__main__":
