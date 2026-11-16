@@ -1083,7 +1083,7 @@ def test_downgrade_y_reupgrade_en_pg(monkeypatch: pytest.MonkeyPatch) -> None:
         antes = _tablas(engine)
         columnas_antes = _columnas(engine, "prestaciones")
         assert {"senas", "pagos_mp"} <= antes
-        assert _revision(engine) == "011_calendar_sync"
+        assert _revision(engine) == "012_whatsapp_recordatorios"
 
         _migrar("008_caja_cierre_diario", monkeypatch)
 
@@ -1092,6 +1092,7 @@ def test_downgrade_y_reupgrade_en_pg(monkeypatch: pytest.MonkeyPatch) -> None:
         assert "pagos_mp" not in despues
         assert "obras_sociales" not in despues
         assert "calendar_links" not in despues
+        assert "mensajes_wa" not in despues
         assert "liquidaciones" not in despues
         columnas = _columnas(engine, "prestaciones")
         assert "sena_modo" not in columnas
@@ -1113,8 +1114,9 @@ def test_downgrade_y_reupgrade_en_pg(monkeypatch: pytest.MonkeyPatch) -> None:
         assert {"senas", "pagos_mp"} <= _tablas(engine)
         assert {"obras_sociales", "coberturas", "liquidaciones"} <= _tablas(engine)
         assert {"calendar_links", "calendar_eventos", "calendar_envios"} <= _tablas(engine)
+        assert "mensajes_wa" in _tablas(engine)
         assert {"sena_modo", "sena_valor"} <= _columnas(engine, "prestaciones")
-        assert _revision(engine) == "011_calendar_sync"
+        assert _revision(engine) == "012_whatsapp_recordatorios"
     finally:
         _migrar("head", monkeypatch)
         engine.dispose()

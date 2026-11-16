@@ -16,6 +16,7 @@ const NAV: NavItem[] = [
   { to: '/app/clinica', label: 'Clínica', icon: '✚' },
   { to: '/app/caja', label: 'Caja', icon: '$' },
   { to: '/app/senas', label: 'Señas', icon: '◈' },
+  { to: '/app/whatsapp', label: 'WhatsApp', icon: 'WA' },
   { to: '/app/obras-sociales', label: 'Obras sociales', icon: 'OS' },
   { to: '/app/calendario', label: 'Calendario', icon: '▤' },
   { to: '/app/config', label: 'Configuración', icon: '⚙' },

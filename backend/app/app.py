@@ -37,6 +37,7 @@ from app.routers.senas import crear_router_publico as crear_router_senas_publico
 from app.routers.senas_internas import crear_router_interno as crear_router_senas_interno
 from app.routers.turnos import crear_router as crear_router_turnos
 from app.routers.webhooks_mp import crear_router_webhook
+from app.routers.whatsapp import crear_router as crear_router_whatsapp
 from app.turnos.servicio import ConflictoSolape, TurnoError
 
 logger = get_logger("app.startup")
@@ -73,6 +74,7 @@ def create_app(
     app.include_router(crear_router_obras_sociales(demo.obras_sociales))
     app.include_router(crear_router_calendario(demo.calendario))
     app.include_router(crear_router_admin(demo.admin))
+    app.include_router(crear_router_whatsapp(demo.whatsapp))
 
     @app.exception_handler(TurnoError)
     async def handle_turno_error(_request: Request, exc: TurnoError) -> JSONResponse:

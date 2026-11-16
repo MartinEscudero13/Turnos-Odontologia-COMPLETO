@@ -12,6 +12,7 @@ import { DashboardPage } from './pages/app/DashboardPage';
 import { ObrasSocialesPage } from './pages/app/ObrasSocialesPage';
 import { PacientesPage } from './pages/app/PacientesPage';
 import { SenasPage } from './pages/app/SenasPage';
+import { WhatsAppPage } from './pages/app/WhatsAppPage';
 import { GestionTurnoPage } from './pages/GestionTurnoPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -37,6 +38,7 @@ export function AppRoutes(): JSX.Element {
           <Route path="app/clinica" element={<ClinicaPage />} />
           <Route path="app/caja" element={<CajaPage />} />
           <Route path="app/senas" element={<SenasPage />} />
+          <Route path="app/whatsapp" element={<WhatsAppPage />} />
           <Route path="app/obras-sociales" element={<ObrasSocialesPage />} />
           <Route path="app/calendario" element={<CalendarioPage />} />
           <Route path="app/config" element={<ConfigPage />} />

@@ -60,7 +60,7 @@ class AuditoriaEntrada:
 
     turno_id: str
     tenant_id: str
-    accion: Literal["CREADO", "SOBRETURNO", "CANCELADO", "REPROGRAMADO"]
+    accion: Literal["CREADO", "SOBRETURNO", "CONFIRMADO", "CANCELADO", "REPROGRAMADO"]
     actor: str
     antes: EstadoTurno | None
     despues: EstadoTurno
@@ -238,6 +238,29 @@ class ServicioTurnos:
         return marcado
 
     # ---- 3.3 cancelar / reprogramar ----
+
+    def confirmar(
+        self,
+        actor: Actor,
+        turno_id: str,
+        *,
+        ahora: datetime | None = None,
+    ) -> Turno:
+        """Pasa a CONFIRMADO (audita). Usado por la respuesta `SI` de WhatsApp."""
+        del ahora  # la transición no depende de anticipación
+        actual = self.obtener(actor, turno_id)
+        if actor.rol == "PACIENTE":
+            raise Prohibido("paciente no confirma turnos")
+        if not self._puede_escribir(actor, actual):
+            raise Prohibido("sin permiso sobre este turno")
+        if not transicion_valida(actual.estado, "CONFIRMADO"):
+            raise Invalido(f"transición {actual.estado} → CONFIRMADO ilegal")
+        confirmado = replace(actual, estado="CONFIRMADO")
+        self._turnos[turno_id] = confirmado
+        self._auditar(
+            confirmado, "CONFIRMADO", actor.user_id, None, actual.estado, "CONFIRMADO"
+        )
+        return confirmado
 
     def cancelar(
         self,
@@ -470,7 +493,7 @@ class ServicioTurnos:
     def _auditar(
         self,
         turno: Turno,
-        accion: Literal["CREADO", "SOBRETURNO", "CANCELADO", "REPROGRAMADO"],
+        accion: Literal["CREADO", "SOBRETURNO", "CONFIRMADO", "CANCELADO", "REPROGRAMADO"],
         actor_id: str,
         motivo: str | None,
         antes: EstadoTurno | None,

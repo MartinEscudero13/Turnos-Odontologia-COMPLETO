@@ -173,6 +173,18 @@ from app.senas.puertos import (
 from app.senas.servicio import ServicioSenas
 from app.senas.webhook import ServicioSenasWebhook
 from app.turnos.servicio import Actor, NoEncontrado, ServicioTurnos, Turno
+from app.whatsapp.puertos import (
+    AuditoriaMemoria as AuditoriaWhatsAppMemoria,
+)
+from app.whatsapp.puertos import (
+    ConfigWhatsAppMemoria,
+    EmailFake,
+    MensajeMemoria,
+    PasarelaWhatsAppFake,
+    TurnosWhatsAppMemoria,
+)
+from app.whatsapp.servicio import ServicioWhatsApp
+from app.whatsapp.twilio import twilio_desde_env
 
 PRESTACION_CONSULTA = DEMO_PRESTACION_CONSULTA
 PRESTACION_LIMPIEZA = DEMO_PRESTACION_LIMPIEZA
@@ -226,6 +238,7 @@ class DemoServices:
     obras_sociales: ServicioObrasSociales
     calendario: ServicioCalendario
     admin: ServicioAdmin
+    whatsapp: ServicioWhatsApp
 
 
 def _seed_catalogo() -> CatalogoMemoria:
@@ -339,6 +352,26 @@ def build_demo_services(
     )
     hueco_port = HuecoLiberadoMemoria(handler=_handler_hueco(ofertas))
     oferta_port = OfertaPortMemoria(oferta_repo, _resolver_slot(turnos))
+
+    # -- C-13 WhatsApp ------------------------------------------------
+    pasarela_wa = twilio_desde_env() or PasarelaWhatsAppFake()
+    whatsapp = ServicioWhatsApp(
+        MensajeMemoria(),
+        TurnosWhatsAppMemoria(turnos, pacientes, hueco_port),
+        pasarela_wa,
+        EmailFake(),
+        ConfigWhatsAppMemoria(
+            {
+                DEMO_TENANT_ID: {
+                    "recordatorios_habilitados": True,
+                    "anticipacion_h": 24,
+                }
+            }
+        ),
+        AuditoriaWhatsAppMemoria(),
+        url_confirmacion="https://demo.local/confirmar",
+        reloj=clock,
+    )
 
     # -- C-10 caja -----------------------------------------------------
     movimientos = MovimientoMemoria()
@@ -709,6 +742,7 @@ def build_demo_services(
         obras_sociales=obras_sociales,
         calendario=calendario,
         admin=servicio_admin,
+        whatsapp=whatsapp,
     )
 
 

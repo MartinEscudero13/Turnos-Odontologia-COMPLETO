@@ -28,6 +28,7 @@ from app.models.sena import PagoMP, Sena
 from app.models.tenant import ParametroTenant, Tenant
 from app.models.turno import Turno
 from app.models.usuario import Usuario
+from app.models.whatsapp import MensajeWA
 
 __all__ = [
     "Aceptacion",
@@ -50,6 +51,7 @@ __all__ = [
     "ListaEspera",
     "Liquidacion",
     "LiquidacionLinea",
+    "MensajeWA",
     "MovimientoCaja",
     "ObraSocial",
     "OdontogramaHallazgo",

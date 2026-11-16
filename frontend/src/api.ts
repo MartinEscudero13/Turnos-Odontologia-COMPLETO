@@ -283,6 +283,8 @@ export interface Kpis {
   reasignados_2h: number;
 }
 
+export type TenantConfig = Record<string, unknown>;
+
 export interface UsuarioAdmin {
   id: string;
   nombre: string;
@@ -291,7 +293,29 @@ export interface UsuarioAdmin {
   activo: boolean;
 }
 
-export type TenantConfig = Record<string, unknown>;
+export type PlantillaWA = 'RECORDATORIO' | 'CONFIRMACION' | 'CANCELACION' | 'RECALL';
+export type EstadoMensajeWA = 'PENDIENTE' | 'ENVIADO' | 'ENTREGADO' | 'LEIDO' | 'FALLIDO';
+
+export interface MensajeWA {
+  id: string;
+  paciente_id: string;
+  turno_id: string | null;
+  plantilla: PlantillaWA;
+  canal: 'WA' | 'EMAIL';
+  estado: EstadoMensajeWA;
+  provider_message_id: string | null;
+  intentos: number;
+  proximo_intento: string;
+  cuerpo: string;
+  respuesta: string | null;
+  creado_en: string;
+}
+
+export interface EnvioWA {
+  enviados: number;
+  fallidos: number;
+  mensajes: MensajeWA[];
+}
 
 // ---------------------------------------------------------------------------
 // Catálogos y agenda
@@ -486,4 +510,21 @@ export const adminApi = {
   exportUrl: (formato: 'json' | 'csv') => `/api/exportacion?formato=${formato}`,
   kpis: (desde: string, hasta: string) =>
     api<Kpis>(`/api/reportes/kpis${qs({ desde, hasta })}`),
+};
+
+// ---------------------------------------------------------------------------
+// WhatsApp
+// ---------------------------------------------------------------------------
+
+export const whatsappApi = {
+  programar: () =>
+    api<EnvioWA>('/api/whatsapp/recordatorios/programar', { method: 'POST' }),
+  procesar: () => api<EnvioWA>('/api/whatsapp/cola/procesar', { method: 'POST' }),
+  mensajes: (turnoId?: string) =>
+    api<MensajeWA[]>(`/api/whatsapp/mensajes${qs({ turno_id: turnoId })}`),
+  recall: (body: { paciente_id: string; motivo: string; fecha_objetivo: string }) =>
+    api<MensajeWA>('/api/whatsapp/recall', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
