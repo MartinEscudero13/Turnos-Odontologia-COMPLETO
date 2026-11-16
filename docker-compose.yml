@@ -6,6 +6,7 @@ services:
     environment:
       POSTGRES_USER: turnos_owner
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?definí POSTGRES_PASSWORD en .env}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?definí POSTGRES_APP_PASSWORD en .env}
       POSTGRES_DB: turnos
     ports:
       - "5433:5432"
