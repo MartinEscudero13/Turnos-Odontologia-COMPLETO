@@ -11,7 +11,7 @@ El SPA usa React 18 + TypeScript + Vite. El backend mezcla JWT (auth/catálogos)
 `api.ts` guarda actor + token y agrega `X-Tenant-Id`, `X-User-Id`, `X-Rol`, `X-Profesional-Id` y
 `Authorization` en cada request. Un solo `ApiError` traduce `{detalle, codigo}`.
 
-**D2 — Sesión persistente y modo demo.**
+**D2 — Sesión persistente.**
 `AuthContext` guarda la sesión en `localStorage`. El login real llama `/api/auth/login` y `/api/auth/me`.
 El botón demo usa las credenciales sembradas; si el seed no corrió, muestra un error accionable.
 
@@ -36,7 +36,7 @@ actor y el JWT.
 - El token de acceso puede vencer en una sesión larga; no hay refresh automático en el SPA.
 - La UI no pagina listados: es demo de 1–3 sillones.
 - Las acciones clínicas requieren elegir profesional; no se autoselecciona por sesión.
-- El modo demo depende del seed; sin Compose hay que correr `seed_demo.py`.
+- El login demo depende del seed; sin Compose hay que correr `seed_demo.py`.
 - No hay UI de WhatsApp/C-13 (bloqueado por PO-03).
 
 ## Verification

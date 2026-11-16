@@ -4,18 +4,18 @@
 > Cada change es atómico: un agente puede implementarlo en una sesión (~4-6 horas).
 > **Leer este archivo antes de ejecutar cualquier `/opsx:propose`.**
 
-## Progreso al 2026-11-13
+## Progreso al 2026-11-15
 
 | | |
 |---|---|
-| Archivados | **13** — C-01 … C-11, F-01, F-02 |
-| Pendientes | C-12 obras sociales · C-14 Google Calendar · C-15 admin y reportes |
-| Bloqueado | C-13 WhatsApp (PO-03: sin proveedor/BSP) |
-| Migraciones | 001 → 009 aplicadas y reversibles contra PostgreSQL real |
-| Suite | 678 passed + 42 skipped local · 720 passed + 0 skipped con `C02_DATABASE_URL` |
+| Archivados | **20** — C-01 … C-12, C-14, C-15 (parcial), F-01 … F-06 |
+| Pendientes | C-13 WhatsApp (bloqueado por PO-03: sin proveedor/BSP) |
+| Migraciones | 001 → 011 aplicadas y reversibles contra PostgreSQL real |
+| Suite | 788 passed + 51 skipped local · 839 passed + 0 skipped con `C02_DATABASE_URL` |
+| Frontend | SPA interno C-05…C-15 + landing pública F-02 · 32 tests, lint/typecheck/build |
 
-**Deuda de integración declarada**: los routers de C-05…C-11 existen y son inyectables pero todavía no
-están montados en `create_app` (ver [`README.md` § Límites declarados](README.md#límites-declarados-del-alcance)).
+Los routers de C-05…C-15 están montados en `create_app` sobre adaptadores en memoria; la deuda de
+integración es la persistencia SQL de esos dominios, no el montaje.
 
 ---
 
@@ -465,6 +465,6 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 - **Verificación**: [`docs/foundation/verification-demo-api-clinica.md`](docs/foundation/verification-demo-api-clinica.md)
 - **Límite**: estado clínico en memoria; la aceptación de presupuesto no escribe en caja (imputación simulada); sin cobertura de obra social ni UI clínica.
 ### [F-06] `frontend-interno`
-- **Estado**: `[x]` completado (2026-11-15; SPA `/app` con agenda, pacientes, clínica, caja, señas, obras sociales, calendario y configuración; login demo persistente; cliente API tipado con actor/JWT; seed demo y servicio `migrate` en Compose) + archivado en `openspec/changes/archive/2026-11-15-frontend-interno/`
+- **Estado**: `[x]` completado (2026-11-15; SPA `/app` con agenda, pacientes, clínica, caja, señas, obras sociales, calendario y configuración; login persistente con credenciales demo; cliente API tipado con actor/JWT; seed demo y servicio `migrate` en Compose) + archivado en `openspec/changes/archive/2026-11-15-frontend-interno/`
 - **Verificación**: [`docs/foundation/verification-frontend-interno.md`](docs/foundation/verification-frontend-interno.md)
 - **Límite**: UI de WhatsApp/C-13, superadmin y edición avanzada fuera de alcance; la demo sigue en memoria.

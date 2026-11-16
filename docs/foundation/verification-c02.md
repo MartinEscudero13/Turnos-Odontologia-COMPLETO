@@ -1,7 +1,7 @@
 # Verification report — C-02 `core-models-multitenant`
 
 **Fecha**: 2026-11-03 · **Entorno**: PostgreSQL 15 en Docker Compose, Python 3.14, Windows
-**Base**: `postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos`
+**Base**: `postgresql+psycopg://turnos_owner:<POSTGRES_PASSWORD>@localhost:5433/turnos`
 **Cambio archivado**: `openspec/changes/archive/2026-11-03-c-02-core-models-multitenant/`
 
 ## Resultado

@@ -9,7 +9,7 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 | Changes archivados | **20** de 21 — C-01…C-12, C-14, C-15, F-01…F-06 |
 | Specs vivas | **20** capabilities en `openspec/specs/` |
 | Migraciones | 001 → **011**, con `downgrade` verificado contra PostgreSQL real |
-| Tests backend | **787 passed, 51 skipped** en local · **838 passed, 0 skipped** con `C02_DATABASE_URL` |
+| Tests backend | **788 passed, 51 skipped** en local · **839 passed, 0 skipped** con `C02_DATABASE_URL` |
 | Calidad | `mypy` 123 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
 | Frontend | **SPA interno C-05…C-15** + landing pública F-02 · 32 tests, lint, typecheck y build |
 
@@ -56,6 +56,7 @@ cd frontend
 npm ci
 cd ..
 cp .env.example .env
+# editá .env: POSTGRES_PASSWORD, POSTGRES_APP_PASSWORD, JWT_SECRET y DEMO_PASSWORD
 docker compose up -d --build
 ```
 
@@ -69,24 +70,24 @@ docker compose up -d --build
 
 Compose levanta PostgreSQL, Redis, corre las migraciones, siembra la demo y arranca API + SPA.
 
-**Credenciales demo** (datos ficticios):
+**Credenciales demo** (datos ficticios; la password la definís en `.env` como `DEMO_PASSWORD`):
 
 - Tenant: `demo`
-- Admin: `admin@demo.test` / `demo1234`
-- Recepción: `recepcion@demo.test` / `demo1234`
-- Odontólogo: `odontologo@demo.test` / `demo1234`
+- Usuarios: `admin@demo.test`, `recepcion@demo.test`, `odontologo@demo.test`
+- Password: la que hayas puesto en `DEMO_PASSWORD` (mínimo 8 caracteres)
 
-**Frontend interno**: <http://localhost:5173/login> → “Entrar en modo demo” o las credenciales.
+**Frontend interno**: <http://localhost:5173/login> con esas credenciales.
 **Reserva pública**: <http://localhost:5173/r/demo> · **Swagger**: <http://localhost:8000/docs>.
 
 Para desarrollo sin Docker:
 
 ```bash
 docker compose up -d db
-$env:DATABASE_OWNER_URL = "postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos"
+$env:DATABASE_OWNER_URL = "postgresql+psycopg://turnos_owner:<POSTGRES_PASSWORD>@localhost:5433/turnos"
+$env:DEMO_PASSWORD = "<DEMO_PASSWORD>"
 py -m alembic -c backend/alembic.ini upgrade head
 py backend/seed_demo.py
-$env:DATABASE_URL = "postgresql+psycopg://turnos_app:dev-only-app-password@localhost:5433/turnos"
+$env:DATABASE_URL = "postgresql+psycopg://turnos_app:<POSTGRES_APP_PASSWORD>@localhost:5433/turnos"
 cd backend; py -m uvicorn app.main:app --reload --port 8000
 ```
 
@@ -96,7 +97,7 @@ Rutas del SPA: `/app` resumen · `/app/agenda` · `/app/pacientes` · `/app/clin
 ## Tests
 
 ```bash
-py -m pytest tests/                       # 787 passed, 51 skipped (addopts ya trae -q)
+py -m pytest tests/                       # 788 passed, 51 skipped (addopts ya trae -q)
 py -m ruff check .
 py -m mypy --config-file pyproject.toml
 
@@ -114,18 +115,18 @@ anti-solape, carreras entre dos conexiones, migraciones). Para correrlos:
 
 ```bash
 docker compose up -d db
-$env:C02_DATABASE_URL = "postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos"
-py -m pytest tests/                       # 838 passed, 0 skipped
+$env:C02_DATABASE_URL = "postgresql+psycopg://turnos_owner:<POSTGRES_PASSWORD>@localhost:5433/turnos"
+py -m pytest tests/                       # 839 passed, 0 skipped
 docker compose stop db
 ```
 
 Si `C02_DATABASE_URL` no está definida, esos tests se saltean de forma explícita (no fallan en
 silencio). El gate de cada change exige `skipped == 0` con la variable seteada.
 
-Estado verificado al cierre de **C-11 (2026-11-13)**: backend `678 passed, 42 skipped` local y
-`720 passed, 0 skipped` con PostgreSQL; `mypy` y `ruff` en verde; `openspec validate --all --strict`
-15/15. El estado del frontend corresponde a **F-02 (2026-11-05)**: `32 passed` + lint/typecheck/build
-en verde, screenshots 375/768/1440 en `openspec/changes/archive/2026-11-05-f-02-reserva-publica-landing/mockups/previews/`.
+Estado verificado al cierre de **F-06 (2026-11-15)**: backend `788 passed, 51 skipped` local y
+`839 passed, 0 skipped` con PostgreSQL; `mypy` y `ruff` en verde; `openspec validate --all --strict`
+20/20. El frontend incluye el SPA interno C-05…C-15 y la landing pública F-02: `32 passed` +
+lint/typecheck/build en verde.
 
 ## Type hints
 
@@ -248,12 +249,12 @@ ni de tests.
 | `docs/api-publica-reserva.md` | Contrato público que consume la landing (allow-list y códigos) |
 | `docs/decisiones-oq.md` | Resolución de OQ-1..OQ-9 de C-06 |
 | `docs/decisiones-po.md` | Decisiones de producto PO-01/PO-03/PO-06 y las OQ de C-09, C-10 y C-11 |
-| `docker-compose.yml` | Servicios locales `api`, `web`, `db` y `redis` con healthchecks |
+| `docker-compose.yml` | Servicios locales `db`, `redis`, `migrate`, `api` y `web` con healthchecks |
 | `.env.example` | Variables de entorno ejemplo sin secretos reales |
 | `.github/workflows/quality.yml` | CI paralela: backend, frontend y Compose |
 | `tests/` | Suite completa por change: fundación, auth, catálogos, turnos, reservas, lista de espera, ficha, odontograma, presupuesto, caja, señas, migraciones y aislamiento |
-| `openspec/specs/` | 15 specs vivas (una por capability) |
-| `openspec/changes/archive/` | 13 changes archivados con proposal, design, specs y tasks |
+| `openspec/specs/` | 20 specs vivas (una por capability) |
+| `openspec/changes/archive/` | 20 changes archivados con proposal, design, specs y tasks |
 | `docs/foundation/bootstrap.md` | Setup, verificación, compose, troubleshooting |
 | `docs/foundation/verification-report.md` | Evidencia ejecutable del cierre C-01 |
 | `docs/discovery/` | Informe y checklist de Discovery |

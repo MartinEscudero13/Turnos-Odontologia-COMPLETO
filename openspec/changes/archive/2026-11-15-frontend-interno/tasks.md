@@ -3,7 +3,7 @@
 ## 1. Base
 
 - [x] 1.1 Cliente API tipado con actor/JWT y manejo de errores.
-- [x] 1.2 Sesión persistente + login demo y `/me`.
+- [x] 1.2 Sesión persistente + login y `/me`.
 - [x] 1.3 Seed demo idempotente y servicio `migrate` en Compose.
 
 ## 2. Pantallas

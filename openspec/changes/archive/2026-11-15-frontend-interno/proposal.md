@@ -9,7 +9,7 @@ calendario ni administración desde el navegador.
 ## What Changes
 
 - Cliente HTTP tipado con actor por headers y JWT para catálogos.
-- Sesión persistente con login real y botón de **modo demo** (`demo / admin@demo.test / demo1234`).
+- Sesión persistente con login real (`demo / admin@demo.test / <DEMO_PASSWORD>`).
 - Seed demo idempotente (`backend/seed_demo.py`) y servicio `migrate` en Compose que corre migraciones y
   seed antes de la API.
 - Pantallas internas: resumen, agenda, pacientes, clínica (ficha, consentimiento, evoluciones,

@@ -15,7 +15,7 @@ modules under `/app`.
 
 #### Scenario: Demo login
 - **DADO** el seed demo aplicado
-- **CUANDO** el usuario elige "Entrar en modo demo"
+- **CUANDO** el usuario inicia sesión con las credenciales demo
 - **ENTONCES** se abre `/app` con la sesión de `admin@demo.test`
 
 #### Scenario: Protected route without session

@@ -17,7 +17,7 @@
 
 ## Rutas del SPA
 
-- `/login` — login real + “Entrar en modo demo”
+- `/login` — login real
 - `/app` — resumen con KPIs, accesos y facturación
 - `/app/agenda` — crear turno, listar, cancelar
 - `/app/pacientes` — alta y listado con consentimiento
@@ -33,7 +33,7 @@
 `backend/seed_demo.py` crea (idempotente):
 
 - Tenant `demo`
-- Usuarios `admin@demo.test`, `recepcion@demo.test`, `odontologo@demo.test` (password `demo1234`)
+- Usuarios `admin@demo.test`, `recepcion@demo.test`, `odontologo@demo.test` (password definida en `DEMO_PASSWORD`)
 - 2 profesionales, 2 sillones, 2 prestaciones y 2 pacientes ficticios
 
 Compose agrega el servicio `migrate` con `alembic upgrade head && python seed_demo.py`; la API espera
@@ -45,7 +45,7 @@ Compose agrega el servicio `migrate` con `alembic upgrade head && python seed_de
   `Authorization` para catálogos/auth.
 - **Sesión persistente** en `localStorage`; logout limpia storage y contexto.
 - **Descargas autenticadas** de CSV/JSON por blob, no por `<a href>`.
-- **Modo demo** usa credenciales sembradas; si falta el seed, muestra error accionable.
+- **Seed demo**: las credenciales se definen con `DEMO_PASSWORD`; si falta el seed, el login muestra error accionable.
 
 ## Límites que siguen
 

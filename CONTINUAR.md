@@ -22,9 +22,9 @@ Después esperá mi confirmación antes de tocar archivos.
 - C-01 a C-12, C-14, C-15 (parcial), F-01 a F-06: **terminados, verificados y archivados** (20 changes).
 - **Frontend interno completo**: `/app` con agenda, pacientes, clínica, caja, señas, obras sociales, calendario y configuración.
 - **API demo**: C-05 a C-15 montados en `create_app` sobre adaptadores en memoria.
-- **Login demo**: tenant `demo` · `admin@demo.test` / `demo1234` (Compose corre migraciones + seed).
+- **Login demo**: tenant `demo` · `admin@demo.test` con la password definida en `DEMO_PASSWORD` (Compose corre migraciones + seed).
 - TP2 skill + MCP: **terminado y pusheado**.
-- Backend: **787 passed + 51 skipped** en local · **838 passed + 0 skipped** con `C02_DATABASE_URL`.
+- Backend: **788 passed + 51 skipped** en local · **839 passed + 0 skipped** con `C02_DATABASE_URL`.
 - Frontend: **32 tests, lint, typecheck y build** en verde.
 - Migraciones **001 a 011** aplicadas y reversibles contra PostgreSQL real.
 - **Único pendiente del roadmap**: C-13 `whatsapp-recordatorios`, bloqueado por PO-03 (no hay proveedor/BSP definido).

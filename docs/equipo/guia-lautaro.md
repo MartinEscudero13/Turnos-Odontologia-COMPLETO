@@ -36,9 +36,9 @@ Con PostgreSQL de Compose:
 
 ```bash
 docker compose up -d db
-DATABASE_OWNER_URL=postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos \
+DATABASE_OWNER_URL=postgresql+psycopg://turnos_owner:<POSTGRES_PASSWORD>@localhost:5433/turnos \
   py -m alembic -c backend/alembic.ini upgrade head
-C02_DATABASE_URL=postgresql+psycopg://turnos_owner:dev-only-owner-password@localhost:5433/turnos \
+C02_DATABASE_URL=postgresql+psycopg://turnos_owner:<POSTGRES_PASSWORD>@localhost:5433/turnos \
   py -m pytest tests/ -q
 ```
 
