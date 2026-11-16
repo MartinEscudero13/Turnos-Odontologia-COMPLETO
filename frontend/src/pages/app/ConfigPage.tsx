@@ -27,7 +27,7 @@ export function ConfigPage(): JSX.Element {
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('demo1234');
+  const [password, setPassword] = useState('');
   const [rol, setRol] = useState('RECEPCION');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

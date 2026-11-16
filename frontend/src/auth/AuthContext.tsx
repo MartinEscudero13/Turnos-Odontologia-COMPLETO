@@ -24,7 +24,6 @@ export interface Session extends SessionTokens {
 interface AuthContextValue {
   session: Session | null;
   login: (payload: LoginPayload) => Promise<ApiResult<Session>>;
-  loginDemo: () => Promise<ApiResult<Session>>;
   logout: () => void;
 }
 
@@ -92,13 +91,6 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     return {
       session,
       login,
-      async loginDemo() {
-        return login({
-          tenantSlug: 'demo',
-          email: 'admin@demo.test',
-          password: 'demo1234',
-        });
-      },
       logout() {
         window.localStorage.removeItem(STORAGE_KEY);
         setSession(null);

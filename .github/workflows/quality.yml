@@ -106,6 +106,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Prepare ephemeral compose credentials
+        run: |
+          echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
+          echo "POSTGRES_APP_PASSWORD=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
+          echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "DEMO_PASSWORD=$(openssl rand -hex 12)" >> "$GITHUB_ENV"
       - name: Validate compose file
         run: docker compose -f docker-compose.yml config --quiet
       - name: Docker smoke test

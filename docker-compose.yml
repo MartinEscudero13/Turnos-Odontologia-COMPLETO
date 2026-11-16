@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: turnos_owner
-      POSTGRES_PASSWORD: dev-only-owner-password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?definí POSTGRES_PASSWORD en .env}
       POSTGRES_DB: turnos
     ports:
       - "5433:5432"
@@ -37,7 +37,8 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     environment:
-      DATABASE_OWNER_URL: postgresql+psycopg://turnos_owner:dev-only-owner-password@db:5432/turnos
+      DATABASE_OWNER_URL: postgresql+psycopg://turnos_owner:${POSTGRES_PASSWORD}@db:5432/turnos
+      DEMO_PASSWORD: ${DEMO_PASSWORD:?definí DEMO_PASSWORD en .env}
     depends_on:
       db:
         condition: service_healthy
@@ -60,9 +61,9 @@ services:
       APP_VERSION: 0.1.0
       APP_URL: http://localhost:5173
       LOG_LEVEL: INFO
-      DATABASE_URL: postgresql+psycopg://turnos_app:dev-only-app-password@db:5432/turnos
+      DATABASE_URL: postgresql+psycopg://turnos_app:${POSTGRES_APP_PASSWORD:?definí POSTGRES_APP_PASSWORD en .env}@db:5432/turnos
       REDIS_URL: redis://redis:6379/0
-      JWT_SECRET: dev-only-jwt-not-for-production-change-this-1234567890
+      JWT_SECRET: ${JWT_SECRET:?definí JWT_SECRET en .env}
     depends_on:
       migrate:
         condition: service_completed_successfully
