@@ -10,6 +10,19 @@ from app.schemas.auth import LoginIn, RefreshIn, TokenOut, UserOut
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+def _client_ip(request: Request) -> str:
+    """IP real detrás de nginx/Traefik para el rate limit de login."""
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    real = request.headers.get("x-real-ip", "").strip()
+    if real:
+        return real
+    return request.client.host if request.client else "unknown"
+
+
 def _http_error(exc: AuthError) -> HTTPException:
     headers: dict[str, str] = {}
     if exc.retry_after is not None:
@@ -23,7 +36,7 @@ def login(
     request: Request,
     service: AuthService = Depends(get_auth_service),
 ) -> TokenOut:
-    ip = request.client.host if request.client else "unknown"
+    ip = _client_ip(request)
     try:
         tokens = service.login(
             tenant_slug=body.tenant_slug,

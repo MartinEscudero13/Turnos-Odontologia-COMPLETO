@@ -78,7 +78,13 @@ export async function loginRequest(
           ? body.detalle
           : isRecord(body) && typeof body.detail === 'string'
             ? body.detail
-            : null;
+            : isRecord(body) &&
+                isRecord(body.error) &&
+                typeof body.error.message === 'string'
+              ? body.error.message
+              : isRecord(body) && typeof body.message === 'string'
+                ? body.message
+                : null;
       return {
         ok: false,
         error: detalle ?? 'No pudimos iniciar sesión con esos datos.',
