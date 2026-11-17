@@ -78,6 +78,8 @@ powershell -ExecutionPolicy Bypass -File tools/start-demo.ps1
 
 El script arranca Docker si hace falta, aplica migraciones/seed, espera la API y abre el SPA.
 
+**Para publicar en una VPS** con HTTPS y Caddy: [`docs/deploy/vps.md`](docs/deploy/vps.md).
+
 **Credenciales demo** (datos ficticios; la password la definís en `.env` como `DEMO_PASSWORD`):
 
 - Tenant: `demo`
