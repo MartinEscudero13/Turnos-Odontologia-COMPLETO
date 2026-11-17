@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
@@ -61,6 +61,16 @@ export function ReservaPage(): JSX.Element {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [errorTelefono, setErrorTelefono] = useState<string | null>(null);
   const [alternativas, setAlternativas] = useState<AlternativaHueco[]>([]);
+
+  // La disponibilidad llega por sillón; para el paciente la hora es una sola.
+  const huecosVisibles = useMemo(() => {
+    const vistos = new Set<string>();
+    return huecos.filter((item) => {
+      if (vistos.has(item.inicio)) return false;
+      vistos.add(item.inicio);
+      return true;
+    });
+  }, [huecos]);
 
   useEffect(() => {
     let vigente = true;
@@ -414,14 +424,14 @@ export function ReservaPage(): JSX.Element {
                   />
                 ) : null}
 
-                {!cargandoHuecos && huecos.length > 0 ? (
+                {!cargandoHuecos && huecosVisibles.length > 0 ? (
                   <div className="ruler">
                     <ul
                       className="slots"
                       role="listbox"
                       aria-label={`Horarios disponibles para ${prestacion.nombre}`}
                     >
-                      {huecos.map((item) => {
+                      {huecosVisibles.map((item) => {
                         const seleccionado = hueco?.inicio === item.inicio;
                         return (
                           <li key={`${item.inicio}-${item.profesionalId}-${item.sillonId}`}>

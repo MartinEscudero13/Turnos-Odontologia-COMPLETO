@@ -175,6 +175,20 @@ describe('ReservaPage', () => {
     expect(diez).toBeInTheDocument();
   });
 
+  it('muestra una sola franja por hora aunque haya más de un sillón', async () => {
+    const repetidos = [
+      { ...HUECOS[0], sillon_id: 'S1' },
+      { ...HUECOS[0], sillon_id: 'S2' },
+      HUECOS[1],
+    ];
+    instalarFetch([catalogoOk(), disponibilidadOk(repetidos)]);
+    renderReserva();
+    await elegirPrestacion();
+
+    expect(screen.getAllByRole('option', { name: /09:00/ })).toHaveLength(1);
+    expect(screen.getAllByRole('option', { name: /10:00/ })).toHaveLength(1);
+  });
+
   it('sin huecos muestra estado vacío con salida', async () => {
     instalarFetch([catalogoOk(), disponibilidadOk([])]);
     renderReserva();

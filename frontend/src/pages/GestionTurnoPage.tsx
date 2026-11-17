@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { StatusBadge } from '../components/StatusBadge';
@@ -63,6 +63,16 @@ export function GestionTurnoPage(): JSX.Element {
   const [huecosNuevos, setHuecosNuevos] = useState<Hueco[]>([]);
   const [cargandoHuecos, setCargandoHuecos] = useState(false);
   const [errorHuecos, setErrorHuecos] = useState<string | null>(null);
+
+  // La disponibilidad llega por sillón; para el paciente la hora es una sola.
+  const huecosVisibles = useMemo(() => {
+    const vistos = new Set<string>();
+    return huecosNuevos.filter((item) => {
+      if (vistos.has(item.inicio)) return false;
+      vistos.add(item.inicio);
+      return true;
+    });
+  }, [huecosNuevos]);
 
   const [copiado, setCopiado] = useState(false);
 
@@ -398,14 +408,14 @@ export function GestionTurnoPage(): JSX.Element {
                     consultorio.
                   </p>
                 ) : null}
-                {!cargandoHuecos && huecosNuevos.length > 0 ? (
+                {!cargandoHuecos && huecosVisibles.length > 0 ? (
                   <div className="ruler">
                     <ul
                       className="slots"
                       role="listbox"
                       aria-label="Horarios disponibles para reprogramar"
                     >
-                      {huecosNuevos.map((item) => (
+                      {huecosVisibles.map((item) => (
                         <li key={`${item.inicio}-${item.profesionalId}-${item.sillonId}`}>
                           <button
                             type="button"
