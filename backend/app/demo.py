@@ -7,6 +7,7 @@ or credentials are used anywhere (RN-GL-03).
 """
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
@@ -292,13 +293,18 @@ def _seed_catalogo() -> CatalogoMemoria:
 
 
 def _seed_pacientes() -> PacienteMemoria:
+    # En la demo se puede apuntar el primer paciente a un teléfono real para
+    # probar WhatsApp; el valor vive en `.env` y nunca se versiona.
+    telefono_demo = (
+        os.environ.get("DEMO_PHONE_RECIPIENT", "").strip() or "+5491130551001"
+    )
     return PacienteMemoria(
         [
             Paciente(
                 id=DEMO_PACIENTE_1,
                 tenant_id=DEMO_TENANT_ID,
                 nombre="Paciente Demo Uno",
-                telefono="+5491130551001",
+                telefono=telefono_demo,
             ),
             Paciente(
                 id=DEMO_PACIENTE_2,
@@ -342,11 +348,11 @@ def _seed_turnos(
             "AUSENTE",
         ),
         (
-            DEMO_PACIENTE_2,
+            DEMO_PACIENTE_1,
             PROFESIONAL_DEMO_2,
             SILLON_DEMO_2,
             PRESTACION_CONSULTA,
-            base + timedelta(days=1),
+            base + timedelta(hours=12),
             "PENDIENTE",
         ),
     ]

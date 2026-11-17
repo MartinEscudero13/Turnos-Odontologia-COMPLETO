@@ -68,6 +68,7 @@ services:
       DATABASE_URL: postgresql+psycopg://turnos_app:${POSTGRES_APP_PASSWORD:?definí POSTGRES_APP_PASSWORD en .env}@db:5432/turnos
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: ${JWT_SECRET:?definí JWT_SECRET en .env}
+      DEMO_PHONE_RECIPIENT: ${DEMO_PHONE_RECIPIENT:-}
       WA_PROVIDER: ${WA_PROVIDER:-fake}
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
