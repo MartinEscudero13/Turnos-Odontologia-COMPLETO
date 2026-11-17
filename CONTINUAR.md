@@ -29,7 +29,7 @@ Después esperá mi confirmación antes de tocar archivos.
 - **Login demo**: tenant `demo` · `admin@demo.test` con la password definida en `DEMO_PASSWORD` (Compose corre migraciones + seed).
 - TP2 skill + MCP: **terminado y pusheado**.
 - Backend: **837 passed + 53 skipped** en local · **890 passed + 0 skipped** con `C02_DATABASE_URL`.
-- Frontend: **41 tests, lint, typecheck y build** en verde.
+- Frontend: **43 tests, lint, typecheck y build** en verde.
 - Migraciones **001 a 012** aplicadas y reversibles contra PostgreSQL real.
 - **Pendiente**: video de entrega y conexión real de WhatsApp. La demo usa `WA_PROVIDER=fake`; los adaptadores de Twilio y Meta están implementados, pero la cuenta trial de Twilio está bloqueada y Meta no tiene credenciales cargadas.
 

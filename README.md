@@ -11,7 +11,7 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 | Migraciones | 001 → **012**, con `downgrade` verificado contra PostgreSQL real |
 | Tests backend | **837 passed, 53 skipped** en local · **890 passed, 0 skipped** con `C02_DATABASE_URL` |
 | Calidad | `mypy` 134 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
-| Frontend | **SPA interno C-05…C-17** + landing pública F-02 · 41 tests, lint, typecheck y build |
+| Frontend | **SPA interno C-05…C-17** + landing pública F-02 · 43 tests, lint, typecheck y build |
 
 > ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05 a C-17
 > están montados en `create_app` sobre adaptadores en memoria. La UI cubre el flujo operativo completo;
@@ -141,9 +141,9 @@ docker compose stop db
 Si `C02_DATABASE_URL` no está definida, esos tests se saltean de forma explícita (no fallan en
 silencio). El gate de cada change exige `skipped == 0` con la variable seteada.
 
-Estado verificado al cierre de **C-16 (2026-11-16)**: backend `837 passed, 53 skipped` local y
+Estado verificado al cierre de **C-17 (2026-11-17)**: backend `837 passed, 53 skipped` local y
 `890 passed, 0 skipped` con PostgreSQL; `mypy` y `ruff` en verde; `openspec validate --all --strict`
-22/22. El frontend incluye el SPA interno C-05…C-16 y la landing pública F-02: `41 passed` +
+22/22. El frontend incluye el SPA interno C-05…C-17 y la landing pública F-02: `43 passed` +
 lint/typecheck/build en verde.
 
 ## WhatsApp: Twilio o Meta Cloud API
