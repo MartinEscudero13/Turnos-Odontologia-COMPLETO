@@ -11,6 +11,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 
+from sqlalchemy.orm import Session
+
 from app.admin.puertos import (
     AuditoriaMemoria as AuditoriaAdminMemoria,
 )
@@ -23,7 +25,7 @@ from app.admin.puertos import (
     UsuariosMemoria,
 )
 from app.admin.servicio import ServicioAdmin
-from app.caja.adaptadores import ImputacionCaja
+from app.caja.adaptador_imputacion import AdaptadorCaja
 from app.caja.puertos import (
     AjustePostCierreMemoria,
     CierreMemoria,
@@ -50,6 +52,11 @@ from app.calendario.puertos import (
     TurnosCalendarioMemoria,
 )
 from app.calendario.servicio import ServicioCalendario
+from app.demo_adapters import (
+    PacienteCatalogoFicha,
+    PacienteCatalogoPresupuesto,
+    PacienteSQL,
+)
 from app.ficha_clinica.puertos import (
     AdjuntoMemoria,
     ConsentimientoMemoria,
@@ -61,7 +68,7 @@ from app.ficha_clinica.puertos import (
     AuditoriaMemoria as AuditoriaFichaMemoria,
 )
 from app.ficha_clinica.puertos import (
-    PacienteMemoria as PacienteFichaMemoria,
+    PacientePort as PacienteFichaPort,
 )
 from app.ficha_clinica.puertos import (
     TurnoMemoria as TurnoFichaMemoria,
@@ -120,7 +127,7 @@ from app.presupuesto.puertos import (
     AuditoriaMemoria as AuditoriaPresupuestoMemoria,
 )
 from app.presupuesto.puertos import (
-    PacienteMemoria as PacientePresupuestoMemoria,
+    PacientePort as PacientePresupuestoPort,
 )
 from app.presupuesto.puertos import (
     PrestacionMemoria as PrestacionPresupuestoMemoria,
@@ -303,6 +310,67 @@ def _seed_pacientes() -> PacienteMemoria:
     )
 
 
+def _seed_turnos(
+    turnos: ServicioTurnos, clock: Callable[[], datetime]
+) -> list[Turno]:
+    """Agenda demo con los mismos estados que muestran los KPIs base."""
+    actor = Actor(tenant_id=DEMO_TENANT_ID, rol="RECEPCION", user_id=DEMO_USER_ID)
+    base = clock()
+    datos = [
+        (
+            DEMO_PACIENTE_1,
+            PROFESIONAL_DEMO_1,
+            SILLON_DEMO_1,
+            PRESTACION_CONSULTA,
+            base - timedelta(days=2),
+            "PRESENTE",
+        ),
+        (
+            DEMO_PACIENTE_2,
+            PROFESIONAL_DEMO_2,
+            SILLON_DEMO_2,
+            PRESTACION_LIMPIEZA,
+            base - timedelta(days=1),
+            "PRESENTE",
+        ),
+        (
+            DEMO_PACIENTE_1,
+            PROFESIONAL_DEMO_1,
+            SILLON_DEMO_1,
+            PRESTACION_CONSULTA,
+            base - timedelta(days=1) + timedelta(hours=1),
+            "AUSENTE",
+        ),
+        (
+            DEMO_PACIENTE_2,
+            PROFESIONAL_DEMO_2,
+            SILLON_DEMO_2,
+            PRESTACION_CONSULTA,
+            base + timedelta(days=1),
+            "PENDIENTE",
+        ),
+    ]
+    creados: list[Turno] = []
+    for paciente, profesional, sillon, prestacion, inicio, estado in datos:
+        turno = turnos.crear(
+            actor,
+            profesional_id=profesional,
+            sillon_id=sillon,
+            paciente_id=paciente,
+            prestacion_id=prestacion,
+            inicio=inicio,
+            duracion_min=30,
+        )
+        if estado != "PENDIENTE":
+            turnos.confirmar(actor, turno.id)
+            if estado == "PRESENTE":
+                turnos.marcar_presente(actor, turno.id)
+            elif estado == "AUSENTE":
+                turnos.marcar_ausente(actor, turno.id)
+        creados.append(turnos.obtener(actor, turno.id))
+    return creados
+
+
 def _seed_configuracion_senas() -> ConfiguracionSenaMemoria:
     configuracion = ConfiguracionSenaMemoria()
     configuracion.configurar(tenant_id=DEMO_TENANT_ID, modo="PORCENTAJE", valor=30)
@@ -322,12 +390,16 @@ def _seed_configuracion_senas() -> ConfiguracionSenaMemoria:
 
 def build_demo_services(
     reloj: Callable[[], datetime] | None = None,
+    *,
+    seed_agenda: bool = True,
+    session_factory: Callable[[], Session] | None = None,
 ) -> DemoServices:
     """Build the in-memory demo graph shared by every mounted router."""
     clock: Callable[[], datetime] = reloj or (lambda: datetime.now(UTC))
     turnos = ServicioTurnos()
     catalogo = _seed_catalogo()
     pacientes = _seed_pacientes()
+    turnos_demo = _seed_turnos(turnos, clock) if seed_agenda else []
     tenants = TenantMemoria({DEMO_TENANT_SLUG: (DEMO_TENANT_ID, True)})
 
     # -- C-07 lista de espera + auto-oferta ----------------------------
@@ -410,6 +482,16 @@ def build_demo_services(
         uow_factory=uow_factory,
         reloj=clock,
     )
+    for turno_demo in turnos_demo:
+        turnos_caja.agregar(DEMO_TENANT_ID, turno_demo.id)
+    if turnos_demo:
+        caja.registrar_movimiento(
+            Actor(tenant_id=DEMO_TENANT_ID, rol="RECEPCION", user_id=DEMO_USER_ID),
+            monto=12000,
+            medio="EFECTIVO",
+            tipo="INGRESO",
+            turno_id=turnos_demo[0].id,
+        )
 
     # -- C-11 señas ----------------------------------------------------
     senas_repo = SenaMemoria(reloj=clock)
@@ -631,11 +713,23 @@ def build_demo_services(
 
     # -- C-08 ficha clínica + C-09 odontograma/presupuesto -------------
     consentimientos = ConsentimientoMemoria()
-    pacientes_clinicos = PacienteFichaMemoria()
+    obras_demo: dict[tuple[str, str], str | None] = {
+        (DEMO_TENANT_ID, DEMO_PACIENTE_1): os_norte.id,
+        (DEMO_TENANT_ID, DEMO_PACIENTE_2): os_sur.id,
+    }
+    if session_factory is None:
+        # Tests y composición puramente en memoria.
+        pacientes_clinicos: PacienteFichaPort = PacienteCatalogoFicha(pacientes)
+        pacientes_presupuesto: PacientePresupuestoPort = PacienteCatalogoPresupuesto(
+            pacientes, obras_demo
+        )
+    else:
+        # Runtime real: los dominios clínicos ven los pacientes SQL del catálogo.
+        pacientes_clinicos = PacienteSQL(session_factory)
+        pacientes_presupuesto = PacienteSQL(session_factory, obras_demo)
     profesionales_clinicos = ProfesionalMemoria()
     turnos_clinicos = TurnoFichaMemoria()
     for paciente_id in (DEMO_PACIENTE_1, DEMO_PACIENTE_2):
-        pacientes_clinicos.agregar(DEMO_TENANT_ID, paciente_id)
         turnos_clinicos.agregar(DEMO_TENANT_ID, PROFESIONAL_DEMO_1, paciente_id)
     for profesional_id in (PROFESIONAL_DEMO_1, PROFESIONAL_DEMO_2):
         profesionales_clinicos.agregar(DEMO_TENANT_ID, profesional_id)
@@ -675,14 +769,19 @@ def build_demo_services(
         reloj=clock,
     )
 
-    pacientes_presupuesto = PacientePresupuestoMemoria()
-    pacientes_presupuesto.agregar(DEMO_TENANT_ID, DEMO_PACIENTE_1, os_norte.id)
-    pacientes_presupuesto.agregar(DEMO_TENANT_ID, DEMO_PACIENTE_2, os_sur.id)
     prestaciones_presupuesto = PrestacionPresupuestoMemoria()
     prestaciones_presupuesto.agregar(DEMO_TENANT_ID, PRESTACION_CONSULTA, PRECIO_CONSULTA_CENTAVOS)
     prestaciones_presupuesto.agregar(DEMO_TENANT_ID, PRESTACION_LIMPIEZA, PRECIO_LIMPIEZA_CENTAVOS)
     aceptaciones_repo = AceptacionMemoria()
     auditoria_presupuesto = AuditoriaPresupuestoMemoria()
+    imputacion_caja = AdaptadorCaja(
+        servicio=caja,
+        cierres=cierres,
+        cuentas=cuentas,
+        lineas=lineas_repo,
+        uow_factory=uow_factory,
+        reloj=clock,
+    )
     presupuesto = ServicioPresupuesto(
         presupuestos_repo,
         lineas_repo,
@@ -690,7 +789,7 @@ def build_demo_services(
         prestaciones_presupuesto,
         pacientes_presupuesto,
         CoberturaPresupuesto(obras_sociales),
-        ImputacionCaja(caja),
+        imputacion_caja,
         auditoria_presupuesto,
         consentimientos=consentimientos,
         uow_factory=lambda: UowPresupuestoMemoria(

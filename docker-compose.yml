@@ -3,6 +3,7 @@ name: turnos-odontologia
 services:
   db:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: turnos_owner
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?definí POSTGRES_PASSWORD en .env}
@@ -23,6 +24,7 @@ services:
 
   redis:
     image: redis:7.4-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -53,6 +55,7 @@ services:
       - turnos
 
   api:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -92,6 +95,7 @@ services:
       - turnos
 
   web:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: frontend/Dockerfile

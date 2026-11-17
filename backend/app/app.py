@@ -55,7 +55,11 @@ def create_app(
     app.state.settings = runtime
     app.state.session_factory = maker
     app.state.auth_service = auth_service or AuthService(runtime, maker)
-    demo = build_demo_services()
+    es_test = runtime.environment.value == "test"
+    demo = build_demo_services(
+        seed_agenda=not es_test,
+        session_factory=None if es_test else maker,
+    )
     app.state.demo_services = demo
     app.add_middleware(RequestIdMiddleware)
     app.include_router(health_router)

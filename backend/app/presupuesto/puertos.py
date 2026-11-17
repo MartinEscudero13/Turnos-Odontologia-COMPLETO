@@ -536,6 +536,15 @@ class LineaMemoria:
             if linea.tenant_id == tenant_id and linea.presupuesto_id == presupuesto_id
         ]
 
+    def pertenece(self, *, tenant_id: str, presupuesto_id: str, linea_id: str) -> bool:
+        """Pertenencia de la línea para el puerto de imputación de C-10."""
+        return any(
+            linea.tenant_id == tenant_id
+            and linea.presupuesto_id == presupuesto_id
+            and linea.id == linea_id
+            for linea in self._lineas
+        )
+
     def por_idempotency_key(
         self, *, tenant_id: str, idempotency_key: str
     ) -> Linea | None:

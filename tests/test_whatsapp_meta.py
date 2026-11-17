@@ -45,13 +45,13 @@ def test_envia_texto_por_graph_api(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(meta.urllib.request, "urlopen", fake_urlopen)
     pasarela = PasarelaMeta(token="token-demo", phone_number_id="123456")
 
-    envio = pasarela.enviar(destino="+54 9 261 390-7099", cuerpo="Hola")
+    envio = pasarela.enviar(destino="+54 9 110 000-0000", cuerpo="Hola")
 
     assert envio.provider_message_id == "wamid.123"
     assert envio.estado == "ENVIADO"
     body = capturado["body"]
     assert isinstance(body, dict)
-    assert body["to"] == "5492613907099"
+    assert body["to"] == "5491100000000"
     assert body["type"] == "text"
     assert body["text"]["body"] == "Hola"
     assert body["messaging_product"] == "whatsapp"
@@ -85,7 +85,7 @@ def test_falla_de_red_se_traduce(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_normaliza_telefono() -> None:
-    assert normalizar_telefono_meta("+54 9 261 390-7099") == "5492613907099"
+    assert normalizar_telefono_meta("+54 9 110 000-0000") == "5491100000000"
 
 
 def test_eventos_de_estado() -> None:
