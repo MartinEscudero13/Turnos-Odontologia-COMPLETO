@@ -906,98 +906,6 @@ h3 {
   }
 }
 
-@media (max-width: 960px) {
-  .hero {
-    grid-template-columns: 1fr;
-    min-height: auto;
-  }
-
-  .appointment-board {
-    max-width: 34rem;
-  }
-
-  .capability-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .shell-auth {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-story {
-    min-height: 40vh;
-  }
-
-  .auth-facts {
-    display: none;
-  }
-
-  .shell-app {
-    grid-template-columns: 1fr;
-  }
-
-  .app-rail {
-    border-bottom: 1px solid var(--line);
-    border-right: 0;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    padding: 0.75rem 1rem;
-  }
-
-  .app-nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-    margin: 0;
-  }
-
-  .rail-context,
-  .rail-footer {
-    display: none;
-  }
-
-  .app-main {
-    padding: 1.25rem;
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 560px) {
-  .public-header {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.9rem;
-  }
-
-  .public-nav {
-    width: 100%;
-  }
-
-  .public-nav .button {
-    margin-left: auto;
-  }
-
-  .hero-actions .button {
-    width: 100%;
-  }
-
-  .page-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .nav-item span {
-    display: none;
-  }
-
-  .empty-state-mark {
-    font-size: 2.6rem;
-  }
-}
-
 /* reserva-publica — F-02: ficha de turno, franjas horarias y gestion por token */
 .reserva-page {
   margin: 0 auto;
@@ -1372,45 +1280,6 @@ h3 {
   padding: 1rem 0;
 }
 
-@media (max-width: 860px) {
-  .reserva-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .reserva-aside {
-    display: none;
-  }
-}
-
-@media (max-width: 560px) {
-  .reserva-page {
-    padding: 0.5rem 1rem 3rem;
-  }
-
-  .ficha {
-    padding: 1rem;
-  }
-
-  .slot {
-    gap: 0.6rem;
-    padding: 0.6rem 0.7rem;
-  }
-
-  .slot-time {
-    font-size: 1.2rem;
-    min-width: 4.6rem;
-  }
-
-  .slot-meta {
-    font-size: 0.76rem;
-  }
-
-  .slot-tag {
-    font-size: 0.68rem;
-    padding: 0.15rem 0.45rem;
-  }
-}
-
 /* ------------------------------------------------------------------ */
 /* Panel interno: tablas, formularios y tarjetas                       */
 /* ------------------------------------------------------------------ */
@@ -1641,17 +1510,396 @@ h3 {
   margin-bottom: 0.8rem;
 }
 
-@media (max-width: 720px) {
-  .app-main {
-    padding: 1rem;
+/* ------------------------------------------------------------------ */
+/* Responsive: mobile, tablet and desktop                              */
+/* ------------------------------------------------------------------ */
+
+/* Tablet and below: the app rail becomes a sticky, scrollable header. */
+@media (max-width: 960px) {
+  .shell-app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
-  .panel {
-    padding: 0.9rem;
+  .app-rail {
+    align-items: center;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    border-right: 0;
+    display: grid;
+    gap: 0.35rem 0.75rem;
+    grid-template-areas:
+      'brand footer'
+      'nav nav';
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 0.6rem 0.9rem 0.45rem;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  .app-rail > .brand {
+    grid-area: brand;
+  }
+
+  .app-rail > .rail-context {
+    display: none;
+  }
+
+  .app-nav {
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.1rem;
+    grid-area: nav;
+    margin: 0;
+    min-width: 0;
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+    scrollbar-width: thin;
+  }
+
+  .nav-item {
+    border-bottom: 2px solid transparent;
+    border-left: 0;
+    flex: 0 0 auto;
+    padding: 0.5rem 0.55rem;
+    white-space: nowrap;
+  }
+
+  .nav-item span {
+    display: none;
+  }
+
+  .nav-item.is-active {
+    background: transparent;
+    border-bottom-color: var(--teal);
+  }
+
+  .rail-footer {
+    border-top: 0;
+    display: block;
+    grid-area: footer;
+    margin: 0;
+    padding: 0;
+  }
+
+  .rail-footer p {
+    display: none;
+  }
+
+  .rail-footer .button {
+    min-height: 36px;
+    padding: 0.35rem 0;
+    white-space: nowrap;
+  }
+
+  .app-main {
+    padding: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+  }
+
+  .appointment-board {
+    max-width: 34rem;
+  }
+
+  .capability-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell-auth {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .auth-story {
+    gap: 0.9rem;
+    min-height: auto;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+  }
+
+  .auth-story h2 {
+    max-width: 20ch;
+  }
+
+  .auth-facts {
+    display: none;
+  }
+
+  .login-foot .quiet-link {
+    display: none;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Public booking and side-by-side panels. */
+@media (max-width: 860px) {
+  .reserva-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reserva-aside {
+    display: none;
+  }
+
+  .two-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .app-main {
+    padding: 0.9rem 0.9rem 2.5rem;
   }
 
   .page-header {
-    flex-direction: column;
     align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .page-actions {
+    width: 100%;
+  }
+
+  .page-actions .button {
+    width: 100%;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .data-table {
+    font-size: 0.88rem;
+    min-width: 680px;
+  }
+
+  .data-table th,
+  .data-table td {
+    overflow-wrap: anywhere;
+    padding: 0.5rem 0.45rem;
+  }
+
+  .panel {
+    padding: 0.85rem 0.9rem 1rem;
+  }
+
+  .panel-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .panel-actions {
+    justify-content: flex-start;
+  }
+
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-actions .button {
+    width: 100%;
+  }
+
+  .presupuesto-card > header {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .quick-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .public-header {
+    padding: 1rem;
+  }
+
+  .hero {
+    padding: 1rem 0 2.5rem;
+  }
+
+  .auth-main {
+    padding: 1.5rem 1rem 2.5rem;
+  }
+
+  .auth-story {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .field select,
+  .field textarea {
+    min-height: 44px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .public-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .public-nav {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .public-nav .nav-link {
+    padding: 0.5rem 0;
+  }
+
+  .public-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1rem 1.5rem;
+  }
+
+  .hero-actions .button {
+    width: 100%;
+  }
+
+  .appointment-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .appointment-card h2 {
+    font-size: 1.15rem;
+  }
+
+  .appointment-time {
+    text-align: left;
+  }
+
+  .auth-story {
+    gap: 0.35rem;
+    padding: 0.9rem 1.1rem 1rem;
+  }
+
+  .auth-story .brand {
+    margin-bottom: 0.15rem;
+  }
+
+  .auth-story .eyebrow,
+  .auth-story p {
+    display: none;
+  }
+
+  .auth-story h2 {
+    font-size: 1.35rem;
+    max-width: none;
+  }
+
+  .auth-story .quiet-link {
+    font-size: 0.88rem;
+  }
+
+  .login-heading h1 {
+    font-size: clamp(1.9rem, 9vw, 2.4rem);
+    max-width: none;
+  }
+
+  .reserva-page {
+    padding: 0.5rem 1rem 3rem;
+  }
+
+  .ficha {
+    padding: 1rem;
+  }
+
+  .ficha-topline {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .slot {
+    flex-wrap: wrap;
+    gap: 0.4rem 0.6rem;
+    padding: 0.6rem 0.7rem;
+  }
+
+  .slot-time {
+    font-size: 1.2rem;
+    min-width: 4.6rem;
+  }
+
+  .slot-meta {
+    flex: 1 1 100%;
+    font-size: 0.76rem;
+    margin-right: 0;
+    order: 3;
+  }
+
+  .slot-tag {
+    font-size: 0.68rem;
+    margin-left: auto;
+    padding: 0.15rem 0.45rem;
+  }
+
+  .prest-option {
+    padding: 0.6rem 0.7rem;
+  }
+
+  .token-card {
+    align-items: stretch;
+  }
+
+  .empty-state {
+    min-height: 0;
+    padding: 1.5rem 1rem;
+  }
+
+  .empty-state-mark {
+    font-size: 2.6rem;
+  }
+
+  .stat {
+    padding: 0.75rem 0.85rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-rail {
+    padding: 0.5rem 0.7rem 0.35rem;
+  }
+
+  .nav-item {
+    font-size: 0.82rem;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .rail-footer .button {
+    font-size: 0.85rem;
+  }
+
+  .brand-name {
+    font-size: 1.05rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.7rem;
   }
 }
