@@ -5,6 +5,7 @@ import { AuthProvider } from '../../auth/AuthContext';
 import { AgendaPage } from './AgendaPage';
 import { CajaPage } from './CajaPage';
 import { CalendarioPage } from './CalendarioPage';
+import { ClinicaPage } from './ClinicaPage';
 import { ConfigPage } from './ConfigPage';
 import { ObrasSocialesPage } from './ObrasSocialesPage';
 
@@ -99,6 +100,107 @@ describe('acciones de agenda', () => {
     fireEvent.click(boton);
 
     await waitFor(() => expect(llamada('/api/turnos/turno-1/confirmar', 'POST')).toBe(true));
+  });
+});
+
+describe('acciones de clínica', () => {
+  it('muestra líneas anidadas y acepta una sin decisión', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes('/aceptar')) {
+          return json({
+            presupuesto_id: 'pres-1',
+            estado: 'ACEPTADO',
+            actor_id: 'user-1',
+            linea_id: 'linea-1',
+            acepta: true,
+            fecha: '2026-11-17T10:00:00Z',
+            canal: 'mostrador',
+            medio: null,
+          });
+        }
+        if (url.includes('/api/presupuestos?paciente_id=pac-1')) {
+          return json([
+            {
+              id: 'pres-1',
+              paciente_id: 'pac-1',
+              estado: 'VIGENTE',
+              vence_en: '2026-12-17T10:00:00Z',
+              creado_en: '2026-11-17T10:00:00Z',
+              lineas: [
+                {
+                  linea: {
+                    id: 'linea-1',
+                    presupuesto_id: 'pres-1',
+                    prestacion_id: 'prest-1',
+                    monto: 10000,
+                    cobertura_os: 4000,
+                    a_cargo_paciente: 6000,
+                    pieza_fdi: null,
+                    hallazgo_id: null,
+                  },
+                  aceptacion: null,
+                },
+              ],
+            },
+          ]);
+        }
+        if (url.includes('/api/pacientes/pac-1/ficha')) {
+          return json({ id: 'ficha-1', paciente_id: 'pac-1', creado_en: '2026-11-17T10:00:00Z' });
+        }
+        if (url.includes('/api/consentimientos')) {
+          return json([
+            {
+              id: 'cons-1',
+              paciente_id: 'pac-1',
+              timestamp: '2026-11-17T10:00:00Z',
+              canal: 'mostrador',
+              creado_en: '2026-11-17T10:00:00Z',
+            },
+          ]);
+        }
+        if (url.includes('/api/evoluciones') || url.includes('/api/odontograma')) return json([]);
+        if (url.endsWith('/api/pacientes')) {
+          return json([{ id: 'pac-1', nombre: 'Paciente Demo', telefono: '+5491100000000' }]);
+        }
+        if (url.endsWith('/api/profesionales')) {
+          return json([{ id: 'prof-1', nombre: 'Dra. Demo', especialidad: 'Odontología' }]);
+        }
+        if (url.endsWith('/api/prestaciones')) {
+          return json([
+            {
+              id: 'prest-1',
+              nombre: 'Consulta',
+              duracion_min: 30,
+              precio_base: 10000,
+            },
+          ]);
+        }
+        void init;
+        return json(null, 404);
+      }),
+    );
+
+    render(
+      <MemoryRouter
+        initialEntries={['/app/clinica?paciente=pac-1']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <AuthProvider>
+          <ClinicaPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Consulta')).toBeInTheDocument();
+    const aceptar = await screen.findByRole('button', { name: 'Aceptar' });
+    fireEvent.click(aceptar);
+
+    await waitFor(() =>
+      expect(llamada('/api/presupuestos/pres-1/aceptar', 'POST')).toBe(true),
+    );
   });
 });
 

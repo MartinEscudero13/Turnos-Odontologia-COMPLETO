@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { catalogoApi } from '../../api';
+import { catalogoApi, clinicaApi } from '../../api';
 import { errorMessage, useLoad } from '../../hooks';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
@@ -11,7 +11,7 @@ import { DataTable, ErrorNotice, Section } from '../../components/ui';
 export function PacientesPage(): JSX.Element {
   const pacientes = useLoad(() => catalogoApi.pacientes(), []);
   const [nombre, setNombre] = useState('');
-  const [telefono, setTelefono] = useState('+54911');
+  const [telefono, setTelefono] = useState('+5491100000000');
   const [email, setEmail] = useState('');
   const [consentimiento, setConsentimiento] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +22,7 @@ export function PacientesPage(): JSX.Element {
     setError(null);
     setSaving(true);
     try {
-      await catalogoApi.crearPaciente({
+      const nuevo = await catalogoApi.crearPaciente({
         nombre,
         telefono,
         email: email || undefined,
@@ -31,6 +31,21 @@ export function PacientesPage(): JSX.Element {
       setNombre('');
       setEmail('');
       pacientes.reload();
+      if (consentimiento) {
+        // El flag del catálogo no alcanza para la ficha: se registra el
+        // consentimiento clínico versionado que exige RN-AU-03.
+        try {
+          await clinicaApi.crearConsentimiento({
+            paciente_id: nuevo.id,
+            timestamp: new Date().toISOString(),
+            canal: 'mostrador',
+          });
+        } catch (cause) {
+          setError(
+            `El paciente se creó, pero no pudimos registrar el consentimiento: ${errorMessage(cause)}`,
+          );
+        }
+      }
     } catch (cause) {
       setError(errorMessage(cause));
     } finally {

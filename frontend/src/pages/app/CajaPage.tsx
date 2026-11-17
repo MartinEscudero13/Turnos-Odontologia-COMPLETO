@@ -6,7 +6,16 @@ import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { PageHeader } from '../../components/PageHeader';
 import { StatusBadge } from '../../components/StatusBadge';
-import { DataTable, ErrorNotice, Section, Select, Stat, fecha, money } from '../../components/ui';
+import {
+  DataTable,
+  ErrorNotice,
+  Section,
+  Select,
+  Stat,
+  fecha,
+  money,
+  soloFecha,
+} from '../../components/ui';
 
 function inicioMes(): string {
   const now = new Date();
@@ -240,7 +249,7 @@ export function CajaPage(): JSX.Element {
           keyOf={(p) => p.id}
           empty="Sin cobros pendientes para la fecha."
           columns={[
-            { header: 'Fecha', cell: (p) => fecha(p.fecha) },
+            { header: 'Fecha', cell: (p) => soloFecha(p.fecha) },
             { header: 'Monto', cell: (p) => money(p.monto_centavos), align: 'right' },
             {
               header: 'Acciones',
@@ -307,7 +316,7 @@ export function CajaPage(): JSX.Element {
           keyOf={(d) => d.fecha}
           empty="Sin movimientos en el rango."
           columns={[
-            { header: 'Fecha', cell: (d) => fecha(d.fecha) },
+            { header: 'Fecha', cell: (d) => soloFecha(d.fecha) },
             { header: 'Efectivo', cell: (d) => money(d.efectivo), align: 'right' },
             { header: 'Transferencia', cell: (d) => money(d.transferencia), align: 'right' },
             { header: 'MP', cell: (d) => money(d.mp), align: 'right' },
@@ -321,7 +330,7 @@ export function CajaPage(): JSX.Element {
           keyOf={(c) => c.id}
           empty="Sin cierres en el rango."
           columns={[
-            { header: 'Fecha', cell: (c) => fecha(c.fecha) },
+            { header: 'Fecha', cell: (c) => soloFecha(c.fecha) },
             { header: 'Total', cell: (c) => money(totalesCierre(c)), align: 'right' },
             { header: 'Contado', cell: (c) => money(c.efectivo_contado), align: 'right' },
             {

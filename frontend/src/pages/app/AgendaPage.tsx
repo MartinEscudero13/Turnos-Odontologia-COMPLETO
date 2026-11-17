@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { catalogoApi, turnosApi } from '../../api';
-import { enDias, errorMessage, useLoad } from '../../hooks';
+import { errorMessage, useLoad } from '../../hooks';
 import { Button } from '../../components/Button';
 import { DataTable, ErrorNotice, Section, Select, fecha } from '../../components/ui';
 import { Field } from '../../components/Field';
@@ -14,6 +14,17 @@ function toneFor(estado: string): 'success' | 'pending' | 'danger' | 'neutral' {
   return 'neutral';
 }
 
+/** Valor local `YYYY-MM-DDTHH:mm` para `<input type="datetime-local">`. */
+function inicioLocal(dias: number, hora = 10): string {
+  const date = new Date();
+  date.setDate(date.getDate() + dias);
+  date.setHours(hora, 0, 0, 0);
+  const dos = (valor: number): string => String(valor).padStart(2, '0');
+  return `${date.getFullYear()}-${dos(date.getMonth() + 1)}-${dos(
+    date.getDate(),
+  )}T${dos(date.getHours())}:${dos(date.getMinutes())}`;
+}
+
 export function AgendaPage(): JSX.Element {
   const turnos = useLoad(() => turnosApi.listar(), []);
   const pacientes = useLoad(() => catalogoApi.pacientes(), []);
@@ -25,7 +36,7 @@ export function AgendaPage(): JSX.Element {
   const [profesionalId, setProfesionalId] = useState('');
   const [sillonId, setSillonId] = useState('');
   const [prestacionId, setPrestacionId] = useState('');
-  const [inicio, setInicio] = useState(enDias(1).slice(0, 16));
+  const [inicio, setInicio] = useState(inicioLocal(1));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 

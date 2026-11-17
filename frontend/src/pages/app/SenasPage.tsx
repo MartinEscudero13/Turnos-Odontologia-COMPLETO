@@ -9,7 +9,8 @@ import { DataTable, ErrorNotice, Section, fecha, money } from '../../components/
 function haceDias(dias: number): string {
   const date = new Date();
   date.setDate(date.getDate() - dias);
-  return date.toISOString().slice(0, 10);
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
 }
 
 export function SenasPage(): JSX.Element {

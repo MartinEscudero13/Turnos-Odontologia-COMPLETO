@@ -21,6 +21,7 @@ export function ConfigPage(): JSX.Element {
   const [kpis, setKpis] = useState<Kpis | null>(null);
 
   const [anticipacion, setAnticipacion] = useState('24');
+  const [anticipacionRecordatorio, setAnticipacionRecordatorio] = useState('24');
   const [senaModo, setSenaModo] = useState('PORCENTAJE');
   const [senaValor, setSenaValor] = useState('30');
   const [recordatorios, setRecordatorios] = useState(false);
@@ -37,6 +38,9 @@ export function ConfigPage(): JSX.Element {
     const data = config.data;
     if (typeof data.anticipacion_cancelacion_h === 'number') {
       setAnticipacion(String(data.anticipacion_cancelacion_h));
+    }
+    if (typeof data.recordatorio_anticipacion_h === 'number') {
+      setAnticipacionRecordatorio(String(data.recordatorio_anticipacion_h));
     }
     if (typeof data.sena_modo === 'string') setSenaModo(data.sena_modo);
     if (typeof data.sena_valor === 'number') setSenaValor(String(data.sena_valor));
@@ -64,6 +68,7 @@ export function ConfigPage(): JSX.Element {
       () =>
         adminApi.actualizarConfig({
           anticipacion_cancelacion_h: Number(anticipacion),
+          recordatorio_anticipacion_h: Number(anticipacionRecordatorio),
           sena_modo: senaModo,
           sena_valor: Number(senaValor),
           recordatorios_habilitados: recordatorios,
@@ -116,6 +121,13 @@ export function ConfigPage(): JSX.Element {
             type="number"
             value={anticipacion}
             onChange={(event) => setAnticipacion(event.target.value)}
+          />
+          <Field
+            label="Anticipación de recordatorio (h)"
+            type="number"
+            value={anticipacionRecordatorio}
+            onChange={(event) => setAnticipacionRecordatorio(event.target.value)}
+            hint="Ventana para programar recordatorios de WhatsApp."
           />
           <Select
             label="Modo de seña"

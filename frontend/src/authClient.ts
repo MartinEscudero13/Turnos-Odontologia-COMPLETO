@@ -73,11 +73,17 @@ export async function loginRequest(
     });
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
-      const message =
-        isRecord(body) && typeof body.detail === 'string'
-          ? body.detail
-          : 'No pudimos iniciar sesión con esos datos.';
-      return { ok: false, error: message, status: response.status };
+      const detalle =
+        isRecord(body) && typeof body.detalle === 'string'
+          ? body.detalle
+          : isRecord(body) && typeof body.detail === 'string'
+            ? body.detail
+            : null;
+      return {
+        ok: false,
+        error: detalle ?? 'No pudimos iniciar sesión con esos datos.',
+        status: response.status,
+      };
     }
     if (
       !isRecord(body) ||

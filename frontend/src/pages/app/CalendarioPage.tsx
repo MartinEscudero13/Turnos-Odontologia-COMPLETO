@@ -19,6 +19,15 @@ function sumaDias(dias: number): string {
   return date.toISOString();
 }
 
+/** ISO → valor local `YYYY-MM-DDTHH:mm` para `<input type="datetime-local">`. */
+function aInputLocal(iso: string): string {
+  const date = new Date(iso);
+  const dos = (valor: number): string => String(valor).padStart(2, '0');
+  return `${date.getFullYear()}-${dos(date.getMonth() + 1)}-${dos(
+    date.getDate(),
+  )}T${dos(date.getHours())}:${dos(date.getMinutes())}`;
+}
+
 export function CalendarioPage(): JSX.Element {
   const links = useLoad(() => calendarioApi.links(), []);
   const profesionales = useLoad(() => catalogoApi.profesionales(), []);
@@ -246,13 +255,13 @@ export function CalendarioPage(): JSX.Element {
           <Field
             label="Desde"
             type="datetime-local"
-            value={desde.slice(0, 16)}
+            value={aInputLocal(desde)}
             onChange={(event) => setDesde(new Date(event.target.value).toISOString())}
           />
           <Field
             label="Hasta"
             type="datetime-local"
-            value={hasta.slice(0, 16)}
+            value={aInputLocal(hasta)}
             onChange={(event) => setHasta(new Date(event.target.value).toISOString())}
           />
           <div className="form-actions">

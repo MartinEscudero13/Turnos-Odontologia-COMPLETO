@@ -1,7 +1,7 @@
 import {
   createContext,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -53,7 +53,9 @@ function readStoredSession(): Session | null {
 export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
   const [session, setSession] = useState<Session | null>(() => readStoredSession());
 
-  useEffect(() => {
+  // Layout effect: las páginas disparan sus `useEffect` después, así la primera
+  // request ya lleva el actor y el token (evita 401 al entrar al panel).
+  useLayoutEffect(() => {
     setApiContext({
       actor: session?.actor ?? null,
       token: session?.accessToken ?? null,

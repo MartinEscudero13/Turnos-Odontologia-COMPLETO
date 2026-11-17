@@ -42,7 +42,8 @@ function actorHeaders(): Record<string, string> {
   return headers;
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {  const headers: Record<string, string> = {
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = {
     Accept: 'application/json',
     ...actorHeaders(),
     ...(init.headers as Record<string, string> | undefined),
@@ -71,7 +72,8 @@ export async function apiBlob(path: string): Promise<Blob> {
   return response.blob();
 }
 
-export function qs(params: Record<string, string | number | boolean | undefined>): string {  const search = new URLSearchParams();
+export function qs(params: Record<string, string | number | boolean | undefined>): string {
+  const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== '') search.set(key, String(value));
   }
@@ -175,13 +177,30 @@ export interface LineaPresupuesto {
   hallazgo_id: string | null;
 }
 
-export interface Presupuesto {
+export interface AceptacionPresupuesto {
+  id: string;
+  linea_id: string;
+  acepta: boolean;
+  fecha: string;
+  canal: string;
+  medio: string | null;
+}
+
+export interface LineaDecisionPresupuesto {
+  linea: LineaPresupuesto;
+  aceptacion: AceptacionPresupuesto | null;
+}
+
+export interface PresupuestoResumen {
   id: string;
   paciente_id: string;
   estado: string;
   vence_en: string | null;
   creado_en: string;
-  lineas: LineaPresupuesto[];
+}
+
+export interface Presupuesto extends PresupuestoResumen {
+  lineas: LineaDecisionPresupuesto[];
 }
 
 export interface Movimiento {
@@ -463,7 +482,7 @@ export const clinicaApi = {
   presupuestos: (pacienteId: string) =>
     api<Presupuesto[]>(`/api/presupuestos${qs({ paciente_id: pacienteId })}`),
   crearPresupuesto: (pacienteId: string) =>
-    api<Presupuesto>('/api/presupuestos', {
+    api<PresupuestoResumen>('/api/presupuestos', {
       method: 'POST',
       body: JSON.stringify({ paciente_id: pacienteId }),
     }),
@@ -473,7 +492,7 @@ export const clinicaApi = {
       body: JSON.stringify(body),
     }),
   emitir: (presupuestoId: string, venceEn: string) =>
-    api<Presupuesto>(`/api/presupuestos/${presupuestoId}/emitir`, {
+    api<PresupuestoResumen>(`/api/presupuestos/${presupuestoId}/emitir`, {
       method: 'POST',
       body: JSON.stringify({ vence_en: venceEn }),
     }),

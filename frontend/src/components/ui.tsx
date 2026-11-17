@@ -143,13 +143,20 @@ export function money(cents: number): string {
   }).format(cents / 100);
 }
 
+/** Un `YYYY-MM-DD` es un día operativo local, no un instante UTC. */
+function aFecha(iso: string): Date {
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso)
+    ? new Date(`${iso}T00:00:00`)
+    : new Date(iso);
+}
+
 export function fecha(iso: string): string {
   return new Intl.DateTimeFormat('es-AR', {
     dateStyle: 'short',
     timeStyle: 'short',
-  }).format(new Date(iso));
+  }).format(aFecha(iso));
 }
 
 export function soloFecha(iso: string): string {
-  return new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' }).format(new Date(iso));
+  return new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' }).format(aFecha(iso));
 }

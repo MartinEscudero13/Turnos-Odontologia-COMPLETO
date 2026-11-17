@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { catalogoApi, clinicaApi, type Presupuesto } from '../../api';
 import { errorMessage, useLoad } from '../../hooks';
@@ -55,6 +55,12 @@ export function ClinicaPage(): JSX.Element {
   const [busy, setBusy] = useState(false);
 
   const paciente = pacientes.data?.find((p) => p.id === pacienteId) ?? null;
+
+  useEffect(() => {
+    if (!profesionalId && profesionales.data && profesionales.data.length > 0) {
+      setProfesionalId(profesionales.data[0].id);
+    }
+  }, [profesionalId, profesionales.data]);
 
   function reloadAll(): void {
     ficha.reload();
@@ -378,7 +384,8 @@ function PresupuestoCard({
   onEmit: () => void;
   onDecidir: (lineaId: string, acepta: boolean) => void;
 }): JSX.Element {
-  const decidible = presupuesto.estado === 'EMITIDO' || presupuesto.estado === 'ACEPTADO';
+  const decidible =
+    presupuesto.estado === 'VIGENTE' || presupuesto.estado === 'ACEPTADO';
   return (
     <article className="presupuesto-card">
       <header>
@@ -392,33 +399,48 @@ function PresupuestoCard({
       </header>
       <DataTable
         rows={presupuesto.lineas}
-        keyOf={(linea) => linea.id}
+        keyOf={(item) => item.linea.id}
         empty="Sin líneas."
         columns={[
-          { header: 'Prestación', cell: (l) => nombrePrestacion(l.prestacion_id) },
-          { header: 'Monto', cell: (l) => money(l.monto), align: 'right' },
-          { header: 'OS', cell: (l) => money(l.cobertura_os), align: 'right' },
-          { header: 'Paciente', cell: (l) => money(l.a_cargo_paciente), align: 'right' },
+          { header: 'Prestación', cell: (item) => nombrePrestacion(item.linea.prestacion_id) },
+          { header: 'Monto', cell: (item) => money(item.linea.monto), align: 'right' },
+          { header: 'OS', cell: (item) => money(item.linea.cobertura_os), align: 'right' },
+          {
+            header: 'Paciente',
+            cell: (item) => money(item.linea.a_cargo_paciente),
+            align: 'right',
+          },
           {
             header: 'Decisión',
             align: 'right',
-            cell: (l) =>
-              decidible ? (
+            cell: (item) => {
+              if (item.aceptacion) {
+                return (
+                  <StatusBadge tone={item.aceptacion.acepta ? 'success' : 'danger'}>
+                    {item.aceptacion.acepta ? 'Aceptada' : 'Rechazada'}
+                  </StatusBadge>
+                );
+              }
+              if (!decidible) return <span className="muted">—</span>;
+              return (
                 <div className="row-actions">
-                  <Button variant="quiet" isLoading={busy} onClick={() => onDecidir(l.id, true)}>
+                  <Button
+                    variant="quiet"
+                    isLoading={busy}
+                    onClick={() => onDecidir(item.linea.id, true)}
+                  >
                     Aceptar
                   </Button>
                   <Button
                     variant="quiet"
                     isLoading={busy}
-                    onClick={() => onDecidir(l.id, false)}
+                    onClick={() => onDecidir(item.linea.id, false)}
                   >
                     Rechazar
                   </Button>
                 </div>
-              ) : (
-                <span className="muted">—</span>
-              ),
+              );
+            },
           },
         ]}
       />

@@ -35,6 +35,7 @@ export function DashboardPage(): JSX.Element {
       <div className="stat-grid">
         <Stat label="Turnos del mes" value={kpis.data?.total_turnos ?? '—'} />
         <Stat label="Ausentismo" value={`${kpis.data?.ausentismo_pct ?? 0}%`} />
+        <Stat label="Ocupación" value={`${kpis.data?.ocupacion_pct ?? 0}%`} />
         <Stat label="Reserva online" value={`${kpis.data?.reservas_online_pct ?? 0}%`} />
         <Stat label="Reasignados < 2 h" value={kpis.data?.reasignados_2h ?? '—'} />
         <Stat label="Pacientes" value={pacientes.data?.length ?? '—'} />
@@ -77,6 +78,10 @@ export function DashboardPage(): JSX.Element {
             <Link className="quick-link" to="/app/obras-sociales">
               <strong>Obras sociales</strong>
               <span>Coberturas y liquidaciones</span>
+            </Link>
+            <Link className="quick-link" to="/app/whatsapp">
+              <strong>WhatsApp</strong>
+              <span>Recordatorios, respuestas y recall</span>
             </Link>
             <Link className="quick-link" to="/app/config">
               <strong>Configuración</strong>
