@@ -17,6 +17,7 @@ import {
 } from '../reservaPublicaClient';
 import {
   ahoraConOffset,
+  formatearDiaCorto,
   formatearDuracion,
   formatearFechaHora,
   formatearHora,
@@ -61,16 +62,36 @@ export function ReservaPage(): JSX.Element {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [errorTelefono, setErrorTelefono] = useState<string | null>(null);
   const [alternativas, setAlternativas] = useState<AlternativaHueco[]>([]);
+  const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
 
-  // La disponibilidad llega por sillón; para el paciente la hora es una sola.
+  const dias = useMemo(() => {
+    const vistos = new Set<string>();
+    return huecos.reduce<{ clave: string; etiqueta: string }[]>((lista, item) => {
+      const clave = item.inicio.slice(0, 10);
+      if (!vistos.has(clave)) {
+        vistos.add(clave);
+        lista.push({ clave, etiqueta: formatearDiaCorto(item.inicio) });
+      }
+      return lista;
+    }, []);
+  }, [huecos]);
+
+  const diaActivo =
+    diaSeleccionado !== null && dias.some((dia) => dia.clave === diaSeleccionado)
+      ? diaSeleccionado
+      : (dias[0]?.clave ?? null);
+
+  // La disponibilidad llega por sillón y por día: para el paciente, una hora por día.
   const huecosVisibles = useMemo(() => {
     const vistos = new Set<string>();
-    return huecos.filter((item) => {
-      if (vistos.has(item.inicio)) return false;
-      vistos.add(item.inicio);
-      return true;
-    });
-  }, [huecos]);
+    return huecos
+      .filter((item) => diaActivo === null || item.inicio.slice(0, 10) === diaActivo)
+      .filter((item) => {
+        if (vistos.has(item.inicio)) return false;
+        vistos.add(item.inicio);
+        return true;
+      });
+  }, [huecos, diaActivo]);
 
   useEffect(() => {
     let vigente = true;
@@ -104,6 +125,7 @@ export function ReservaPage(): JSX.Element {
     setCargandoHuecos(true);
     setErrorHuecos(null);
     setHuecos([]);
+    setDiaSeleccionado(null);
     const result = await disponibilidad(tokenTenant, {
       prestacion: prestacionElegida.id,
       ...(profesionalElegido !== null ? { profesional: profesionalElegido.id } : {}),
@@ -425,34 +447,55 @@ export function ReservaPage(): JSX.Element {
                 ) : null}
 
                 {!cargandoHuecos && huecosVisibles.length > 0 ? (
-                  <div className="ruler">
-                    <ul
-                      className="slots"
-                      role="listbox"
-                      aria-label={`Horarios disponibles para ${prestacion.nombre}`}
-                    >
-                      {huecosVisibles.map((item) => {
-                        const seleccionado = hueco?.inicio === item.inicio;
-                        return (
-                          <li key={`${item.inicio}-${item.profesionalId}-${item.sillonId}`}>
-                            <button
-                              type="button"
-                              className={`slot ${seleccionado ? 'is-selected' : ''}`.trim()}
-                              role="option"
-                              aria-selected={seleccionado}
-                              onClick={() => setHueco(item)}
-                            >
-                              <span className="slot-time">{formatearHora(item.inicio)}</span>
-                              <span className="slot-meta">
-                                {formatearDuracion(item.inicio, item.fin)}
-                              </span>
-                              <span className="slot-tag">Disponible</span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
+                  <>
+                    {dias.length > 1 ? (
+                      <div className="day-picker" role="tablist" aria-label="Elegí un día">
+                        {dias.map((dia) => (
+                          <button
+                            key={dia.clave}
+                            type="button"
+                            role="tab"
+                            aria-selected={diaActivo === dia.clave}
+                            className={`day-option ${diaActivo === dia.clave ? 'is-selected' : ''}`.trim()}
+                            onClick={() => {
+                              setDiaSeleccionado(dia.clave);
+                              setHueco(null);
+                            }}
+                          >
+                            {dia.etiqueta}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="ruler">
+                      <ul
+                        className="slots"
+                        role="listbox"
+                        aria-label={`Horarios disponibles para ${prestacion.nombre}`}
+                      >
+                        {huecosVisibles.map((item) => {
+                          const seleccionado = hueco?.inicio === item.inicio;
+                          return (
+                            <li key={`${item.inicio}-${item.profesionalId}-${item.sillonId}`}>
+                              <button
+                                type="button"
+                                className={`slot ${seleccionado ? 'is-selected' : ''}`.trim()}
+                                role="option"
+                                aria-selected={seleccionado}
+                                onClick={() => setHueco(item)}
+                              >
+                                <span className="slot-time">{formatearHora(item.inicio)}</span>
+                                <span className="slot-meta">
+                                  {formatearDuracion(item.inicio, item.fin)}
+                                </span>
+                                <span className="slot-tag">Disponible</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </>
                 ) : null}
 
                 {hueco !== null && !cargandoHuecos ? (

@@ -1007,6 +1007,42 @@ h3 {
     var(--surface);
 }
 
+/* Selector de día: la disponibilidad trae varios días y cada uno tiene sus horarios. */
+.day-picker {
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: thin;
+}
+
+.day-option {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  flex: 0 0 auto;
+  font-size: 0.85rem;
+  min-height: 44px;
+  padding: 0.45rem 0.7rem;
+  white-space: nowrap;
+}
+
+.day-option:hover {
+  border-color: var(--teal);
+  color: var(--ink);
+}
+
+.day-option.is-selected {
+  background: var(--mint);
+  border-color: var(--teal);
+  border-left: 3px solid var(--teal);
+  color: var(--ink);
+  font-weight: 700;
+}
+
 /* Franja horaria: boton de fila completa, no card con sombra */
 .slots {
   list-style: none;

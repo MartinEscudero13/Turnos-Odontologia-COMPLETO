@@ -189,6 +189,36 @@ describe('ReservaPage', () => {
     expect(screen.getAllByRole('option', { name: /10:00/ })).toHaveLength(1);
   });
 
+  it('separa los horarios por día y muestra solo el día elegido', async () => {
+    const dosDias = [
+      {
+        inicio: '2026-11-18T09:00:00Z',
+        fin: '2026-11-18T09:30:00Z',
+        profesional_id: 'P1',
+        sillon_id: 'S1',
+      },
+      {
+        inicio: '2026-11-19T11:00:00Z',
+        fin: '2026-11-19T11:30:00Z',
+        profesional_id: 'P1',
+        sillon_id: 'S1',
+      },
+    ];
+    instalarFetch([catalogoOk(), disponibilidadOk(dosDias)]);
+    renderReserva();
+    await elegirPrestacion();
+
+    expect(screen.getByRole('option', { name: /09:00/ })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /11:00/ })).not.toBeInTheDocument();
+
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs).toHaveLength(2);
+    fireEvent.click(tabs[1]);
+
+    expect(await screen.findByRole('option', { name: /11:00/ })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /09:00/ })).not.toBeInTheDocument();
+  });
+
   it('sin huecos muestra estado vacío con salida', async () => {
     instalarFetch([catalogoOk(), disponibilidadOk([])]);
     renderReserva();

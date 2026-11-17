@@ -37,6 +37,17 @@ export function formatearHora(iso: string): string {
   return `${dosDigitos(p.hora)}:${dosDigitos(p.minuto)}`;
 }
 
+/** `mié 18.11`, estable sin depender de la zona del navegador. */
+export function formatearDiaCorto(iso: string): string {
+  const p = partes(iso);
+  if (p === null) {
+    return iso;
+  }
+  const cortos = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  const diaSemana = cortos[new Date(Date.UTC(p.anio, p.mes - 1, p.dia)).getUTCDay()] ?? '';
+  return `${diaSemana} ${dosDigitos(p.dia)}.${dosDigitos(p.mes)}`;
+}
+
 /** `martes 06.10 · 09:00`, estable sin depender de la zona del navegador. */
 export function formatearFechaHora(iso: string): string {
   const p = partes(iso);

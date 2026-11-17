@@ -16,6 +16,7 @@ import {
   ahoraConOffset,
   esGestionable,
   estadoVisible,
+  formatearDiaCorto,
   formatearDuracion,
   formatearFechaHora,
   formatearHora,
@@ -63,16 +64,36 @@ export function GestionTurnoPage(): JSX.Element {
   const [huecosNuevos, setHuecosNuevos] = useState<Hueco[]>([]);
   const [cargandoHuecos, setCargandoHuecos] = useState(false);
   const [errorHuecos, setErrorHuecos] = useState<string | null>(null);
+  const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
 
-  // La disponibilidad llega por sillón; para el paciente la hora es una sola.
+  const dias = useMemo(() => {
+    const vistos = new Set<string>();
+    return huecosNuevos.reduce<{ clave: string; etiqueta: string }[]>((lista, item) => {
+      const clave = item.inicio.slice(0, 10);
+      if (!vistos.has(clave)) {
+        vistos.add(clave);
+        lista.push({ clave, etiqueta: formatearDiaCorto(item.inicio) });
+      }
+      return lista;
+    }, []);
+  }, [huecosNuevos]);
+
+  const diaActivo =
+    diaSeleccionado !== null && dias.some((dia) => dia.clave === diaSeleccionado)
+      ? diaSeleccionado
+      : (dias[0]?.clave ?? null);
+
+  // La disponibilidad llega por sillón y por día: para el paciente, una hora por día.
   const huecosVisibles = useMemo(() => {
     const vistos = new Set<string>();
-    return huecosNuevos.filter((item) => {
-      if (vistos.has(item.inicio)) return false;
-      vistos.add(item.inicio);
-      return true;
-    });
-  }, [huecosNuevos]);
+    return huecosNuevos
+      .filter((item) => diaActivo === null || item.inicio.slice(0, 10) === diaActivo)
+      .filter((item) => {
+        if (vistos.has(item.inicio)) return false;
+        vistos.add(item.inicio);
+        return true;
+      });
+  }, [huecosNuevos, diaActivo]);
 
   const [copiado, setCopiado] = useState(false);
 
@@ -163,6 +184,7 @@ export function GestionTurnoPage(): JSX.Element {
     setCargandoHuecos(true);
     setErrorHuecos(null);
     setHuecosNuevos([]);
+    setDiaSeleccionado(null);
     const result = await disponibilidad(tokenTenant, {
       prestacion: prestacionId,
       desde: ahoraConOffset(),
@@ -409,32 +431,51 @@ export function GestionTurnoPage(): JSX.Element {
                   </p>
                 ) : null}
                 {!cargandoHuecos && huecosVisibles.length > 0 ? (
-                  <div className="ruler">
-                    <ul
-                      className="slots"
-                      role="listbox"
-                      aria-label="Horarios disponibles para reprogramar"
-                    >
-                      {huecosVisibles.map((item) => (
-                        <li key={`${item.inicio}-${item.profesionalId}-${item.sillonId}`}>
+                  <>
+                    {dias.length > 1 ? (
+                      <div className="day-picker" role="tablist" aria-label="Elegí un día">
+                        {dias.map((dia) => (
                           <button
+                            key={dia.clave}
                             type="button"
-                            className="slot"
-                            role="option"
-                            aria-selected={false}
+                            role="tab"
+                            aria-selected={diaActivo === dia.clave}
+                            className={`day-option ${diaActivo === dia.clave ? 'is-selected' : ''}`.trim()}
                             disabled={accion !== null}
-                            onClick={() => void elegirNuevoHueco(item)}
+                            onClick={() => setDiaSeleccionado(dia.clave)}
                           >
-                            <span className="slot-time">{formatearHora(item.inicio)}</span>
-                            <span className="slot-meta">
-                              {formatearDuracion(item.inicio, item.fin)}
-                            </span>
-                            <span className="slot-tag">Disponible</span>
+                            {dia.etiqueta}
                           </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="ruler">
+                      <ul
+                        className="slots"
+                        role="listbox"
+                        aria-label="Horarios disponibles para reprogramar"
+                      >
+                        {huecosVisibles.map((item) => (
+                          <li key={`${item.inicio}-${item.profesionalId}-${item.sillonId}`}>
+                            <button
+                              type="button"
+                              className="slot"
+                              role="option"
+                              aria-selected={false}
+                              disabled={accion !== null}
+                              onClick={() => void elegirNuevoHueco(item)}
+                            >
+                              <span className="slot-time">{formatearHora(item.inicio)}</span>
+                              <span className="slot-meta">
+                                {formatearDuracion(item.inicio, item.fin)}
+                              </span>
+                              <span className="slot-tag">Disponible</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
                 ) : null}
                 <div className="reserva-acciones">
                   <Button
