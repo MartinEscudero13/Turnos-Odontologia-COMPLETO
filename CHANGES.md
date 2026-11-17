@@ -4,15 +4,15 @@
 > Cada change es atómico: un agente puede implementarlo en una sesión (~4-6 horas).
 > **Leer este archivo antes de ejecutar cualquier `/opsx:propose`.**
 
-## Progreso al 2026-11-16
+## Progreso al 2026-11-17
 
 | | |
 |---|---|
-| Archivados | **22** — C-01 … C-16 y F-01 … F-06 |
-| Pendientes | Ninguno bloqueante; video de entrega y validación real de Twilio |
+| Archivados | **23** — C-01 … C-17 y F-01 … F-06 |
+| Pendientes | Ninguno bloqueante; video de entrega y validación real de WhatsApp (Twilio o Meta) |
 | Migraciones | 001 → 012 aplicadas y reversibles contra PostgreSQL real |
-| Suite | 821 passed + 53 skipped local · 874 passed + 0 skipped con `C02_DATABASE_URL` |
-| Frontend | SPA interno C-05…C-16 + landing pública F-02 · 37 tests, lint/typecheck/build |
+| Suite | 837 passed + 53 skipped local · 890 passed + 0 skipped con `C02_DATABASE_URL` |
+| Frontend | SPA interno C-05…C-17 + landing pública F-02 · 39 tests, lint/typecheck/build |
 
 Los routers de C-05…C-16 están montados en `create_app` sobre adaptadores en memoria; la deuda de
 integración es la persistencia SQL de esos dominios, no el montaje.
@@ -380,7 +380,7 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
 ### [C-13] `whatsapp-recordatorios`
 - **Estado**: `[x]` completado (2026-11-16; recordatorios, webhook Twilio con firma, respuestas SI/NO, fallback email y recall; migración **012**) + archivado en `openspec/changes/archive/2026-11-16-c-13-whatsapp-recordatorios/`
 - **Verificación**: [`docs/foundation/verification-c-13-whatsapp.md`](docs/foundation/verification-c-13-whatsapp.md)
-- **Proveedor**: Twilio WhatsApp Sandbox para la demo. Producción requiere número propio y plantillas aprobadas (PO-03 fase 2).
+- **Proveedor**: Twilio WhatsApp Sandbox y **Meta WhatsApp Cloud API** (número de prueba) detrás del mismo puerto; `WA_PROVIDER=fake|twilio|meta`. Producción requiere número propio y plantillas aprobadas (PO-03 fase 2).
 - **Scope aplicado**:
   - Modelo `mensajes_wa` con estados, canal, intentos, respuesta y `provider_message_id` único.
   - Recordatorios idempotentes por turno+plantilla; programación por endpoint (el cron queda para el worker).
@@ -452,6 +452,16 @@ Paso │ Agente A (Backend Core)      │ Agente B (Backend Aux)            │ 
   - `ocupacion_pct` en KPIs (minutos ocupados / capacidad semanal).
   - `tools/superadmin.py` y `tools/backup.py` + servicio Compose `backup`.
 - **Leer antes**: `knowledge-base/05_reglas_de_negocio.md` (§RN-AG-02, RN-CJ-03, RN-AU-04) y `knowledge-base/08_arquitectura_propuesta.md`.
+
+### [C-17] `proveedor-meta`
+- **Estado**: `[x]` completado (2026-11-17; adaptador oficial Meta WhatsApp Cloud API, webhook con `X-Hub-Signature-256`, estados y respuestas por `context.id` o teléfono; sin migración nueva) + archivado en `openspec/changes/archive/2026-11-17-c-17-proveedor-meta/`
+- **Verificación**: [`docs/foundation/verification-c-13-whatsapp.md`](docs/foundation/verification-c-13-whatsapp.md)
+- **Scope aplicado**:
+  - `WA_PROVIDER=meta` con `META_WA_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`, `META_APP_SECRET`, `META_API_VERSION`.
+  - `GET/POST /api/webhooks/whatsapp/meta` con verificación y firma fail-closed.
+  - Aplanado de `statuses`/`messages` y reutilización de `ServicioWhatsApp`.
+  - Resolución de respuestas por teléfono; también corrige el webhook de Twilio.
+- **Leer antes**: `knowledge-base/11_integraciones.md` §WhatsApp y `knowledge-base/05_reglas_de_negocio.md` §RN-IN-01/03.
 ---
 
 ## Cambios transversales (fuera del roadmap C-01…C-15)

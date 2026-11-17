@@ -6,11 +6,11 @@
 
 | Gate | Resultado |
 |---|---|
-| Backend local | **821 passed, 53 skipped** |
-| Backend con PostgreSQL | **874 passed, 0 skipped** |
-| Frontend | **37 passed** (5 archivos) |
+| Backend local | **837 passed, 53 skipped** |
+| Backend con PostgreSQL | **890 passed, 0 skipped** |
+| Frontend | **39 passed** (6 archivos) |
 | `ruff check .` | OK |
-| `mypy` | 132 archivos, 0 errores |
+| `mypy` | 134 archivos, 0 errores |
 | `npm run typecheck` / `lint` / `build` | OK |
 | `openspec validate --all --strict` | **22/22** |
 | Migraciones | 001 → 012 sin cambios |
@@ -65,6 +65,20 @@ de `horarios_semanales` por profesional y día de la semana; sin horarios el KPI
 - `tools/backup.py`: `pg_dump --format=custom` y `pg_restore --clean --if-exists`; falla con instrucciones
   si falta la herramienta.
 - `docker-compose.yml`: servicio `backup` bajo el perfil `backup`; `backups/` ignorado por Git.
+
+## Correcciones de bugs (2026-11-17)
+
+- **Líneas de presupuesto**: el backend devuelve `{ linea, aceptacion }`; el front ahora tipa y
+  renderiza esa estructura (antes mostraba la tabla vacía/mal).
+- **Primer request autenticada**: `AuthProvider` fija el actor/token en `useLayoutEffect`, antes de los
+  `useEffect` de las páginas (evita 401 al entrar al panel).
+- **Fechas date-only**: `YYYY-MM-DD` se interpreta como día local; se corrigió el corrimiento de huso en
+  Caja y liquidaciones. `SenasPage` calcula el rango con la fecha local.
+- **Configuración compartida**: el toggle de recordatorios de `/app/config` ahora gobierna el servicio de
+  WhatsApp (`ConfigWhatsAppAdmin`) y se agregó la anticipación del recordatorio.
+- **Alta de paciente con consentimiento**: el checkbox crea también el consentimiento clínico versionado.
+- **Clínica**: el profesional se preselecciona al cargar, evitando el 422 en el primer registro.
+- **Login**: el mensaje de error lee `detalle` (el contrato del backend) y no `detail`.
 
 ## Límites que siguen
 

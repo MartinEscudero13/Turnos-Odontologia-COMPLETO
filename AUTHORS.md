@@ -15,12 +15,12 @@ fueron entregados. No deben reescribirse para reflejar el trabajo grupal posteri
 
 ## Alcance vigente (actualizado 2026-11-16)
 
-- **C-01 a C-16 y F-01 a F-06**: implementados, verificados y archivados (22 changes).
+- **C-01 a C-17 y F-01 a F-06**: implementados, verificados y archivados (23 changes).
   - Martin Escudero: fundación C-01 a C-04, C-05 `turnos-anti-solape`, F-01 y verificación técnica.
   - Lautaro Naranjo: C-06 `reserva-online-publica` y la pieza de skill propia + MCP del TP2.
-  - C-07 a C-16 y F-02 a F-06 se cerraron en la fase posterior al TP2, con el mismo flujo SDD.
+  - C-07 a C-17 y F-02 a F-06 se cerraron en la fase posterior al TP2, con el mismo flujo SDD.
 - **UI interna completa** (F-06 + C-16): agenda con transiciones, pacientes, clínica, caja con anulación y cobros, señas, WhatsApp, obras sociales, calendario y configuración.
-- **C-13**: cerrado con **Twilio WhatsApp Sandbox**; producción requiere número propio y plantillas aprobadas.
+- **C-13 / C-17**: cerrado con **Twilio WhatsApp Sandbox** y **Meta WhatsApp Cloud API**; producción requiere número propio y plantillas aprobadas.
 - **C-16**: transiciones de agenda, imputación presupuesto→caja, `ocupacion_pct`, superadmin y respaldo por CLI.
 - **Deudas declaradas**: persistencia SQL real de los dominios demo, WhatsApp de producción y cron de respaldo.
   Detalle en [`README.md` § Límites declarados](README.md#límites-declarados-del-alcance).

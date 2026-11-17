@@ -6,7 +6,7 @@
 
 > **Nota de estado (actualizada 2026-11-16)**: este documento registra la entrega del **TP2** tal como se
 > presentó el 2026-11-03. El proyecto siguió avanzando: C-06 a C-16 y F-02 a F-06 están implementados,
-> verificados y archivados (22 changes, 874 tests con PostgreSQL). Donde una fila diga "preparado, no
+> verificados y archivados (23 changes, 890 tests con PostgreSQL). Donde una fila diga "preparado, no
 > implementado" o "pendiente", se conserva el estado del corte y se aclara el estado real entre corchetes.
 > El estado vigente del proyecto vive en el [`README.md`](README.md) y en [`CHANGES.md`](CHANGES.md).
 
@@ -65,7 +65,7 @@
 3. **C-02 a C-04**: implementados y archivados el 2026-11-03 (C-03 auth/RLS y C-04 catálogos quedaron cerrados ese mismo día).
 4. **C-06**: preparado en el corte del TP2 e **implementado y archivado el 2026-11-05**. Después se cerraron C-07 (2026-11-05), C-08 (2026-11-06), C-09 (2026-11-12), C-10 y C-11 (2026-11-13).
 5. **Video**: pendiente, se entrega fuera del repositorio.
-6. **Estado vigente**: 22 changes archivados, migraciones 001–012 verificadas contra PostgreSQL real, 821 tests verdes local y 874 con `C02_DATABASE_URL`, SPA interno completo. Ver [`README.md`](README.md).
+6. **Estado vigente**: 23 changes archivados, migraciones 001–012 verificadas contra PostgreSQL real, 837 tests verdes local y 890 con `C02_DATABASE_URL`, SPA interno completo. Ver [`README.md`](README.md).
 
 ## Reproducir
 
@@ -73,7 +73,7 @@
 git clone https://github.com/MartinEscudero13/Turnos-Odontologia-COMPLETO.git
 cd Turnos-Odontologia-COMPLETO
 py -m pip install -r requirements-dev.txt
-py -m pytest tests/                       # 821 passed, 53 skipped
+py -m pytest tests/                       # 837 passed, 53 skipped
 py -m ruff check .
 py -m mypy --config-file pyproject.toml
 openspec validate --all --strict
@@ -92,7 +92,7 @@ curl --fail http://localhost:8000/api/health   # {"status":"UP",...}
 docker compose down
 ```
 
-Resultados esperados al 2026-11-16: **821 passed + 53 skipped** backend y **37 passed** frontend; lint/typecheck/build en verde,
+Resultados esperados al 2026-11-17: **837 passed + 53 skipped** backend y **39 passed** frontend; lint/typecheck/build en verde,
 `openspec validate --all --strict` sin fallos (22/22), `Skill is valid!`, `context7 connected` y health
 `UP`. Para correr los 53 tests que requieren base viva, ver
 [`README.md` § Tests](README.md#suite-completa-con-postgresql-real).

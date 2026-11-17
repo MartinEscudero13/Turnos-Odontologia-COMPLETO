@@ -1,17 +1,19 @@
-# Verification — C-13 WhatsApp con Twilio
+# Verification — C-13 WhatsApp (Twilio y Meta Cloud API)
 
-**Fecha**: 2026-11-16 · **Alcance**: recordatorios, webhook, respuestas y recall
+**Fecha**: 2026-11-16 (actualizado 2026-11-17 con Meta) · **Alcance**: recordatorios, webhook,
+respuestas y recall
 
 ## Resultado
 
 | Gate | Resultado |
 |---|---|
-| Tests de dominio | **13 passed** (`tests/test_whatsapp.py`) |
-| Tests HTTP demo | **5 passed** (`tests/test_demo_api_whatsapp.py`) |
+| Tests de dominio | **15 passed** (`tests/test_whatsapp.py`) |
+| Tests del adaptador Meta | **8 passed** (`tests/test_whatsapp_meta.py`) |
+| Tests HTTP demo | **11 passed** (`tests/test_demo_api_whatsapp.py`) |
 | Tests PostgreSQL | **2 passed** (`tests/test_whatsapp_pg.py`, con `C02_DATABASE_URL`) |
-| Suite completa con DB | **859 passed, 0 skipped** |
+| Suite completa con DB | **890 passed, 0 skipped** |
 | `ruff` | `All checks passed!` |
-| `mypy` | 131 archivos, 0 errores |
+| `mypy` | 134 archivos, 0 errores |
 | OpenSpec | `c-13-whatsapp-recordatorios` válido (`--strict`) |
 
 ## Rutas verificadas por HTTP
@@ -23,10 +25,29 @@
   - `Body=NO` → turno `CANCELADO` y hueco emitido a C-07
   - `MessageStatus=delivered` → `ENTREGADO`
   - firma inválida → `401`; sin `TWILIO_AUTH_TOKEN` → `503 WEBHOOK_NO_CONFIGURADO`
+- `GET /api/webhooks/whatsapp/meta` con `hub.verify_token` → `200` con el challenge
+- `POST /api/webhooks/whatsapp/meta` con firma `X-Hub-Signature-256` → `200`
+  - respuesta sin `context.id` → se resuelve por teléfono y confirma el turno
+  - `statuses: delivered` → mensaje `ENTREGADO`
+  - firma inválida → `401`; sin `META_APP_SECRET` → `503 WEBHOOK_NO_CONFIGURADO`
 - `POST /api/whatsapp/recall` → `200` con plantilla `RECALL`
 - RBAC: `RECEPCION` programa; `ODONTOLOGO` recibe `403`; `PACIENTE` `401`
 
-## Twilio
+## Proveedores
+
+### Meta WhatsApp Cloud API
+
+- `PasarelaMeta` usa la Graph API (`/{phone_number_id}/messages`) con Bearer token y `urllib`, sin SDK.
+- Envía texto libre a números de prueba del app; el `to` se normaliza a dígitos.
+- `GET /api/webhooks/whatsapp/meta` valida `hub.verify_token` y devuelve el challenge.
+- `POST /api/webhooks/whatsapp/meta` valida `X-Hub-Signature-256` (HMAC-SHA256 con `META_APP_SECRET`),
+  aplana `statuses`/`messages` y reutiliza `ServicioWhatsApp`.
+- Las respuestas `SI`/`NO` se resuelven por `context.id` o, si Meta no lo manda, por el teléfono del
+  paciente contra el último recordatorio enviado.
+- Variables: `META_WA_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`, `META_APP_SECRET`,
+  `META_API_VERSION`.
+
+### Twilio
 
 - `PasarelaTwilio` usa la API REST (`Messages.json`) con Basic Auth y `urllib`, sin SDK.
 - `firma_valida` implementa HMAC-SHA1 sobre URL + parámetros ordenados con `TWILIO_AUTH_TOKEN`.

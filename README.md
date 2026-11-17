@@ -2,18 +2,18 @@
 
 SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real, reserva online, WhatsApp, Mercado Pago y obras sociales.
 
-## Estado del proyecto (corte 2026-11-16)
+## Estado del proyecto (corte 2026-11-17)
 
 | | |
 |---|---|
-| Changes archivados | **22** de 22 — C-01…C-16, F-01…F-06 |
+| Changes archivados | **23** de 23 — C-01…C-17, F-01…F-06 |
 | Specs vivas | **22** capabilities en `openspec/specs/` |
 | Migraciones | 001 → **012**, con `downgrade` verificado contra PostgreSQL real |
-| Tests backend | **821 passed, 53 skipped** en local · **874 passed, 0 skipped** con `C02_DATABASE_URL` |
-| Calidad | `mypy` 132 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
-| Frontend | **SPA interno C-05…C-16** + landing pública F-02 · 37 tests, lint, typecheck y build |
+| Tests backend | **837 passed, 53 skipped** en local · **890 passed, 0 skipped** con `C02_DATABASE_URL` |
+| Calidad | `mypy` 134 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
+| Frontend | **SPA interno C-05…C-17** + landing pública F-02 · 39 tests, lint, typecheck y build |
 
-> ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05 a C-16
+> ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05 a C-17
 > están montados en `create_app` sobre adaptadores en memoria. La UI cubre el flujo operativo completo;
 > la deuda declarada es la persistencia SQL de esos dominios y la validación real de Twilio.
 
@@ -97,7 +97,7 @@ Rutas del SPA: `/app` resumen · `/app/agenda` · `/app/pacientes` · `/app/clin
 ## Tests
 
 ```bash
-py -m pytest tests/                       # 821 passed, 53 skipped (addopts ya trae -q)
+py -m pytest tests/                       # 837 passed, 53 skipped (addopts ya trae -q)
 py -m ruff check .
 py -m mypy --config-file pyproject.toml
 
@@ -116,21 +116,52 @@ anti-solape, carreras entre dos conexiones, migraciones). Para correrlos:
 ```bash
 docker compose up -d db
 $env:C02_DATABASE_URL = "postgresql+psycopg://turnos_owner:<POSTGRES_PASSWORD>@localhost:5433/turnos"
-py -m pytest tests/                       # 874 passed, 0 skipped
+py -m pytest tests/                       # 890 passed, 0 skipped
 docker compose stop db
 ```
 
 Si `C02_DATABASE_URL` no está definida, esos tests se saltean de forma explícita (no fallan en
 silencio). El gate de cada change exige `skipped == 0` con la variable seteada.
 
-Estado verificado al cierre de **C-16 (2026-11-16)**: backend `821 passed, 53 skipped` local y
-`874 passed, 0 skipped` con PostgreSQL; `mypy` y `ruff` en verde; `openspec validate --all --strict`
-22/22. El frontend incluye el SPA interno C-05…C-16 y la landing pública F-02: `37 passed` +
+Estado verificado al cierre de **C-16 (2026-11-16)**: backend `837 passed, 53 skipped` local y
+`890 passed, 0 skipped` con PostgreSQL; `mypy` y `ruff` en verde; `openspec validate --all --strict`
+22/22. El frontend incluye el SPA interno C-05…C-16 y la landing pública F-02: `39 passed` +
 lint/typecheck/build en verde.
 
-## WhatsApp: Twilio Sandbox
+## WhatsApp: Twilio o Meta Cloud API
 
-La demo usa **Twilio WhatsApp Sandbox**. Sin credenciales, `WA_PROVIDER=fake` y no se toca la red.
+La demo soporta dos proveedores detrás del mismo puerto. Sin credenciales, `WA_PROVIDER=fake` y no se
+toca la red. `WA_PROVIDER` acepta `fake`, `twilio` o `meta`.
+
+### Opción Meta WhatsApp Cloud API (oficial, número de prueba)
+
+1. Creá una app en <https://developers.facebook.com/apps> y agregá el producto **WhatsApp**.
+2. En **WhatsApp → API Setup** copiá el **Phone number ID** y el **temporary access token**.
+3. Agregá tu teléfono como **test recipient** (hasta 5 números).
+4. Completá `.env`:
+
+```env
+WA_PROVIDER=meta
+META_WA_TOKEN=EAAG...
+META_PHONE_NUMBER_ID=1234567890
+META_VERIFY_TOKEN=un-texto-que-elijas
+META_APP_SECRET=el-app-secret-de-la-app
+META_API_VERSION=v23.0
+```
+
+5. Reiniciá la API y programá recordatorios desde `/app/whatsapp`.
+6. Para respuestas `SI`/`NO`, configurá el webhook en **WhatsApp → Configuration**:
+
+```text
+https://TU-TUNEL/api/webhooks/whatsapp/meta?tenant=a0000000-0000-4000-8000-000000000001
+```
+
+El `META_VERIFY_TOKEN` debe coincidir con el que pusiste en la consola. El token temporal dura 24 h;
+para la demo alcanza, para producción se genera un token permanente con un system user.
+
+### Opción Twilio Sandbox
+
+La demo también soporta **Twilio WhatsApp Sandbox**.
 
 1. Creá una cuenta en <https://www.twilio.com/try-twilio>.
 2. En **Messaging → Try it out → Send a WhatsApp message**, uní tu teléfono con el código del sandbox.
@@ -304,7 +335,7 @@ ni de tests.
 | `.github/workflows/quality.yml` | CI paralela: backend, frontend y Compose |
 | `tests/` | Suite completa por change: fundación, auth, catálogos, turnos, reservas, lista de espera, ficha, odontograma, presupuesto, caja, señas, migraciones y aislamiento |
 | `openspec/specs/` | 22 specs vivas (una por capability) |
-| `openspec/changes/archive/` | 22 changes archivados con proposal, design, specs y tasks |
+| `openspec/changes/archive/` | 23 changes archivados con proposal, design, specs y tasks |
 | `docs/foundation/bootstrap.md` | Setup, verificación, compose, troubleshooting |
 | `docs/foundation/verification-report.md` | Evidencia ejecutable del cierre C-01 |
 | `docs/discovery/` | Informe y checklist de Discovery |
@@ -390,6 +421,7 @@ ni de tests.
 - **C-13 `whatsapp-recordatorios`** — archivado el 2026-11-16. Recordatorios idempotentes, Twilio Sandbox, webhook firmado con respuestas `SI`/`NO`, confirmación/cancelación con auto-oferta a C-07, fallback email y recall clínico. Migración **012**.
 - **C-15 `admin-plataforma-exportacion`** — archivado el 2026-11-15. Configuración del tenant con whitelist, usuarios con Argon2, exportación JSON/CSV sin secretos y KPIs base.
 - **C-16 `cierre-operativo`** — archivado el 2026-11-16. Transiciones de agenda (`CONFIRMADO`/`PRESENTE`/`AUSENTE`), acciones de caja (anular, cobrar pendientes, cierres y reportes), aceptación/rechazo de presupuesto con imputación a caja, resolución de hallazgos, toggles de OS/usuarios, desconexión de calendario, `ocupacion_pct` en KPIs y herramientas `tools/superadmin.py` / `tools/backup.py`.
+- **C-17 `proveedor-meta`** — archivado el 2026-11-17. Adaptador oficial **Meta WhatsApp Cloud API** detrás del mismo puerto, webhook `GET/POST /api/webhooks/whatsapp/meta` con `X-Hub-Signature-256`, estados y respuestas `SI`/`NO` resueltas por `context.id` o teléfono. `WA_PROVIDER=fake|twilio|meta`.
 
 ## Alcance completo vs pendiente (TPI)
 
@@ -410,6 +442,7 @@ ni de tests.
 | C-13 WhatsApp con Twilio | ✅ archivada (sandbox para demo; producción pendiente) |
 | C-15 admin, exportación y KPIs | ✅ archivada (incluye `ocupacion_pct`) |
 | C-16 cierre operativo | ✅ archivada (acciones de UI, imputación a caja, superadmin y respaldo por CLI) |
+| C-17 proveedor Meta | ✅ archivada (Cloud API oficial, webhook firmado y respuestas por teléfono) |
 | SPA interno (F-06) | ✅ agenda, pacientes, clínica, caja, señas, WhatsApp, OS, calendario y configuración |
 | Montaje de routers en `create_app` | ✅ C-05…C-16 (adaptadores en memoria) |
 
@@ -418,7 +451,7 @@ ni de tests.
 El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son los límites reales al
 2026-11-16, sin maquillaje:
 
-1. **El bootstrap de la API monta C-05 a C-16.** `backend/app/app.py` registra `health`, `auth`,
+1. **El bootstrap de la API monta C-05 a C-17.** `backend/app/app.py` registra `health`, `auth`,
    `catalogos`, turnos, reserva pública, lista de espera, ficha clínica, odontograma, presupuesto,
    caja, señas, obras sociales, Google Calendar y WhatsApp, todos sobre adaptadores en memoria. Los
    repositorios SQLAlchemy de caja, presupuesto, señas y WhatsApp existen y están probados contra
@@ -429,14 +462,15 @@ El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son l
    puertos con adaptadores en memoria en tests y en la demo: el estado se pierde al reiniciar. Los
    repositorios SQL están escritos y probados contra PostgreSQL, pero no reemplazan a los adaptadores en
    el camino de la API.
-3. **La UI interna cubre C-05 a C-16, incluido WhatsApp.** El SPA permite operar agenda con
+3. **La UI interna cubre C-05 a C-17, incluido WhatsApp.** El SPA permite operar agenda con
    transiciones de estado, pacientes, clínica con decisiones de presupuesto, caja con anulación y
    cobros pendientes, señas, WhatsApp, obras sociales, calendario, configuración, exportación y KPIs.
    Quedan fuera las pantallas de edición avanzada de entidades.
 4. **Integraciones externas.** Mercado Pago y Google Calendar se ejercitan con adaptadores fake que
-   respetan el contrato. WhatsApp se integra con **Twilio Sandbox** cuando `WA_PROVIDER=twilio` y las
-   credenciales están en `.env`; sin credenciales usa `PasarelaWhatsAppFake`. El sandbox sólo envía a
-   números unidos y no es producción.
+   respetan el contrato. WhatsApp soporta **Twilio Sandbox** (`WA_PROVIDER=twilio`) y **Meta WhatsApp
+   Cloud API** (`WA_PROVIDER=meta`); sin credenciales usa `PasarelaWhatsAppFake`. El sandbox de Twilio
+   sólo envía a números unidos y el número de prueba de Meta sólo a destinatarios agregados en la app;
+   ninguno es producción.
 5. **Los bloqueos de Google Calendar no alteran la disponibilidad de C-06.** Se guardan y se consultan
    por `/api/calendar/bloqueos`, pero el motor de reservas todavía no los lee; cablearlos es un
    follow-up que toca C-05/C-06.
