@@ -12,8 +12,8 @@ export function AuthLayout(): JSX.Element {
         <p className="eyebrow">Acceso al consultorio</p>
         <h2>La agenda no debería depender de la memoria de alguien.</h2>
         <p>
-          Entrá al panel para ver la agenda, los pacientes y el catálogo de tu consultorio.
-          La reserva pública y la ficha clínica se suman en las próximas etapas.
+          Entrá al panel para gestionar la agenda, los pacientes, la historia clínica y la caja.
+          La reserva pública también está disponible para tus pacientes.
         </p>
         <ul className="auth-facts">
           <li>
@@ -24,6 +24,9 @@ export function AuthLayout(): JSX.Element {
           </li>
           <li>
             <span>03</span> Anti-solape en base de datos
+          </li>
+          <li>
+            <span>04</span> Reserva pública y ficha clínica
           </li>
         </ul>
         <Link className="quiet-link" to="/">
