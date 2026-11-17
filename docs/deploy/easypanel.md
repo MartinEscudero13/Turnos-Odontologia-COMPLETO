@@ -3,6 +3,22 @@
 EasyPanel levanta el stack Docker y maneja el dominio + HTTPS con Traefik. No hace falta Caddy ni
 abrir puertos de base de datos.
 
+## Despliegue actual
+
+| Dato | Valor |
+|---|---|
+| Proyecto | `zoriontech-crm` |
+| Servicio | `turnos-odontologia` |
+| App | <https://turnos.zoriontech.me> |
+| API / Swagger | <https://api-turnos.zoriontech.me> · `/docs` |
+| Repo / branch | `MartinEscudero13/Turnos-Odontologia-COMPLETO` · `master` |
+| Compose | `docker-compose.easypanel.yml` |
+| Login demo | tenant `demo` · `admin@demo.test` · password en Environment |
+
+El servicio `web` usa `API_UPSTREAM=https://api-turnos.zoriontech.me` y
+`API_HOST=api-turnos.zoriontech.me` para que nginx no dependa del alias interno `api` (que puede
+colisionar con otros servicios del proyecto).
+
 ## 1. Crear la app
 
 1. En EasyPanel, creá un proyecto (por ejemplo `turnos`).

@@ -17,6 +17,13 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 > están montados en `create_app` sobre adaptadores en memoria. La UI cubre el flujo operativo completo;
 > la deuda declarada es la persistencia SQL de esos dominios y la validación real de Twilio.
 
+## Demo online (EasyPanel)
+
+- **App**: <https://turnos.zoriontech.me>
+- **Swagger**: <https://api-turnos.zoriontech.me/docs>
+- **Login demo**: tenant `demo`, usuario `admin@demo.test`, password definida en EasyPanel (fuera del repo).
+- **Deploy**: [`docs/deploy/easypanel.md`](docs/deploy/easypanel.md). Proyecto `zoriontech-crm`, servicio `turnos-odontologia`.
+
 ## Equipo
 
 Trabajo grupal de **Martin Escudero** y **Lautaro Naranjo**. Alcance, roles y aclaración sobre entregas anteriores: [`AUTHORS.md`](AUTHORS.md).

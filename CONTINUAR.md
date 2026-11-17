@@ -22,6 +22,7 @@ Después esperá mi confirmación antes de tocar archivos.
 - C-01 a C-17 y F-01 a F-06: **terminados, verificados y archivados** (23 changes).
 - **C-13 WhatsApp cerrado con Twilio Sandbox y Meta Cloud API**: recordatorios, webhook firmado, SI/NO y recall. **C-17** agregó el adaptador oficial de Meta.
 - **C-16 cierre operativo**: transiciones de agenda, acciones de caja y presupuesto, toggles de OS/usuarios, desconexión de calendario, KPI de ocupación y herramientas de superadmin/respaldo.
+- **Demo online**: <https://turnos.zoriontech.me> · Swagger <https://api-turnos.zoriontech.me/docs>.
 - **Frontend interno completo**: `/app` con agenda, pacientes, clínica, caja, señas, WhatsApp, obras sociales, calendario y configuración.
 - **API demo**: C-05 a C-17 montados en `create_app` sobre adaptadores en memoria.
 - **Login demo**: tenant `demo` · `admin@demo.test` con la password definida en `DEMO_PASSWORD` (Compose corre migraciones + seed).
