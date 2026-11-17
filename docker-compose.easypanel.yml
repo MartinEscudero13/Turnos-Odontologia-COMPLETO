@@ -99,6 +99,9 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     restart: unless-stopped
+    environment:
+      API_UPSTREAM: https://api-turnos.zoriontech.me
+      API_HOST: api-turnos.zoriontech.me
     depends_on:
       api:
         condition: service_healthy
