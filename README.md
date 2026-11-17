@@ -11,7 +11,7 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 | Migraciones | 001 → **012**, con `downgrade` verificado contra PostgreSQL real |
 | Tests backend | **837 passed, 53 skipped** en local · **890 passed, 0 skipped** con `C02_DATABASE_URL` |
 | Calidad | `mypy` 134 archivos · `ruff check .` · `openspec validate --all --strict` en verde |
-| Frontend | **SPA interno C-05…C-17** + landing pública F-02 · 39 tests, lint, typecheck y build |
+| Frontend | **SPA interno C-05…C-17** + landing pública F-02 · 41 tests, lint, typecheck y build |
 
 > ⚠️ **Antes de mirar el alcance, leé [Límites declarados](#límites-declarados-del-alcance)**: C-05 a C-17
 > están montados en `create_app` sobre adaptadores en memoria. La UI cubre el flujo operativo completo;
@@ -70,6 +70,14 @@ docker compose up -d --build
 
 Compose levanta PostgreSQL, Redis, corre las migraciones, siembra la demo y arranca API + SPA.
 
+Si Docker Desktop quedó apagado, el atajo para la demo es:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/start-demo.ps1
+```
+
+El script arranca Docker si hace falta, aplica migraciones/seed, espera la API y abre el SPA.
+
 **Credenciales demo** (datos ficticios; la password la definís en `.env` como `DEMO_PASSWORD`):
 
 - Tenant: `demo`
@@ -125,7 +133,7 @@ silencio). El gate de cada change exige `skipped == 0` con la variable seteada.
 
 Estado verificado al cierre de **C-16 (2026-11-16)**: backend `837 passed, 53 skipped` local y
 `890 passed, 0 skipped` con PostgreSQL; `mypy` y `ruff` en verde; `openspec validate --all --strict`
-22/22. El frontend incluye el SPA interno C-05…C-16 y la landing pública F-02: `39 passed` +
+22/22. El frontend incluye el SPA interno C-05…C-16 y la landing pública F-02: `41 passed` +
 lint/typecheck/build en verde.
 
 ## WhatsApp: Twilio o Meta Cloud API
@@ -491,6 +499,10 @@ El TPI admite alcance parcial, pero exige declararlo con precisión. Estos son l
 11. **La ocupación usa la capacidad semanal declarada.** `ocupacion_pct` divide minutos de turnos que
     bloquean agenda sobre la suma de horarios semanales de los profesionales. Sin horarios cargados el
     denominador es cero y el KPI devuelve `0.0`.
+12. **Pacientes SQL vs. demo en memoria.** El alta interna de pacientes escribe en PostgreSQL y
+    ficha/odontograma/presupuesto la leen con `PacienteSQL`. WhatsApp, lista de espera y reserva pública
+    siguen usando los dos pacientes sembrados en memoria: un paciente creado en la UI se puede atender
+    en Clínica, pero no recibe recordatorios en la demo.
 
 ## Datos y secretos
 

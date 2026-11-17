@@ -92,7 +92,7 @@ curl --fail http://localhost:8000/api/health   # {"status":"UP",...}
 docker compose down
 ```
 
-Resultados esperados al 2026-11-17: **837 passed + 53 skipped** backend y **39 passed** frontend; lint/typecheck/build en verde,
+Resultados esperados al 2026-11-17: **837 passed + 53 skipped** backend y **41 passed** frontend; lint/typecheck/build en verde,
 `openspec validate --all --strict` sin fallos (22/22), `Skill is valid!`, `context7 connected` y health
 `UP`. Para correr los 53 tests que requieren base viva, ver
 [`README.md` § Tests](README.md#suite-completa-con-postgresql-real).

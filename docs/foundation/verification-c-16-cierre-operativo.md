@@ -8,7 +8,7 @@
 |---|---|
 | Backend local | **837 passed, 53 skipped** |
 | Backend con PostgreSQL | **890 passed, 0 skipped** |
-| Frontend | **39 passed** (6 archivos) |
+| Frontend | **41 passed** (6 archivos) |
 | `ruff check .` | OK |
 | `mypy` | 134 archivos, 0 errores |
 | `npm run typecheck` / `lint` / `build` | OK |
@@ -79,6 +79,17 @@ de `horarios_semanales` por profesional y día de la semana; sin horarios el KPI
 - **Alta de paciente con consentimiento**: el checkbox crea también el consentimiento clínico versionado.
 - **Clínica**: el profesional se preselecciona al cargar, evitando el 422 en el primer registro.
 - **Login**: el mensaje de error lee `detalle` (el contrato del backend) y no `detail`.
+- **Sesión de 15 min**: `api()` renueva el access token con el refresh token y reintenta una vez; si
+  falla, cierra la sesión y redirige al login (antes quedaba “Error 401” en la página).
+- **Caja**: los cobros resueltos ya no se listan como pendientes y el reporte se recarga al cobrar.
+- **Paciente nuevo → Clínica**: los dominios clínicos leen la tabla SQL de pacientes mediante
+  `PacienteSQL`; antes un paciente creado en Pacientes no existía para ficha/odontograma/presupuesto.
+- **Tipografía de KPIs**: los valores técnicos largos (por ejemplo `movimientos_vigentes`) usan la
+  variante `Stat variant="text"` y no desbordan la tarjeta.
+- **Facturación por profesional**: Dashboard y Configuración muestran el nombre del profesional y no
+  el UUID.
+- **Datos de demo**: la agenda arranca con 4 turnos sembrados (2 `PRESENTE`, 1 `AUSENTE`, 1
+  `PENDIENTE`) y un movimiento de caja de $120; los tests siguen arrancando sin seed (`APP_ENV=test`).
 
 ## Límites que siguen
 

@@ -12,7 +12,7 @@
 | Pendientes | Ninguno bloqueante; video de entrega y validación real de WhatsApp (Twilio o Meta) |
 | Migraciones | 001 → 012 aplicadas y reversibles contra PostgreSQL real |
 | Suite | 837 passed + 53 skipped local · 890 passed + 0 skipped con `C02_DATABASE_URL` |
-| Frontend | SPA interno C-05…C-17 + landing pública F-02 · 39 tests, lint/typecheck/build |
+| Frontend | SPA interno C-05…C-17 + landing pública F-02 · 41 tests, lint/typecheck/build |
 
 Los routers de C-05…C-16 están montados en `create_app` sobre adaptadores en memoria; la deuda de
 integración es la persistencia SQL de esos dominios, no el montaje.
