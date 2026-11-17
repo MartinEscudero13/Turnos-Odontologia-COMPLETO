@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { StatusBadge } from '../components/StatusBadge';
 import {
@@ -10,7 +10,6 @@ import {
   emitirVerificacion,
   reprogramar,
   type Hueco,
-  type ReservaCreada,
   type ReservaPropia,
 } from '../reservaPublicaClient';
 import {
@@ -24,10 +23,6 @@ import {
 
 type EstadoPagina = 'cargando' | 'listo' | 'no-encontrado' | 'error';
 type Accion = 'cancelando' | 'reprogramando' | null;
-
-interface EstadoNavegacion {
-  reserva?: ReservaCreada;
-}
 
 const MENSAJE_RECEPCION =
   'No podemos gestionar este turno online: falta la anticipación mínima. Gestioná este turno en el consultorio.';
@@ -53,8 +48,6 @@ function copiarConFallback(texto: string): boolean {
 
 export function GestionTurnoPage(): JSX.Element {
   const { tokenTenant = '', token = '' } = useParams();
-  const navegacion = useLocation().state as EstadoNavegacion | null;
-  const reservaCreada = navegacion?.reserva ?? null;
 
   const [estadoPagina, setEstadoPagina] = useState<EstadoPagina>('cargando');
   const [errorPagina, setErrorPagina] = useState<string | null>(null);
@@ -276,10 +269,6 @@ export function GestionTurnoPage(): JSX.Element {
 
   const estado = estadoVisible(reserva.estado);
   const gestionable = esGestionable(reserva.estado) && !bajoUmbral;
-  const sillon =
-    reservaCreada !== null && reservaCreada.tokenPublico === token
-      ? reservaCreada.sillonId
-      : null;
   const prestacionVisible = nombrePrestacion ?? reserva.prestacion;
 
   return (
@@ -304,10 +293,7 @@ export function GestionTurnoPage(): JSX.Element {
               <strong>
                 {prestacionVisible} · {formatearFechaHora(reserva.inicio)}
               </strong>
-              <span className="muted">
-                {formatearDuracion(reserva.inicio, reserva.fin)}
-                {sillon !== null ? ` · Sillón ${sillon}` : ''}
-              </span>
+              <span className="muted">{formatearDuracion(reserva.inicio, reserva.fin)}</span>
             </div>
 
             <div className="token-card">
@@ -433,7 +419,7 @@ export function GestionTurnoPage(): JSX.Element {
                             <span className="slot-meta">
                               {formatearDuracion(item.inicio, item.fin)}
                             </span>
-                            <span className="slot-tag">Sillón {item.sillonId}</span>
+                            <span className="slot-tag">Disponible</span>
                           </button>
                         </li>
                       ))}
@@ -473,8 +459,8 @@ export function GestionTurnoPage(): JSX.Element {
           </div>
           <div className="aside-note">
             <p>
-              <strong>Confirmación.</strong> La confirmación por WhatsApp llega en una versión
-              próxima. Hoy alcanza con esta pantalla.
+              <strong>Confirmación.</strong> Te enviamos el recordatorio por WhatsApp al número que
+              dejaste. Desde acá podés consultar, cancelar o reprogramar el turno.
             </p>
           </div>
         </aside>

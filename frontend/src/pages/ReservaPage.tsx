@@ -436,7 +436,7 @@ export function ReservaPage(): JSX.Element {
                               <span className="slot-meta">
                                 {formatearDuracion(item.inicio, item.fin)}
                               </span>
-                              <span className="slot-tag">Sillón {item.sillonId}</span>
+                              <span className="slot-tag">Disponible</span>
                             </button>
                           </li>
                         );
@@ -474,9 +474,7 @@ export function ReservaPage(): JSX.Element {
                 <h2 id="formulario-title">3 · Tus datos</h2>
                 <div className="chosen">
                   <strong>{resumen}</strong>
-                  <span className="muted">
-                    {prestacion.duracionMin} min · Sillón {hueco.sillonId}
-                  </span>
+                  <span className="muted">Duración: {prestacion.duracionMin} min</span>
                 </div>
 
                 <form className="reserva-form" onSubmit={handleSubmit} noValidate>
