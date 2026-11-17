@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ReservaPage } from './ReservaPage';
@@ -211,7 +211,7 @@ describe('ReservaPage', () => {
     expect(screen.getByRole('option', { name: /09:00/ })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /11:00/ })).not.toBeInTheDocument();
 
-    const tabs = screen.getAllByRole('tab');
+    const tabs = within(screen.getByRole('group', { name: 'Elegí un día' })).getAllByRole('button');
     expect(tabs).toHaveLength(2);
     fireEvent.click(tabs[1]);
 

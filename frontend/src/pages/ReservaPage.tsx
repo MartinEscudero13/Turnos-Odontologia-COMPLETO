@@ -449,13 +449,12 @@ export function ReservaPage(): JSX.Element {
                 {!cargandoHuecos && huecosVisibles.length > 0 ? (
                   <>
                     {dias.length > 1 ? (
-                      <div className="day-picker" role="tablist" aria-label="Elegí un día">
+                      <div className="day-picker" role="group" aria-label="Elegí un día">
                         {dias.map((dia) => (
                           <button
                             key={dia.clave}
                             type="button"
-                            role="tab"
-                            aria-selected={diaActivo === dia.clave}
+                            aria-pressed={diaActivo === dia.clave}
                             className={`day-option ${diaActivo === dia.clave ? 'is-selected' : ''}`.trim()}
                             onClick={() => {
                               setDiaSeleccionado(dia.clave);
