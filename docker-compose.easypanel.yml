@@ -1,0 +1,120 @@
+# Compose para EasyPanel: sin puertos públicos; EasyPanel/Traefik enruta
+# el dominio al servicio `web` (puerto 80) y, si querés Swagger, a `api` (8000).
+# Variables a cargar en EasyPanel > Environment (no en el repo).
+name: turnos-odontologia
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: turnos_owner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?definí POSTGRES_PASSWORD en EasyPanel}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?definí POSTGRES_APP_PASSWORD en EasyPanel}
+      POSTGRES_DB: turnos
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U turnos_owner -d turnos"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - turnos
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - turnos
+
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_OWNER_URL: postgresql+psycopg://turnos_owner:${POSTGRES_PASSWORD}@db:5432/turnos
+      DEMO_PASSWORD: ${DEMO_PASSWORD:?definí DEMO_PASSWORD en EasyPanel}
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-c",
+        "python -m alembic -c alembic.ini upgrade head && python seed_demo.py",
+      ]
+    networks:
+      - turnos
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      APP_NAME: turnos-api
+      APP_VERSION: 0.1.0
+      APP_URL: ${APP_URL:?definí APP_URL en EasyPanel}
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql+psycopg://turnos_app:${POSTGRES_APP_PASSWORD:?definí POSTGRES_APP_PASSWORD en EasyPanel}@db:5432/turnos
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:?definí JWT_SECRET en EasyPanel}
+      DEMO_PHONE_RECIPIENT: ${DEMO_PHONE_RECIPIENT:-}
+      WA_PROVIDER: ${WA_PROVIDER:-fake}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
+      META_WA_TOKEN: ${META_WA_TOKEN:-}
+      META_PHONE_NUMBER_ID: ${META_PHONE_NUMBER_ID:-}
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_API_VERSION: ${META_API_VERSION:-v23.0}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    networks:
+      - turnos
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - turnos
+
+networks:
+  turnos:
+    driver: bridge
+
+volumes:
+  postgres-data:
