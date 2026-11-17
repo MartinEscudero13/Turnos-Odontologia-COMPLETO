@@ -82,11 +82,21 @@ export function Section({
   );
 }
 
-export function Stat({ label, value }: { label: string; value: ReactNode }): JSX.Element {
+export function Stat({
+  label,
+  value,
+  variant = 'number',
+}: {
+  label: string;
+  value: ReactNode;
+  variant?: 'number' | 'text';
+}): JSX.Element {
   return (
     <div className="stat">
       <span className="stat-label">{label}</span>
-      <strong className="stat-value">{value}</strong>
+      <strong className={`stat-value ${variant === 'text' ? 'stat-value-text' : ''}`.trim()}>
+        {value}
+      </strong>
     </div>
   );
 }

@@ -51,6 +51,7 @@ export function CajaPage(): JSX.Element {
   function reloadDia(): void {
     dia.reload();
     pendientes.reload();
+    reporte.reload();
   }
 
   async function accion(task: () => Promise<unknown>, after: () => void = reloadDia): Promise<void> {
@@ -95,6 +96,10 @@ export function CajaPage(): JSX.Element {
   }
 
   const totales = dia.data?.totales_vigentes;
+  // El endpoint devuelve también los resueltos; la UI sólo ofrece cobrar los abiertos.
+  const pendientesAbiertos = (pendientes.data ?? []).filter(
+    (pendiente) => pendiente.resuelto_en === null,
+  );
   const totalReporte =
     (reporte.data?.totales.efectivo ?? 0) +
     (reporte.data?.totales.transferencia ?? 0) +
@@ -242,10 +247,10 @@ export function CajaPage(): JSX.Element {
       <Section
         title="Cobros pendientes"
         description="Líneas de presupuesto aceptadas que todavía no se cobraron."
-        actions={<StatusBadge tone="pending">{pendientes.data?.length ?? 0}</StatusBadge>}
+        actions={<StatusBadge tone="pending">{pendientesAbiertos.length}</StatusBadge>}
       >
         <DataTable
-          rows={pendientes.data ?? []}
+          rows={pendientesAbiertos}
           keyOf={(p) => p.id}
           empty="Sin cobros pendientes para la fecha."
           columns={[
@@ -308,7 +313,15 @@ export function CajaPage(): JSX.Element {
             label="Movimientos anulados"
             value={reporte.data?.movimientos_anulados ?? 0}
           />
-          <Stat label="Fuente" value={reporte.data?.fuente ?? '—'} />
+          <Stat
+            label="Fuente"
+            variant="text"
+            value={
+              reporte.data?.fuente === 'movimientos_vigentes'
+                ? 'Movimientos vigentes'
+                : '—'
+            }
+          />
         </div>
 
         <DataTable

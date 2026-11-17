@@ -228,6 +228,18 @@ describe('acciones de caja', () => {
               resuelto_en: null,
               movimiento_id: null,
             },
+            {
+              id: 'pend-resuelto',
+              fecha: '2026-11-16',
+              presupuesto_id: 'pres-1',
+              linea_id: 'linea-2',
+              monto_centavos: 3000,
+              actor_id: 'user-1',
+              turno_id: null,
+              creado_en: '2026-11-16T09:00:00Z',
+              resuelto_en: '2026-11-16T11:00:00Z',
+              movimiento_id: 'mov-9',
+            },
           ]);
         }
         if (url.includes('/api/caja/movimientos')) {
@@ -361,6 +373,7 @@ describe('acciones de configuración', () => {
           ]);
         }
         if (url.endsWith('/api/tenant/config')) return json({});
+        if (url.endsWith('/api/profesionales')) return json([]);
         return json(null, 404);
       }),
     );

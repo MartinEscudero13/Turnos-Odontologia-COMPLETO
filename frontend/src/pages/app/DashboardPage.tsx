@@ -48,7 +48,11 @@ export function DashboardPage(): JSX.Element {
             <ul className="plain-list">
               {kpis.data.facturacion_por_profesional.map(([profesional, total]) => (
                 <li key={profesional}>
-                  <span className="mono">{profesional.slice(0, 8)}</span> · {money(total)}
+                  <span>
+                    {profesionales.data?.find((p) => p.id === profesional)?.nombre ??
+                      profesional.slice(0, 8)}
+                  </span>{' '}
+                  · {money(total)}
                 </li>
               ))}
             </ul>

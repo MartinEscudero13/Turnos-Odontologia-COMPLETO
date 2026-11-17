@@ -10,9 +10,16 @@ export interface Actor {
 export interface ApiContext {
   actor: Actor | null;
   token: string | null;
+  refreshToken?: string | null;
+  tenantSlug?: string | null;
+  /** Actualiza la sesión de React/localStorage tras renovar el access token. */
+  onSession?: (tokens: { accessToken: string; refreshToken: string }) => void;
+  /** Cierra la sesión cuando el refresh también falla. */
+  onUnauthorized?: () => void;
 }
 
 let context: ApiContext = { actor: null, token: null };
+let refreshing: Promise<boolean> | null = null;
 
 export function setApiContext(next: ApiContext): void {
   context = next;
@@ -42,7 +49,7 @@ function actorHeaders(): Record<string, string> {
   return headers;
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+function buildHeaders(init: RequestInit): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...actorHeaders(),
@@ -50,7 +57,68 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   };
   if (init.body) headers['Content-Type'] = 'application/json';
   if (context.token) headers.Authorization = `Bearer ${context.token}`;
-  const response = await fetch(path, { ...init, headers });
+  return headers;
+}
+
+/** Renueva el access token una sola vez aunque haya requests en paralelo. */
+async function refrescarSesion(): Promise<boolean> {
+  if (!context.refreshToken || !context.tenantSlug) return false;
+  if (refreshing) return refreshing;
+  refreshing = (async () => {
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          tenant_slug: context.tenantSlug,
+          refresh_token: context.refreshToken,
+        }),
+      });
+      if (!response.ok) return false;
+      const body: unknown = await response.json();
+      if (
+        !body ||
+        typeof body !== 'object' ||
+        typeof (body as { access_token?: unknown }).access_token !== 'string' ||
+        typeof (body as { refresh_token?: unknown }).refresh_token !== 'string'
+      ) {
+        return false;
+      }
+      const tokens = body as { access_token: string; refresh_token: string };
+      context = {
+        ...context,
+        token: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+      };
+      context.onSession?.({
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+      });
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshing = null;
+    }
+  })();
+  return refreshing;
+}
+
+async function fetchConReintento(path: string, init: RequestInit): Promise<Response> {
+  let response = await fetch(path, { ...init, headers: buildHeaders(init) });
+  if (response.status !== 401 || !context.token) return response;
+  const renovado = await refrescarSesion();
+  if (!renovado) {
+    context.onUnauthorized?.();
+    return response;
+  }
+  response = await fetch(path, { ...init, headers: buildHeaders(init) });
+  if (response.status === 401) context.onUnauthorized?.();
+  return response;
+}
+
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetchConReintento(path, init);
   const text = await response.text();
   const body: unknown = text ? JSON.parse(text) : null;
   if (!response.ok) {
@@ -63,9 +131,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export async function apiBlob(path: string): Promise<Blob> {
-  const headers: Record<string, string> = { ...actorHeaders() };
-  if (context.token) headers.Authorization = `Bearer ${context.token}`;
-  const response = await fetch(path, { headers });
+  const response = await fetchConReintento(path, {});
   if (!response.ok) {
     throw new ApiError(`No pudimos descargar el archivo (${response.status})`, response.status);
   }

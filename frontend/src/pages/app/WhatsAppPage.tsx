@@ -54,7 +54,7 @@ export function WhatsAppPage(): JSX.Element {
       <PageHeader
         eyebrow="C-13"
         title="WhatsApp"
-        description="Recordatorios, confirmación/cancelación por Twilio y recall clínico."
+        description="Recordatorios, confirmación/cancelación por Twilio o Meta y recall clínico."
         actions={<StatusBadge tone="pending">{mensajes.data?.length ?? 0} mensajes</StatusBadge>}
       />
       <ErrorNotice error={error ?? mensajes.error ?? pacientes.error} />

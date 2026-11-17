@@ -59,6 +59,24 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setApiContext({
       actor: session?.actor ?? null,
       token: session?.accessToken ?? null,
+      refreshToken: session?.refreshToken ?? null,
+      tenantSlug: session?.tenantSlug ?? null,
+      onSession(tokens) {
+        setSession((actual) => {
+          if (!actual) return actual;
+          const siguiente = {
+            ...actual,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+          };
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(siguiente));
+          return siguiente;
+        });
+      },
+      onUnauthorized() {
+        window.localStorage.removeItem(STORAGE_KEY);
+        setSession(null);
+      },
     });
   }, [session]);
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { adminApi, apiBlob, type Kpis, type UsuarioAdmin } from '../../api';
+import { adminApi, apiBlob, catalogoApi, type Kpis, type UsuarioAdmin } from '../../api';
 import { errorMessage, useLoad } from '../../hooks';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
@@ -17,6 +17,7 @@ function mes(): { desde: string; hasta: string } {
 export function ConfigPage(): JSX.Element {
   const config = useLoad(() => adminApi.config(), []);
   const usuarios = useLoad(() => adminApi.usuarios(), []);
+  const profesionales = useLoad(() => catalogoApi.profesionales(), []);
   const rango = mes();
   const [kpis, setKpis] = useState<Kpis | null>(null);
 
@@ -112,7 +113,9 @@ export function ConfigPage(): JSX.Element {
         description="Parámetros del tenant, usuarios, exportación y KPIs base."
         actions={<StatusBadge tone="pending">Admin</StatusBadge>}
       />
-      <ErrorNotice error={error ?? config.error ?? usuarios.error} />
+      <ErrorNotice
+        error={error ?? config.error ?? usuarios.error ?? profesionales.error}
+      />
 
       <Section title="Parámetros del consultorio">
         <form className="form-grid" onSubmit={handleConfig}>
@@ -279,7 +282,9 @@ export function ConfigPage(): JSX.Element {
               ))}
               {kpis.facturacion_por_profesional.map(([profesional, total]) => (
                 <li key={profesional}>
-                  {profesional.slice(0, 8)}: <strong>{money(total)}</strong>
+                  {profesionales.data?.find((p) => p.id === profesional)?.nombre ??
+                    profesional.slice(0, 8)}
+                  : <strong>{money(total)}</strong>
                 </li>
               ))}
             </ul>
