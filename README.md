@@ -23,6 +23,7 @@ SaaS multi-tenant argentino de agenda odontológica: turnos con anti-solape real
 - **Swagger**: <https://api-turnos.zoriontech.me/docs>
 - **Login demo**: tenant `demo`, usuario `admin@demo.test`, password definida en EasyPanel (fuera del repo).
 - **Deploy**: [`docs/deploy/easypanel.md`](docs/deploy/easypanel.md). Proyecto `zoriontech-crm`, servicio `turnos-odontologia`.
+- **Guion del video**: [`docs/entrega/Guion-TPI-C1-Escudero-Naranjo.docx`](docs/entrega/Guion-TPI-C1-Escudero-Naranjo.docx).
 
 ## Equipo
 
