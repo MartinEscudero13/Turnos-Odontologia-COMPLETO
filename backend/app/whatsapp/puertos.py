@@ -123,6 +123,10 @@ class MensajeRepositorio(Protocol):
         canal: Canal = "WA",
     ) -> Mensaje | None: ...
 
+    def ultimo_por_paciente(
+        self, *, tenant_id: str, paciente_id: str, canal: Canal = "WA"
+    ) -> Mensaje | None: ...
+
     def listar(self, *, tenant_id: str, turno_id: str | None = None) -> list[Mensaje]: ...
 
     def pendientes(self, *, tenant_id: str) -> list[Mensaje]: ...
@@ -147,6 +151,8 @@ class TurnosWhatsAppPort(Protocol):
     ) -> list[TurnoMensaje]: ...
 
     def telefono_paciente(self, *, tenant_id: str, paciente_id: str) -> str | None: ...
+
+    def paciente_por_telefono(self, *, tenant_id: str, telefono: str) -> str | None: ...
 
     def confirmar(self, *, tenant_id: str, turno_id: str) -> bool: ...
 
@@ -254,6 +260,20 @@ class MensajeMemoria:
             ):
                 return mensaje
         return None
+
+    def ultimo_por_paciente(
+        self, *, tenant_id: str, paciente_id: str, canal: Canal = "WA"
+    ) -> Mensaje | None:
+        candidatos = [
+            mensaje
+            for mensaje in self._items.values()
+            if mensaje.tenant_id == tenant_id
+            and mensaje.paciente_id == paciente_id
+            and mensaje.canal == canal
+        ]
+        if not candidatos:
+            return None
+        return max(candidatos, key=lambda mensaje: mensaje.creado_en)
 
     def listar(self, *, tenant_id: str, turno_id: str | None = None) -> list[Mensaje]:
         return sorted(
@@ -397,6 +417,12 @@ class TurnosWhatsAppMemoria:
     def telefono_paciente(self, *, tenant_id: str, paciente_id: str) -> str | None:
         paciente = self._pacientes.paciente(tenant_id, paciente_id)  # type: ignore[attr-defined]
         return None if paciente is None else paciente.telefono
+
+    def paciente_por_telefono(self, *, tenant_id: str, telefono: str) -> str | None:
+        paciente = self._pacientes.buscar_por_telefono(  # type: ignore[attr-defined]
+            tenant_id, telefono
+        )
+        return None if paciente is None else paciente.id
 
     def confirmar(self, *, tenant_id: str, turno_id: str) -> bool:
         try:

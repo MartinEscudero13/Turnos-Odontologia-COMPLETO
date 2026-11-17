@@ -236,17 +236,38 @@ class ServicioWhatsApp:
     # ------------------------------------------------------------------
 
     def recibir_webhook(
-        self, payload: dict[str, str], *, tenant_id: str | None = None
+        self,
+        payload: dict[str, str],
+        *,
+        tenant_id: str | None = None,
+        telefono: str | None = None,
+        origen: str = "twilio",
     ) -> ResultadoWebhook:
         provider_id = payload.get("MessageSid") or payload.get("SmsSid")
-        if not provider_id:
-            raise Invalido("falta MessageSid")
-        mensaje = self._mensajes.por_provider(
-            provider_message_id=provider_id, tenant_id=tenant_id
-        )
+        body = payload.get("Body")
+        remitente = telefono or payload.get("From")
+        if remitente and remitente.startswith("whatsapp:"):
+            remitente = remitente[len("whatsapp:") :]
+        mensaje = None
+        if provider_id:
+            mensaje = self._mensajes.por_provider(
+                provider_message_id=provider_id, tenant_id=tenant_id
+            )
+        # Las respuestas no siempre traen el id del mensaje original: se resuelven
+        # por el teléfono del paciente contra el último recordatorio enviado.
+        if mensaje is None and body and remitente and tenant_id:
+            paciente_id = self._turnos.paciente_por_telefono(
+                tenant_id=tenant_id, telefono=remitente
+            )
+            if paciente_id is not None:
+                mensaje = self._mensajes.ultimo_por_paciente(
+                    tenant_id=tenant_id, paciente_id=paciente_id
+                )
         if mensaje is None:
+            if not provider_id and not remitente:
+                raise Invalido("falta MessageSid")
             raise NoEncontrado("mensaje no encontrado")
-        actor = Actor(tenant_id=mensaje.tenant_id, rol="ADMIN", user_id="twilio")
+        actor = Actor(tenant_id=mensaje.tenant_id, rol="ADMIN", user_id=origen)
 
         estado = None
         status = payload.get("MessageStatus") or payload.get("SmsStatus")
@@ -262,7 +283,6 @@ class ServicioWhatsApp:
         respuesta: str | None = None
         turno_id = mensaje.turno_id
         link: str | None = None
-        body = payload.get("Body")
         if body:
             normalizado = _normalizar(body)
             if normalizado in ("SI", "CONFIRMO", "1"):

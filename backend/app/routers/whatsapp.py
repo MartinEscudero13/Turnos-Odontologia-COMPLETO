@@ -1,10 +1,12 @@
 """Router FastAPI de WhatsApp — C-13."""
 from __future__ import annotations
 
+import json
 import os
 import urllib.parse
 
 from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import PlainTextResponse
 
 from app.routers.turnos import actor_desde_headers
 from app.schemas.whatsapp import (
@@ -13,7 +15,8 @@ from app.schemas.whatsapp import (
     RecallIn,
     WebhookOut,
 )
-from app.turnos.servicio import Actor
+from app.turnos.servicio import Actor, TurnoError
+from app.whatsapp.meta import eventos_meta, firma_meta_valida
 from app.whatsapp.puertos import (
     FirmaInvalida,
     Mensaje,
@@ -111,6 +114,53 @@ def crear_router(svc: ServicioWhatsApp) -> APIRouter:
             url=url, params=params, auth_token=auth_token, signature=firma
         ):
             raise FirmaInvalida("firma de Twilio inválida")
-        return _webhook_out(svc.recibir_webhook(params, tenant_id=tenant))
+        return _webhook_out(
+            svc.recibir_webhook(params, tenant_id=tenant, origen="twilio")
+        )
+
+    # -- Meta WhatsApp Cloud API ---------------------------------------
+    @r.get("/api/webhooks/whatsapp/meta")
+    async def verificar_meta(request: Request) -> PlainTextResponse:
+        params = request.query_params
+        verify_token = os.environ.get("META_VERIFY_TOKEN", "").strip()
+        if not verify_token:
+            raise WebhookNoConfigurado("META_VERIFY_TOKEN no está configurado")
+        if params.get("hub.mode") != "subscribe":
+            raise FirmaInvalida("modo de verificación inválido")
+        if params.get("hub.verify_token") != verify_token:
+            raise FirmaInvalida("token de verificación inválido")
+        return PlainTextResponse(params.get("hub.challenge", ""))
+
+    @r.post("/api/webhooks/whatsapp/meta")
+    async def webhook_meta(
+        request: Request, tenant: str | None = Query(default=None)
+    ) -> dict[str, object]:
+        app_secret = os.environ.get("META_APP_SECRET", "").strip()
+        if not app_secret:
+            raise WebhookNoConfigurado("META_APP_SECRET no está configurado")
+        raw = await request.body()
+        if not firma_meta_valida(
+            cuerpo=raw,
+            app_secret=app_secret,
+            firma=request.headers.get("x-hub-signature-256"),
+        ):
+            raise FirmaInvalida("firma de Meta inválida")
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError) as exc:
+            raise FirmaInvalida("payload de Meta inválido") from exc
+        if not isinstance(payload, dict):
+            raise FirmaInvalida("payload de Meta inválido")
+        procesados = 0
+        for evento in eventos_meta(payload):
+            try:
+                svc.recibir_webhook(
+                    evento, tenant_id=tenant, origen="meta"
+                )
+            except TurnoError:
+                # Un evento viejo o ajeno no debe hacer que Meta reintente todo.
+                continue
+            procesados += 1
+        return {"received": True, "eventos": procesados}
 
     return r

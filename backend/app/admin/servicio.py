@@ -29,6 +29,7 @@ _ROLES = frozenset({"ADMIN", "RECEPCION", "ODONTOLOGO"})
 _CLAVES = frozenset(
     {
         "anticipacion_cancelacion_h",
+        "recordatorio_anticipacion_h",
         "sena_modo",
         "sena_valor",
         "recordatorios_habilitados",
@@ -264,6 +265,10 @@ class ServicioAdmin:
         if clave == "anticipacion_cancelacion_h":
             if isinstance(valor, bool) or not isinstance(valor, int) or not 0 <= valor <= 168:
                 raise Invalido("anticipacion_cancelacion_h debe ser un entero entre 0 y 168")
+            return valor
+        if clave == "recordatorio_anticipacion_h":
+            if isinstance(valor, bool) or not isinstance(valor, int) or not 1 <= valor <= 168:
+                raise Invalido("recordatorio_anticipacion_h debe ser un entero entre 1 y 168")
             return valor
         if clave == "sena_modo":
             if valor is not None and valor not in ("SIN_SENA", "PORCENTAJE", "MONTO_FIJO"):

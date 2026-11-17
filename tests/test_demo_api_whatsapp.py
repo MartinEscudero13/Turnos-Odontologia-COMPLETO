@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
@@ -151,3 +152,158 @@ def test_recall_y_rbac(monkeypatch) -> None:
 
     assert c.post("/api/whatsapp/recordatorios/programar", headers=actor("ODONTOLOGO")).status_code == 403
     assert c.get("/api/whatsapp/mensajes", headers=actor("PACIENTE")).status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Meta WhatsApp Cloud API
+# ---------------------------------------------------------------------------
+
+META_SECRET = "meta-app-secret-demo"
+META_VERIFY = "meta-verify-demo"
+
+
+def firmar_meta(cuerpo: bytes, secreto: str = META_SECRET) -> str:
+    digest = hmac.new(secreto.encode(), cuerpo, hashlib.sha256).hexdigest()
+    return f"sha256={digest}"
+
+
+def webhook_meta(
+    c: TestClient,
+    payload: dict[str, object],
+    *,
+    firma: str | None = None,
+) -> object:
+    cuerpo = json.dumps(payload).encode()
+    headers = {
+        "content-type": "application/json",
+        "x-hub-signature-256": firma if firma is not None else firmar_meta(cuerpo),
+    }
+    return c.post(
+        f"/api/webhooks/whatsapp/meta?tenant={DEMO_TENANT_ID}",
+        content=cuerpo,
+        headers=headers,
+    )
+
+
+def test_meta_verificacion_del_webhook(monkeypatch) -> None:
+    monkeypatch.setenv("META_VERIFY_TOKEN", META_VERIFY)
+    c = client()
+
+    ok = c.get(
+        "/api/webhooks/whatsapp/meta",
+        params={
+            "hub.mode": "subscribe",
+            "hub.verify_token": META_VERIFY,
+            "hub.challenge": "desafio-123",
+        },
+    )
+    assert ok.status_code == 200, ok.text
+    assert ok.text == "desafio-123"
+
+    malo = c.get(
+        "/api/webhooks/whatsapp/meta",
+        params={
+            "hub.mode": "subscribe",
+            "hub.verify_token": "otro",
+            "hub.challenge": "x",
+        },
+    )
+    assert malo.status_code == 401, malo.text
+
+
+def test_meta_verificacion_sin_token_es_503(monkeypatch) -> None:
+    monkeypatch.delenv("META_VERIFY_TOKEN", raising=False)
+    c = client()
+
+    respuesta = c.get(
+        "/api/webhooks/whatsapp/meta",
+        params={"hub.mode": "subscribe", "hub.verify_token": "x", "hub.challenge": "x"},
+    )
+    assert respuesta.status_code == 503, respuesta.text
+
+
+def test_meta_respuesta_si_confirma_por_telefono(monkeypatch) -> None:
+    monkeypatch.setenv("META_APP_SECRET", META_SECRET)
+    c = client()
+    crear_turno(c)
+    c.post("/api/whatsapp/recordatorios/programar", headers=actor())
+
+    respuesta = webhook_meta(
+        c,
+        {
+            "entry": [
+                {
+                    "changes": [
+                        {
+                            "value": {
+                                "messages": [
+                                    {
+                                        "id": "wamid.in",
+                                        "from": "5491130551001",
+                                        "text": {"body": "Sí"},
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+    )
+
+    assert respuesta.status_code == 200, respuesta.text
+    assert respuesta.json()["eventos"] == 1
+    assert c.get("/api/turnos", headers=actor()).json()[0]["estado"] == "CONFIRMADO"
+
+
+def test_meta_estado_entregado(monkeypatch) -> None:
+    monkeypatch.setenv("META_APP_SECRET", META_SECRET)
+    c = client()
+    crear_turno(c)
+    c.post("/api/whatsapp/recordatorios/programar", headers=actor())
+    mensaje = c.get("/api/whatsapp/mensajes", headers=actor()).json()[0]
+
+    respuesta = webhook_meta(
+        c,
+        {
+            "entry": [
+                {
+                    "changes": [
+                        {
+                            "value": {
+                                "statuses": [
+                                    {
+                                        "id": mensaje["provider_message_id"],
+                                        "status": "delivered",
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+    )
+
+    assert respuesta.status_code == 200, respuesta.text
+    actualizado = c.get("/api/whatsapp/mensajes", headers=actor()).json()[0]
+    assert actualizado["estado"] == "ENTREGADO"
+
+
+def test_meta_firma_invalida_es_401(monkeypatch) -> None:
+    monkeypatch.setenv("META_APP_SECRET", META_SECRET)
+    c = client()
+
+    respuesta = webhook_meta(c, {"entry": []}, firma="sha256=invalida")
+
+    assert respuesta.status_code == 401, respuesta.text
+
+
+def test_meta_sin_secreto_es_503(monkeypatch) -> None:
+    monkeypatch.delenv("META_APP_SECRET", raising=False)
+    c = client()
+
+    respuesta = webhook_meta(c, {"entry": []})
+
+    assert respuesta.status_code == 503, respuesta.text
+    assert respuesta.json()["codigo"] == "WEBHOOK_NO_CONFIGURADO"

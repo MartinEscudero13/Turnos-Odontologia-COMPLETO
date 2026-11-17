@@ -173,11 +173,12 @@ from app.senas.puertos import (
 from app.senas.servicio import ServicioSenas
 from app.senas.webhook import ServicioSenasWebhook
 from app.turnos.servicio import Actor, NoEncontrado, ServicioTurnos, Turno
+from app.whatsapp.adaptadores import ConfigWhatsAppAdmin
+from app.whatsapp.meta import meta_desde_env
 from app.whatsapp.puertos import (
     AuditoriaMemoria as AuditoriaWhatsAppMemoria,
 )
 from app.whatsapp.puertos import (
-    ConfigWhatsAppMemoria,
     EmailFake,
     MensajeMemoria,
     PasarelaWhatsAppFake,
@@ -353,21 +354,27 @@ def build_demo_services(
     hueco_port = HuecoLiberadoMemoria(handler=_handler_hueco(ofertas))
     oferta_port = OfertaPortMemoria(oferta_repo, _resolver_slot(turnos))
 
+    # Configuración compartida entre la pantalla de admin (C-15) y WhatsApp (C-13).
+    config_admin = ConfigMemoria(
+        {
+            DEMO_TENANT_ID: {
+                "anticipacion_cancelacion_h": 24,
+                "sena_modo": "PORCENTAJE",
+                "sena_valor": 30,
+                "recordatorios_habilitados": True,
+                "recordatorio_anticipacion_h": 24,
+            }
+        }
+    )
+
     # -- C-13 WhatsApp ------------------------------------------------
-    pasarela_wa = twilio_desde_env() or PasarelaWhatsAppFake()
+    pasarela_wa = meta_desde_env() or twilio_desde_env() or PasarelaWhatsAppFake()
     whatsapp = ServicioWhatsApp(
         MensajeMemoria(),
         TurnosWhatsAppMemoria(turnos, pacientes, hueco_port),
         pasarela_wa,
         EmailFake(),
-        ConfigWhatsAppMemoria(
-            {
-                DEMO_TENANT_ID: {
-                    "recordatorios_habilitados": True,
-                    "anticipacion_h": 24,
-                }
-            }
-        ),
+        ConfigWhatsAppAdmin(config_admin),
         AuditoriaWhatsAppMemoria(),
         url_confirmacion="https://demo.local/confirmar",
         reloj=clock,
@@ -545,16 +552,7 @@ def build_demo_services(
 
     # -- C-15 admin, exportación y KPIs --------------------------------
     servicio_admin = ServicioAdmin(
-        ConfigMemoria(
-            {
-                DEMO_TENANT_ID: {
-                    "anticipacion_cancelacion_h": 24,
-                    "sena_modo": "PORCENTAJE",
-                    "sena_valor": 30,
-                    "recordatorios_habilitados": False,
-                }
-            }
-        ),
+        config_admin,
         UsuariosMemoria(
             [
                 UsuarioAdmin(

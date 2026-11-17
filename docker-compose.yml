@@ -69,6 +69,11 @@ services:
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
+      META_WA_TOKEN: ${META_WA_TOKEN:-}
+      META_PHONE_NUMBER_ID: ${META_PHONE_NUMBER_ID:-}
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_API_VERSION: ${META_API_VERSION:-v23.0}
     depends_on:
       migrate:
         condition: service_completed_successfully

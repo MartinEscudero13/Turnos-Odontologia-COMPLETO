@@ -6,9 +6,11 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
+from app.admin.puertos import ConfigMemoria as ConfigAdminMemoria
 from app.lista_espera.puertos import HuecoLiberadoMemoria
 from app.reservas.puertos import Paciente, PacienteMemoria
 from app.turnos.servicio import Actor, NoAutenticado, NoEncontrado, Prohibido
+from app.whatsapp.adaptadores import ConfigWhatsAppAdmin
 from app.whatsapp.puertos import (
     AuditoriaMemoria,
     ConfigWhatsAppMemoria,
@@ -220,6 +222,22 @@ def test_webhook_mensaje_inexistente() -> None:
         h.svc.recibir_webhook({"MessageSid": "SM-inexistente"})
 
 
+def test_webhook_resuelve_respuesta_por_telefono() -> None:
+    h = nuevo_harness()
+    _mensaje_enviado(h)
+
+    # Meta no siempre manda el id del mensaje citado: se resuelve por el teléfono.
+    resultado = h.svc.recibir_webhook(
+        {"MessageSid": "wamid.inbound", "Body": "SI", "From": "+5491130551001"},
+        tenant_id=T1,
+        origen="meta",
+    )
+
+    assert resultado.respuesta == "SI"
+    assert resultado.turno_id is not None
+    assert h.turnos.obtener(actor(), resultado.turno_id).estado == "CONFIRMADO"  # type: ignore[attr-defined]
+
+
 # ---------------------------------------------------------------------------
 # Recall y RBAC
 # ---------------------------------------------------------------------------
@@ -259,3 +277,19 @@ def test_rbac_recordatorios() -> None:
         h.svc.programar_recordatorios(actor("ODONTOLOGO"))
     with pytest.raises(NoAutenticado):
         h.svc.listar_mensajes(actor("PACIENTE"))
+
+
+def test_config_de_admin_gobierna_whatsapp() -> None:
+    config = ConfigAdminMemoria({T1: {"recordatorios_habilitados": False}})
+    adapter = ConfigWhatsAppAdmin(config)
+
+    assert adapter.habilitado(tenant_id=T1) is False
+
+    config.actualizar(
+        tenant_id=T1,
+        valores={"recordatorios_habilitados": True, "recordatorio_anticipacion_h": 48},
+        ahora=datetime.now(UTC),
+    )
+
+    assert adapter.habilitado(tenant_id=T1) is True
+    assert adapter.anticipacion_h(tenant_id=T1) == 48

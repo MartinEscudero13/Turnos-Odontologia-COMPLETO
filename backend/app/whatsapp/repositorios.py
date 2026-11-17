@@ -129,6 +129,22 @@ class MensajeSQL:
         )
         return None if modelo is None else _a_mensaje(modelo)
 
+    def ultimo_por_paciente(
+        self, *, tenant_id: str, paciente_id: str, canal: Canal = "WA"
+    ) -> Mensaje | None:
+        _fijar_tenant(self._session, tenant_id)
+        modelo = self._session.scalar(
+            select(MensajeModel)
+            .where(
+                MensajeModel.tenant_id == _uuid(tenant_id),
+                MensajeModel.paciente_id == _uuid(paciente_id),
+                MensajeModel.canal == canal,
+            )
+            .order_by(MensajeModel.creado_en.desc())
+            .limit(1)
+        )
+        return None if modelo is None else _a_mensaje(modelo)
+
     def listar(self, *, tenant_id: str, turno_id: str | None = None) -> list[Mensaje]:
         _fijar_tenant(self._session, tenant_id)
         consulta = select(MensajeModel).where(MensajeModel.tenant_id == _uuid(tenant_id))
@@ -238,6 +254,16 @@ class TurnosWhatsAppSQL:
                 Paciente.tenant_id == _uuid(tenant_id),
             )
         )
+
+    def paciente_por_telefono(self, *, tenant_id: str, telefono: str) -> str | None:
+        _fijar_tenant(self._session, tenant_id)
+        encontrado = self._session.scalar(
+            select(Paciente.id).where(
+                Paciente.tenant_id == _uuid(tenant_id),
+                Paciente.telefono == telefono,
+            )
+        )
+        return None if encontrado is None else str(encontrado)
 
     def confirmar(self, *, tenant_id: str, turno_id: str) -> bool:
         _fijar_tenant(self._session, tenant_id)
