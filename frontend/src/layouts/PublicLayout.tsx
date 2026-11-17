@@ -30,7 +30,7 @@ export function PublicLayout(): JSX.Element {
         <Brand />
         <p>Agenda odontológica con anti-solape real. Datos de demo ficticios.</p>
         <p className="footer-meta">
-          {esInicio ? 'v0.2 · Fundación visual' : 'Reserva online · sin login'}
+          {esInicio ? 'v1.0 · Gestión de turnos' : 'Reserva online · sin login'}
         </p>
       </footer>
     </div>

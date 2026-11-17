@@ -9,7 +9,7 @@
 | PO | Decisión | Clasificación | Impacta |
 |---|---|---|---|
 | PO-01 | Seña: **default por tenant + override opcional por prestación** | Resuelta (estructura) | C-11, migración 009 |
-| PO-03 | WhatsApp: **diferida**, sin proveedor/BSP definido | Diferida | C-13 (bloqueado para implementar) |
+| PO-03 | WhatsApp: **resuelta** con Twilio (C-13) y Meta Cloud API (C-17); demo con adaptador fake | Resuelta | Producción: número, plantillas y credenciales |
 | PO-06 | Acceso/identidad del paciente: **sigue abierta**; C-09 v1 excluye al paciente como actor | Abierta | C-09, C-09-UI, C-11 |
 | C-10-OQ-01…10 | Caja y cierre diario: las 10 preguntas abiertas del design quedan **resueltas** (v1) | Resuelta | C-10, C-11, C-12, C-15 |
 | C-11-OQ-01…13 | Señas con Mercado Pago: las preguntas que tocan plata quedan **fijadas** (2026-11-13) | Resuelta / Provisional | C-11, C-11-UI, C-15 |
@@ -62,9 +62,11 @@ Reglas de resolución:
 
 **Decisión: diferida.** El dueño decidió (2026-11-06) **no definir proveedor todavía**. No se elige BSP ni número en esta etapa.
 
+**Estado actual (2026-11-17): resuelta.** Se implementaron **Twilio** (C-13) y **Meta Cloud API** (C-17) detrás del mismo puerto `WA_PROVIDER`. La demo corre con `WA_PROVIDER=fake`; producción queda pendiente de número, plantillas y credenciales.
+
 ### Consecuencia inmediata
 
-- **C-13 `whatsapp-recordatorios` queda bloqueado para implementación**: sin proveedor no hay `WA_API_TOKEN`, ni plantillas aprobadas, ni webhook que probar.
+- **C-13 `whatsapp-recordatorios` quedó bloqueado en su momento y se desbloqueó después**: se cerró con Twilio Sandbox (2026-11-16) y C-17 agregó Meta Cloud API (2026-11-17).
 - Lo ya construido no depende de esto:
   - C-06 usa **captcha** como verificación y la confirmación es la respuesta HTTP + token (OQ-2/OQ-9).
   - C-07 dispara la auto-oferta con un `NotificadorPort` no-op en tests.

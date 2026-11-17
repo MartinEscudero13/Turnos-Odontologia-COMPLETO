@@ -1,13 +1,17 @@
 # Informe de aplicación — skill propia + MCP (TP2)
 
+> **Actualización 2026-11-17**: este informe describe el estado al cierre del TP2. Desde entonces
+> `C-06` se implementó, auditó y archivó; el proyecto cerró **23 changes** (C-01…C-17 y F-01…F-06).
+> El video de entrega sigue pendiente y el repo ya está commiteado y pusheado.
+
 **Proyecto**: Turnos-Odontologia (`C:\Users\tinch\Desktop\Turnos-Odontologia`) · **Fecha**: 2026-11-03 · **Método**: equipo Naranjo–Escudero
 
 ## Resumen ejecutivo
 
 Se incorporó al ciclo SDD del proyecto una **skill propia** (`revisor-escenarios-turnos`) y la integración
 documentada del **MCP Context7**. La skill auditó un change pendiente (`C-06 reserva-online-publica`) y detectó
-**4 bloqueantes antes de escribir una línea de código**; todos fueron corregidos. El change permanece en estado
-**preparado, no implementado**.
+**4 bloqueantes antes de escribir una línea de código**; todos fueron corregidos. El change se implementó y archivó
+el 2026-11-05.
 
 ## Por qué esta skill
 
@@ -40,7 +44,7 @@ severidad (`BLOQUEANTE|MAYOR|MENOR`) y cita `archivo:línea`, preguntas abiertas
 | rechazo bajo umbral sin auditoría | `CANCELACION_RECHAZADA` (append-only, sin PHI) |
 
 Detalle completo: `evidencias/04-revision-critica.md` y
-`openspec/changes/c-06-reserva-online-publica/revision.md`
+`openspec/changes/archive/2026-11-05-c-06-reserva-online-publica/revision.md`
 (snapshot del "antes" preservado en `evidencias/c-06-spec-antes-de-revision.md`).
 
 ## MCP Context7
@@ -73,6 +77,6 @@ openspec/changes/c-06-reserva-online-publica/         (change preparado + revisi
 
 ## Qué falta para darlo por cerrado
 
-1. Commits de todo lo anterior (pendientes de pedido explícito del dueño; no se commitea sin que lo pida).
-2. Video del TP (≤5 min), fuera del repo.
-3. Antes de `/opsx:apply c-06-reserva-online-publica`, re-auditar con la skill si el PO cierra OQ-1..OQ-9.
+1. ~~Commits de todo lo anterior~~: cerrado; el repo está commiteado y pusheado.
+2. Video de entrega (≤10 min) y TXT con la URL, fuera del repo.
+3. ~~Re-auditar antes de `/opsx:apply c-06`~~: `C-06` se re-auditó, implementó y archivó el 2026-11-05.

@@ -9,8 +9,8 @@ Leé completo CONTINUAR.md, AGENTS.md, AUTHORS.md y docs/equipo/guia-lautaro.md.
 
 No modifiques nada todavía.
 Resumime:
-1) qué está terminado hasta C-16,
-2) qué queda para la entrega (video y validación real de Twilio),
+1) qué está terminado hasta C-17,
+2) qué queda para la entrega (video y conexión real de WhatsApp),
 3) qué deudas de integración están declaradas y en qué orden conviene cerrarlas,
 4) qué preguntas abiertas bloquean la implementación.
 
@@ -23,6 +23,7 @@ Después esperá mi confirmación antes de tocar archivos.
 - **C-13 WhatsApp cerrado con Twilio Sandbox y Meta Cloud API**: recordatorios, webhook firmado, SI/NO y recall. **C-17** agregó el adaptador oficial de Meta.
 - **C-16 cierre operativo**: transiciones de agenda, acciones de caja y presupuesto, toggles de OS/usuarios, desconexión de calendario, KPI de ocupación y herramientas de superadmin/respaldo.
 - **Demo online**: <https://turnos.zoriontech.me> · Swagger <https://api-turnos.zoriontech.me/docs>.
+- **Guion del video**: [`docs/entrega/Guion-TPI-C1-Escudero-Naranjo.docx`](docs/entrega/Guion-TPI-C1-Escudero-Naranjo.docx).
 - **Frontend interno completo**: `/app` con agenda, pacientes, clínica, caja, señas, WhatsApp, obras sociales, calendario y configuración.
 - **API demo**: C-05 a C-17 montados en `create_app` sobre adaptadores en memoria.
 - **Login demo**: tenant `demo` · `admin@demo.test` con la password definida en `DEMO_PASSWORD` (Compose corre migraciones + seed).
@@ -30,7 +31,7 @@ Después esperá mi confirmación antes de tocar archivos.
 - Backend: **837 passed + 53 skipped** en local · **890 passed + 0 skipped** con `C02_DATABASE_URL`.
 - Frontend: **41 tests, lint, typecheck y build** en verde.
 - Migraciones **001 a 012** aplicadas y reversibles contra PostgreSQL real.
-- **Pendiente**: video de entrega y validación real de Twilio (la cuenta trial está bloqueada por un incidente de Twilio).
+- **Pendiente**: video de entrega y conexión real de WhatsApp. La demo usa `WA_PROVIDER=fake`; los adaptadores de Twilio y Meta están implementados, pero la cuenta trial de Twilio está bloqueada y Meta no tiene credenciales cargadas.
 
 ## Deudas declaradas (leer antes de proponer nada)
 
@@ -41,7 +42,7 @@ Después esperá mi confirmación antes de tocar archivos.
 2. La UI interna cubre C-05 a C-17; la edición avanzada de entidades queda fuera.
 3. La cobertura de OS es configurada, no validada en vivo (PO-04) y usa `prestaciones.precio_base`; los aranceles por OS (PO-08) son fase 2.
 4. Google Calendar usa un adaptador fake y `oauth_ref` ficticio; los bloqueos externos se consultan pero C-06 todavía no los lee para disponibilidad.
-5. WhatsApp usa Twilio Sandbox; producción requiere número propio y plantillas aprobadas. El fallback email es un log hasta configurar SMTP.
+5. WhatsApp soporta Twilio y Meta Cloud API detrás del mismo puerto; la demo corre con `WA_PROVIDER=fake`. Producción requiere número propio y plantillas aprobadas. El fallback email es un log hasta configurar SMTP.
 6. Superadmin y respaldo van por CLI (`tools/superadmin.py`, `tools/backup.py`); no hay cron en el stack ni rol HTTP cross-tenant.
 7. La ocupación usa la capacidad semanal declarada; sin horarios cargados devuelve `0.0`.
 8. El ERD de `knowledge-base/04_modelo_de_datos.md` no incluye las tablas 007 a 012.

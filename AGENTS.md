@@ -13,7 +13,7 @@
 - **C-01 a C-17 y F-01 a F-06 están archivados** (23 changes). **C-13 se cerró con Twilio Sandbox y Meta Cloud API** (producción pendiente de número y plantillas). **C-16** cerró las acciones operativas de la UI, la imputación presupuesto→caja, el KPI de ocupación y las herramientas de superadmin/respaldo. **C-17** agregó el proveedor oficial de Meta.
 - Los changes **C-01 a C-04**, **C-05** y **F-01** corresponden a Martin Escudero; **C-06** y la pieza skill+MCP del TP2 a Lautaro Naranjo; **C-07 a C-17** y **F-02 a F-06** se cerraron en la fase posterior al TP2.
 - **UI interna completa** (`F-06` + `C-16`): agenda con transiciones, pacientes, clínica con decisiones de presupuesto, caja con anulación/cobros, señas, WhatsApp, obras sociales, calendario y configuración. Los routers de C-05…C-17 están montados en `create_app` sobre adaptadores en memoria.
-- **Deudas declaradas**: persistencia SQL real de los dominios demo, WhatsApp de producción (sandbox en la demo) y cron de respaldo. Superadmin y respaldo existen por CLI. Detalle en [`README.md` § Límites declarados](README.md#límites-declarados-del-alcance).
+- **Deudas declaradas**: persistencia SQL real de los dominios demo, WhatsApp de producción (la demo usa `WA_PROVIDER=fake`) y cron de respaldo. Superadmin y respaldo existen por CLI. Detalle en [`README.md` § Límites declarados](README.md#límites-declarados-del-alcance).
 
 ---
 

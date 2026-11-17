@@ -424,7 +424,7 @@ ni de tests.
 - **Estado: archivado** el 2026-11-05. Landing mobile-first `/r/:tokenTenant` que consume la API pública: catálogo → prestación → huecos → nombre/teléfono/verificación → confirmación con token; gestión por token en `/r/:tokenTenant/turno/:token` (consultar/cancelar/reprogramar).
 - **Enabler backend incluido**: `GET /api/publico/{tokenTenant}/catalogo` (OQ-F1), solo lectura, tenant-scoped, `404` uniforme y allow-list sin PHI.
 - **Archivo**: `openspec/changes/archive/2026-11-05-f-02-reserva-publica-landing/`; capturas en `.../mockups/previews/`.
-- **Pendiente declarado**: proveedor real de captcha (hoy placeholder accesible), persistencia SQL real de la reserva (hoy la demo corre en memoria) y WhatsApp de producción (la demo usa Twilio Sandbox).
+- **Pendiente declarado**: proveedor real de captcha (hoy placeholder accesible), persistencia SQL real de la reserva (hoy la demo corre en memoria) y WhatsApp de producción (la demo usa `WA_PROVIDER=fake`; Twilio y Meta están implementados sin credenciales).
 
 ## Estado de los ciclos C-07 a C-11
 

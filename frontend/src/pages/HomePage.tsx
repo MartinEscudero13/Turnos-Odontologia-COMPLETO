@@ -86,10 +86,10 @@ export function HomePage(): JSX.Element {
       </section>
 
       <section className="closing-note">
-        <p className="eyebrow">Fundación en progreso</p>
+        <p className="eyebrow">El circuito completo</p>
         <p>
-          Esta pantalla es la base visual. La agenda, los pacientes y la reserva pública llegan
-          como páginas verificables, sin inventar estados que el backend no tenga.
+          Agenda, pacientes, ficha clínica, presupuesto, caja y reserva pública están implementados
+          y verificados. Esta landing es la puerta de entrada al panel y a la reserva del consultorio.
         </p>
       </section>
     </div>
